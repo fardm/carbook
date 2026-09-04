@@ -84,7 +84,7 @@ export const fa = {
       calendarEventNote: "یادآوری سرویس بعدی",
       replaceService: "ثبت تعویض",
       reminder: "یادآوری",
-      health: "سلامت",
+      health: "سلامت قطعه",
       recommendedDate: "تاریخ پیشنهادی تعویض",
       recommendedKm: "کیلومتر پیشنهادی تعویض",
       remainingDays: "روز مانده",

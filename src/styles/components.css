@@ -916,19 +916,20 @@ textarea.field__input {
   gap: var(--md-space-3);
 }
 
-/* One section of the unified card: a very subtle neutral panel, slightly
- * lighter than the card (light: lowest container; dark: one step above the
- * card), gently rounded, without borders/shadow — the tint is soft enough
- * that the three parts still read as ONE cohesive card while staying
- * distinguishable from each other. */
+/* Sections of the unified card: plain, borderless, background-free so the
+ * page reads as ONE cohesive layout. The Service History section is the
+ * only part that keeps its own board (see --board below). */
 .service-detail__section {
-  background-color: var(--md-sys-color-surface-container-lowest);
-  border-radius: var(--md-shape-small);
   padding: var(--md-space-4);
 }
 
-:root[data-theme="dark"] .service-detail__section {
-  background-color: var(--md-sys-color-surface-container-high);
+/* The one major section with its own board: History. A soft neutral
+ * container (mixed from the lightest container token so it works in both
+ * themes) with a hairline border — still quiet, never card-on-card noise. */
+.service-detail__section--board {
+  background-color: color-mix(in srgb, var(--md-sys-color-surface-container-high) 55%, transparent);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-shape-medium);
 }
 
 .service-detail__section-title {
@@ -975,8 +976,8 @@ textarea.field__input {
   margin: var(--md-space-4) 0 var(--md-space-1);
 }
 
-/* History panel: rows separated by a minimal border (no dividers), each
- * item framed with a hairline so entries read as one list, not cards. */
+/* History panel: the section is the board; individual rows are separated
+ * by a subtle lighter background instead of borders or dividers. */
 .service-detail__history-panel {
   display: flex;
   flex-direction: column;
@@ -991,9 +992,10 @@ textarea.field__input {
 }
 
 .service-detail__history-panel .history__item {
-  border: 1px solid var(--md-sys-color-outline-variant);
+  border: none;
   border-radius: var(--md-shape-small);
   padding: var(--md-space-2) var(--md-space-3);
+  background-color: color-mix(in srgb, var(--md-sys-color-surface-container-highest) 45%, transparent);
 }
 
 .service-detail__history-panel .service-detail__subtitle {
@@ -1062,78 +1064,109 @@ textarea.field__input {
   margin-top: var(--md-space-3);
 }
 
-/* Status section: small health donut on its own row, then the recommended
- * replacement date / mileage rows carrying same-row remaining badges. */
-.status-health {
+/* Status section: three equal cards side by side (stack on mobile), each
+ * with a centered icon, title, prominent value and a quiet secondary
+ * remaining-time/mileage line. No icon tiles — icons sit directly on the
+ * card surface. */
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--md-space-3);
+}
+
+@media (max-width: 720px) {
+  .status-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.status-card {
   display: flex;
   flex-direction: column;
   align-items: center;
+  text-align: center;
   gap: var(--md-space-2);
-  margin-bottom: var(--md-space-3);
+  padding: var(--md-space-4);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-shape-medium);
+  background-color: var(--md-sys-color-surface);
 }
 
-.status-health .donut {
-  width: 96px;
-  height: 96px;
-}
-
-.status-health__label {
-  font-size: var(--md-typescale-label-medium);
-  font-weight: 600;
-  color: var(--md-sys-color-on-surface-variant);
-}
-
-.status-rows {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Each status row: the label sits above, and the main value + its remaining
- * badge share the line beneath it — so they always stay on the same row. */
-.status-row {
-  display: flex;
-  flex-direction: column;
-  gap: var(--md-space-1);
-  padding: var(--md-space-3) 0;
-  border-bottom: 1px solid var(--md-sys-color-outline-variant);
-}
-
-.status-row:last-child {
-  border-bottom: none;
-}
-
-.status-row dt {
-  color: var(--md-sys-color-on-surface-variant);
-  font-size: var(--md-typescale-label-medium);
-  font-weight: 600;
-}
-
-.status-row dd {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  flex-wrap: wrap;
-  gap: var(--md-space-2);
-}
-
-.status-row__value {
-  font-weight: 600;
-}
-
-/* Same-row secondary "remaining" label: small, neutral, subtle background. */
-.status-row__badge {
+.status-card__icon {
   display: inline-flex;
   align-items: center;
-  padding: 2px var(--md-space-2);
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.status-card__icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.status-card__title {
+  margin: 0;
+  font-size: var(--md-typescale-label-large);
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* The main value is the most prominent element after the title. */
+.status-card__value {
+  margin-top: var(--md-space-1);
+  font-size: var(--md-typescale-title-large);
+  font-weight: 700;
+  color: var(--md-sys-color-on-surface);
+  line-height: 1.3;
+}
+
+.status-card__unit {
+  font-size: var(--md-typescale-body-medium);
+  font-weight: 600;
+  margin-inline-start: 1px;
+}
+
+/* Remaining time/mileage: small and secondary, anchored to the card bottom. */
+.status-card__secondary {
+  margin-top: auto;
+  font-size: var(--md-typescale-label-medium);
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Health percentage inherits the status color (mirrors the donut palette). */
+.status-card--ok .status-card__value { color: var(--md-status-ok); }
+.status-card--upcoming .status-card__value { color: var(--md-status-upcoming); }
+.status-card--dueSoon .status-card__value { color: var(--md-status-due-soon); }
+.status-card--due .status-card__value { color: var(--md-status-due); }
+.status-card--overdue .status-card__value { color: var(--md-status-overdue); }
+.status-card--inspectionRequired .status-card__value { color: var(--md-status-due); }
+
+/* Part-health progress bar: minimal 6px track with a status-colored fill. */
+.health-bar {
+  width: 100%;
+  height: 6px;
+  margin-top: var(--md-space-1);
   border-radius: var(--md-shape-full);
   background-color: var(--md-sys-color-surface-container-high);
-  color: var(--md-sys-color-on-surface-variant);
-  font-size: var(--md-typescale-label-small);
-  font-weight: 600;
-  white-space: nowrap;
+  overflow: hidden;
 }
+
+.health-bar__fill {
+  height: 100%;
+  border-radius: inherit;
+  background-color: var(--md-sys-color-primary);
+  transition: width var(--md-motion-duration-medium) var(--md-motion-easing);
+}
+
+.status-card--ok .health-bar__fill { background-color: var(--md-status-ok); }
+.status-card--upcoming .health-bar__fill { background-color: var(--md-status-upcoming); }
+.status-card--dueSoon .health-bar__fill { background-color: var(--md-status-due-soon); }
+.status-card--due .health-bar__fill { background-color: var(--md-status-due); }
+.status-card--overdue .health-bar__fill { background-color: var(--md-status-overdue); }
+.status-card--inspectionRequired .health-bar__fill { background-color: var(--md-status-due); }
 
 .delete-confirm {
   display: inline-flex;

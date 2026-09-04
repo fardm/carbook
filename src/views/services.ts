@@ -842,30 +842,31 @@ function detailLifetimeRowHtml(item: MaintenanceItem): string {
 }
 
 /**
- * Status section inside the unified detail card: row 1 is the small health
- * donut (percentage inside), then the recommended replacement date with the
- * remaining days as a same-row badge, then the recommended replacement
- * mileage with the remaining km as a same-row badge.
+ * Status section inside the unified detail card: three equal cards — part
+ * health (heart + percentage), recommended replacement date (calendar +
+ * remaining days), recommended replacement mileage (gauge + remaining km).
+ * Cards run side by side on desktop and stack on narrow screens.
  */
 function detailOverviewSectionHtml(item: MaintenanceItem, dataset: ReturnType<typeof store.get>): string {
   const calc = calculateMaintenance(item, contextForVehicle(dataset, item.vehicleId));
   const percent = calc.remainingPercent;
+  const rounded = percent != null ? Math.max(0, Math.min(100, Math.round(percent))) : null;
 
-  const healthBlock =
-    percent != null
-      ? `
-      <div class="status-health">
-        ${donutHtml(percent, calc.status, item.name)}
-        <span class="status-health__label">${t("maintenance.detail.health")}</span>
-      </div>`
+  const healthValue =
+    rounded != null ? `${faNum(rounded)}<small class="status-card__unit">٪</small>` : "—";
+  const healthBar =
+    rounded != null
+      ? `<div class="health-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${rounded}" aria-label="${t("maintenance.detail.health")}">
+          <div class="health-bar__fill" style="width: ${rounded}%"></div>
+        </div>`
       : "";
 
   const recommendedDate = calc.estimatedDueDate ?? calc.nextDueDate;
   const dateValue = recommendedDate ? formatDate(recommendedDate) : t("maintenance.detail.notRecorded");
-  let dateBadge = "";
+  let dateSecondary = "";
   if (recommendedDate) {
     const days = diffDays(recommendedDate, todayIso());
-    dateBadge =
+    dateSecondary =
       days >= 0
         ? `${faNum(days)} ${t("maintenance.detail.remainingDays")}`
         : `${faNum(-days)} ${t("maintenance.detail.pastDays")}`;
@@ -874,9 +875,9 @@ function detailOverviewSectionHtml(item: MaintenanceItem, dataset: ReturnType<ty
   const dueKm = calc.nextDueOdometer;
   const kmValue =
     dueKm != null ? `${faNum(dueKm)} ${t("common.kmUnit")}` : t("maintenance.detail.notRecorded");
-  let kmBadge = "";
+  let kmSecondary = "";
   if (calc.remainingKm != null) {
-    kmBadge =
+    kmSecondary =
       calc.remainingKm >= 0
         ? `${faNum(calc.remainingKm)} ${t("common.kmUnit")} ${t("maintenance.detail.remainingKm")}`
         : `${faNum(-calc.remainingKm)} ${t("common.kmUnit")} ${t("maintenance.detail.pastKm")}`;
@@ -884,24 +885,26 @@ function detailOverviewSectionHtml(item: MaintenanceItem, dataset: ReturnType<ty
 
   return `
     <section class="service-detail__section">
-      <h2 class="service-detail__section-title">${t("maintenance.detail.overviewTitle")}</h2>
-      ${healthBlock}
-      <dl class="status-rows">
-        <div class="status-row">
-          <dt>${t("maintenance.detail.recommendedDate")}</dt>
-          <dd>
-            <span class="status-row__value">${escHtml(dateValue)}</span>
-            ${dateBadge ? `<span class="status-row__badge">${escHtml(dateBadge)}</span>` : ""}
-          </dd>
-        </div>
-        <div class="status-row">
-          <dt>${t("maintenance.detail.recommendedKm")}</dt>
-          <dd>
-            <span class="status-row__value">${escHtml(kmValue)}</span>
-            ${kmBadge ? `<span class="status-row__badge">${escHtml(kmBadge)}</span>` : ""}
-          </dd>
-        </div>
-      </dl>
+      <div class="status-grid">
+        <article class="status-card status-card--${calc.status}">
+          <span class="status-card__icon" data-lucide="heart" aria-hidden="true"></span>
+          <h3 class="status-card__title">${t("maintenance.detail.health")}</h3>
+          <div class="status-card__value">${healthValue}</div>
+          ${healthBar}
+        </article>
+        <article class="status-card">
+          <span class="status-card__icon" data-lucide="calendar" aria-hidden="true"></span>
+          <h3 class="status-card__title">${t("maintenance.detail.recommendedDate")}</h3>
+          <div class="status-card__value">${escHtml(dateValue)}</div>
+          ${dateSecondary ? `<div class="status-card__secondary">${escHtml(dateSecondary)}</div>` : ""}
+        </article>
+        <article class="status-card">
+          <span class="status-card__icon" data-lucide="gauge" aria-hidden="true"></span>
+          <h3 class="status-card__title">${t("maintenance.detail.recommendedKm")}</h3>
+          <div class="status-card__value">${escHtml(kmValue)}</div>
+          ${kmSecondary ? `<div class="status-card__secondary">${escHtml(kmSecondary)}</div>` : ""}
+        </article>
+      </div>
     </section>
   `;
 }
@@ -1012,7 +1015,7 @@ function detailHistorySectionHtml(
   }
 
   return `
-    <section class="service-detail__section">
+    <section class="service-detail__section service-detail__section--board">
       <h2 class="service-detail__section-title">
         <button type="button" class="collapse-head js-history-toggle" aria-expanded="${state.historyOpen}"
           aria-controls="service-detail-history-panel">
