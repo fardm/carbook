@@ -1,4 +1,4 @@
-import type { CalendarPreference, Dataset, ThemePreference } from "../domain/types";
+import type { CalendarPreference, Currency, Dataset, ThemePreference } from "../domain/types";
 import { t, type MessageKey } from "../i18n";
 import {
   backupFilename,
@@ -50,6 +50,14 @@ const CALENDAR_KEYS: Record<CalendarPreference, MessageKey> = {
 
 const CALENDAR_OPTIONS: CalendarPreference[] = ["jalali", "gregorian"];
 
+const CURRENCY_KEYS: Record<Currency, MessageKey> = {
+  IRR: "settings.currencyIrr",
+  USD: "settings.currencyUsd",
+  EUR: "settings.currencyEur",
+};
+
+const CURRENCY_OPTIONS: Currency[] = ["IRR", "USD", "EUR"];
+
 const ISSUE_KEYS: Record<ImportIssueKind, MessageKey> = {
   notJson: "settings.issue.notJson",
   notObject: "settings.issue.notObject",
@@ -80,6 +88,7 @@ function settingsViewHtml(): string {
     <div class="view-stack">
       <h1 class="view-title">${t("view.settings.title")}</h1>
       ${calendarCardHtml(dataset)}
+      ${currencyCardHtml(dataset)}
       ${appearanceCardHtml(dataset)}
       ${backupCardHtml(dataset)}
       ${restoreCardHtml()}
@@ -105,6 +114,30 @@ function calendarCardHtml(dataset: Dataset): string {
       <h2 class="card__title">${t("settings.calendarTitle")}</h2>
       <p class="card__text">${t("settings.calendarHint")}</p>
       <div class="settings-theme segmented" role="radiogroup" aria-label="${t("settings.calendarTitle")}">
+        ${options}
+      </div>
+    </section>
+  `;
+}
+
+/* --- Currency (service cost unit) card --- */
+
+function currencyCardHtml(dataset: Dataset): string {
+  const current = dataset.settings.currency;
+  const options = CURRENCY_OPTIONS.map(
+    (value) => `
+      <button type="button" class="segmented__option js-currency-option
+        ${current === value ? "segmented__option--active" : ""}"
+        data-currency-value="${value}" role="radio" aria-checked="${current === value}">
+        ${t(CURRENCY_KEYS[value])}
+      </button>
+    `,
+  ).join("");
+  return `
+    <section class="card">
+      <h2 class="card__title">${t("settings.currencyTitle")}</h2>
+      <p class="card__text">${t("settings.currencyHint")}</p>
+      <div class="settings-theme segmented" role="radiogroup" aria-label="${t("settings.currencyTitle")}">
         ${options}
       </div>
     </section>
@@ -255,6 +288,14 @@ function bind(container: HTMLElement): void {
       const theme = (button.dataset.themeValue as ThemePreference) ?? "system";
       store.update((draft) => {
         draft.settings.theme = theme;
+      });
+    });
+  });
+  container.querySelectorAll<HTMLButtonElement>(".js-currency-option").forEach((button) => {
+    button.addEventListener("click", () => {
+      const currency = (button.dataset.currencyValue as Currency) ?? "IRR";
+      store.update((draft) => {
+        draft.settings.currency = currency;
       });
     });
   });

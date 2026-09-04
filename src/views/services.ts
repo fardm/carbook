@@ -30,6 +30,7 @@ import { t, type MessageKey } from "../i18n";
 import { store } from "../state/store";
 import { googleCalendarUrl } from "../ui/calendar";
 import { bindDateFields, dateFieldHtml } from "../ui/date-field";
+import { currencyLabel } from "../ui/currency";
 import { escHtml } from "../ui/escape";
 import { alignFabBar } from "../ui/fab";
 import { faNum, formatDate, toLatinDigits } from "../ui/format";
@@ -406,22 +407,12 @@ function itemMetricLines(item: MaintenanceItem, dataset: ReturnType<typeof store
 
 function serviceCardHtml(item: MaintenanceItem, dataset: ReturnType<typeof store.get>): string {
   const lines = itemMetricLines(item, dataset);
-  const last = lastServiceFor(dataset.serviceHistory, item.id);
-  const lastLine = last
-    ? `${t("services.lastServiceLabel")}: ${formatDate(last.date)}${
-        last.odometer != null ? ` — ${faNum(last.odometer)} ${t("common.kmUnit")}` : ""
-      }`
-    : t("maintenance.detail.neverServiced");
-
-  const metrics =
-    lines.primaryLine || lines.secondaryLine || lines.dateLine
-      ? `
-      <div class="service-card__metrics">
-        ${lines.primaryLine ? `<div class="metric metric--primary">${lines.primaryLine}</div>` : ""}
-        ${lines.secondaryLine ? `<div class="metric">${lines.secondaryLine}</div>` : ""}
-        ${lines.dateLine ? `<div class="metric metric--muted">${lines.dateLine}</div>` : ""}
-      </div>`
-      : "";
+  const last = item.rule.inspectionBased
+    ? lastInspectionFor(dataset.inspectionHistory, item.id)
+    : lastServiceFor(dataset.serviceHistory, item.id);
+  const notRecorded = t("maintenance.detail.notRecorded");
+  const kmValue = last?.odometer != null ? `${faNum(last.odometer)} ${t("common.kmUnit")}` : notRecorded;
+  const dateValue = last ? formatDate(last.date) : notRecorded;
 
   return `
     <article class="card service-card">
@@ -443,8 +434,14 @@ function serviceCardHtml(item: MaintenanceItem, dataset: ReturnType<typeof store
               : `<div class="service-card__state" data-lucide="${STATUS_ICONS[lines.calc.status]}"></div>`
           }
           <div class="service-card__detail">
-            ${metrics}
-            <div class="metric metric--muted service-card__last">${lastLine}</div>
+            <div class="metric service-card__last">
+              <span data-lucide="gauge"></span>
+              ${escHtml(kmValue)}
+            </div>
+            <div class="metric service-card__last">
+              <span data-lucide="calendar"></span>
+              ${escHtml(dateValue)}
+            </div>
           </div>
         </div>
       </a>
@@ -1012,6 +1009,7 @@ function recordServiceFormModalHtml(): string {
   const itemId = form?.itemId ?? "";
   const defaultKm = defaultRecordOdometer(itemId);
   const title = isEdit ? t("maintenance.record.serviceEditTitle") : t("maintenance.record.serviceTitle");
+  const currency = currencyLabel(store.get().settings.currency);
 
   return `
     <div class="modal-overlay">
@@ -1037,10 +1035,10 @@ function recordServiceFormModalHtml(): string {
           </div>
         </div>
         <div class="field">
-          <label class="field__label" for="record-cost">${t("maintenance.record.costLabel")}</label>
+          <label class="field__label" for="record-cost">${t("maintenance.record.costLabel")} · ${currency}</label>
           <input class="field__input" id="record-cost" name="cost" type="number"
             inputmode="decimal" min="0" step="any" value="${record?.cost ?? ""}" />
-          <p class="field__hint">${t("maintenance.record.costHint")}</p>
+          <p class="field__hint">${t("maintenance.record.costHint")} ${currency}</p>
           <p class="field__error" id="record-error-cost" hidden></p>
         </div>
         <div class="field">
@@ -1149,7 +1147,10 @@ function recordDetailsModalHtml(): string {
   }
   if (details.kind === "service" && serviceRecord) {
     if (serviceRecord.cost != null) {
-      rows.push({ label: t("maintenance.detail.costLabel"), value: faNum(serviceRecord.cost) });
+      rows.push({
+        label: t("maintenance.detail.costLabel"),
+        value: `${faNum(serviceRecord.cost)} ${currencyLabel(store.get().settings.currency)}`,
+      });
     }
   } else if (inspectionRecord) {
     if (inspectionRecord.condition) {

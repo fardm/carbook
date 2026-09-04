@@ -136,12 +136,19 @@ export type ThemePreference = "system" | "light" | "dark";
  * are displayed and entered — stored dates are always Gregorian ISO. */
 export type CalendarPreference = "jalali" | "gregorian";
 
+/** Currency used for recording/displaying service costs (Settings). The
+ * setting only picks the unit in which entered amounts are stored and shown;
+ * no conversion ever happens. */
+export type Currency = "IRR" | "USD" | "EUR";
+
 export interface Settings {
   statusThresholds: StatusThresholds;
   /** "system" follows the OS `prefers-color-scheme`; light/dark override it. */
   theme: ThemePreference;
   /** Calendar used for date display + date input throughout the app. */
   calendar: CalendarPreference;
+  /** Currency for service cost entry/display (تومان default; no conversion). */
+  currency: Currency;
   /** Default vehicle id — the Services page auto-selects it. Null = none. */
   defaultVehicleId: string | null;
 }

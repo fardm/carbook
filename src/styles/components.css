@@ -1557,12 +1557,23 @@
   gap: 2px;
 }
 
-.service-card__metrics .metric:first-child {
+/* Last-replacement rows: icon + value (no labels). */
+.service-card__last {
+  display: flex;
+  align-items: center;
+  gap: var(--md-space-1);
+  margin-top: var(--md-space-1);
+}
+
+.service-card__last:first-child {
   margin-top: 0;
 }
 
-.service-card__last {
-  margin-top: var(--md-space-1);
+.service-card__last svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .service-card__state {

@@ -192,6 +192,16 @@ const migrations: Record<number, (raw: Record<string, unknown>) => Record<string
     }
     return raw;
   },
+  // v6 → v7 (Currency): the Settings gained a `currency` preference for
+  // recording/displaying service costs. Default = تومان (IRR). Stored costs
+  // are untouched — no conversion, the unit is only a display label.
+  6: (raw) => {
+    const settings = raw.settings;
+    if (isRecord(settings) && !("currency" in settings)) {
+      settings.currency = "IRR";
+    }
+    return raw;
+  },
 };
 
 /** Sorts odometer readings for the v3→v4 migration by (date, createdAt). */
@@ -239,6 +249,7 @@ function withOdometerStamp(rows: unknown[]): unknown[] {
 
 const THEME_PREFERENCES = ["system", "light", "dark"];
 const CALENDAR_PREFERENCES = ["jalali", "gregorian"];
+const CURRENCIES = ["IRR", "USD", "EUR"];
 
 function normalizeSettings(raw: unknown, fallback: Settings): Settings {
   if (!isRecord(raw)) return fallback;
@@ -262,6 +273,10 @@ function normalizeSettings(raw: unknown, fallback: Settings): Settings {
       typeof raw.calendar === "string" && CALENDAR_PREFERENCES.includes(raw.calendar)
         ? (raw.calendar as Settings["calendar"])
         : fallback.calendar,
+    currency:
+      typeof raw.currency === "string" && CURRENCIES.includes(raw.currency)
+        ? (raw.currency as Settings["currency"])
+        : fallback.currency,
     defaultVehicleId:
       typeof raw.defaultVehicleId === "string" && raw.defaultVehicleId !== ""
         ? raw.defaultVehicleId

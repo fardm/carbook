@@ -52,6 +52,7 @@ const TRIGGERS = ["any"] as const;
 const INSPECTION_CONDITIONS = ["good", "watch", "replaceSoon", "replaceNow"] as const;
 const THEME_PREFERENCES = ["system", "light", "dark"] as const;
 const CALENDAR_PREFERENCES = ["jalali", "gregorian"] as const;
+const CURRENCIES = ["IRR", "USD", "EUR"] as const;
 
 const TOP_LEVEL_FIELDS = [
   "exportedAt",
@@ -346,6 +347,9 @@ function validateSettings(
   );
   checkField(issues, raw, "calendar", "settings.calendar", { type: "string", nonEmpty: true }, (v) =>
     (CALENDAR_PREFERENCES as readonly string[]).includes(v),
+  );
+  checkField(issues, raw, "currency", "settings.currency", { type: "string", nonEmpty: true }, (v) =>
+    (CURRENCIES as readonly string[]).includes(v),
   );
   checkField(issues, raw, "defaultVehicleId", "settings.defaultVehicleId", { type: "string", allowNull: true }, (v) =>
     v !== "" && vehicleIds.has(v),

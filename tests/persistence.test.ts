@@ -137,6 +137,7 @@ describe("loadFromString — defensive loading", () => {
     expect(migrated.settings.statusThresholds).toEqual({ dueSoonPercent: 30, duePercent: 5 });
     expect(migrated.settings.theme).toBe("system");
     expect(migrated.settings.calendar).toBe("jalali");
+    expect(migrated.settings.currency).toBe("IRR");
   });
 
   it("migrates v1 settings by adding the theme default (Phase 12)", () => {
@@ -154,6 +155,7 @@ describe("loadFromString — defensive loading", () => {
     expect(migrated.version).toBe(CURRENT_VERSION);
     expect(migrated.settings.theme).toBe("system");
     expect(migrated.settings.calendar).toBe("jalali");
+    expect(migrated.settings.currency).toBe("IRR");
     expect(migrated.settings.statusThresholds).toEqual({ dueSoonPercent: 20, duePercent: 5 });
   });
 
@@ -172,6 +174,7 @@ describe("loadFromString — defensive loading", () => {
     expect(migrated.version).toBe(CURRENT_VERSION);
     expect(migrated.settings.theme).toBe("dark");
     expect(migrated.settings.calendar).toBe("jalali"); // Solar Hijri default
+    expect(migrated.settings.currency).toBe("IRR");
   });
 
   it("migrates v3 single-vehicle data: vehicle + odometerHistory → vehicles[] with current odometer", () => {
@@ -216,6 +219,33 @@ describe("loadFromString — defensive loading", () => {
     // Legacy collections are gone.
     expect((migrated as unknown as Record<string, unknown>).odometerHistory).toBeUndefined();
     expect((migrated as unknown as Record<string, unknown>).vehicle).toBeUndefined();
+    // The currency default is added by the v6→v7 migration.
+    expect(migrated.settings.currency).toBe("IRR");
+  });
+
+  it("migrates v6 settings by adding the currency default (تومان)", () => {
+    const raw = JSON.stringify({
+      version: 6,
+      exportedAt: null,
+      vehicles: [{ id: "v1", name: "پژو ۲۰۷", odometerUpdatedAt: null }],
+      maintenanceItems: [],
+      serviceHistory: [],
+      inspectionHistory: [],
+      settings: { statusThresholds: { dueSoonPercent: 20, duePercent: 5 }, theme: "light", calendar: "gregorian" },
+    });
+    const migrated = loadFromString(raw);
+    expect(migrated.version).toBe(CURRENT_VERSION);
+    expect(migrated.settings.calendar).toBe("gregorian");
+    expect(migrated.settings.theme).toBe("light");
+    expect(migrated.settings.currency).toBe("IRR");
+    // An existing currency value is preserved.
+    const withCurrency = loadFromString(
+      JSON.stringify({
+        ...JSON.parse(raw),
+        settings: { ...JSON.parse(raw).settings, currency: "EUR" },
+      }),
+    );
+    expect(withCurrency.settings.currency).toBe("EUR");
   });
 
   it("repairs partially-shaped current-version data", () => {
