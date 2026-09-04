@@ -778,7 +778,8 @@
 }
 
 /* Collapsible section header (Service History): the whole heading is the
- * hit target, with a chevron on the far side that flips when expanded. */
+ * hit target, with a right-facing chevron on the far side that turns
+ * downward when the section is expanded. */
 .service-detail__section-title .collapse-head {
   display: flex;
   align-items: center;
@@ -803,7 +804,7 @@
 }
 
 .collapse-head[aria-expanded="true"] .collapse-head__chevron {
-  transform: rotate(180deg);
+  transform: rotate(90deg);
 }
 
 /* Secondary block heading inside a section (e.g. inspection history rows). */

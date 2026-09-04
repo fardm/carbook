@@ -695,7 +695,8 @@ function serviceFormModalHtml(): string {
 /* --- Detail page (§32–§36): status/calculations + history + record forms --- */
 
 /** The detail item whose page is currently rendered — used to reset the
- * history section to its collapsed default when switching items. */
+ * history section's default open state (short histories expand) when
+ * switching items. */
 let renderedDetailItemId: string | null = null;
 
 function itemDetailPageHtml(itemId: string): string {
@@ -710,16 +711,18 @@ function itemDetailPageHtml(itemId: string): string {
       <section class="card"><p class="empty-note">${t("maintenance.detail.notFound")}</p></section>
     `;
   }
+  const services = dataset.serviceHistory.filter((r) => r.maintenanceItemId === itemId);
+  const inspections = dataset.inspectionHistory.filter((r) => r.maintenanceItemId === itemId);
   if (renderedDetailItemId !== item.id) {
     renderedDetailItemId = item.id;
-    state.historyOpen = false;
+    // A short history (≤3 records) stays expanded by default so the empty
+    // state or entries are visible; longer lists collapse so the status
+    // sections stay readable without scrolling.
+    state.historyOpen = services.length + inspections.length <= 3;
   }
 
   const inactive = !item.active;
   const backLink = `<a class="btn btn--text detail-back" href="${back}">${t("maintenance.detail.backToList")}</a>`;
-
-  const services = dataset.serviceHistory.filter((r) => r.maintenanceItemId === itemId);
-  const inspections = dataset.inspectionHistory.filter((r) => r.maintenanceItemId === itemId);
 
   return `
     ${backLink}
@@ -1002,7 +1005,7 @@ function detailHistorySectionHtml(
         <button type="button" class="collapse-head js-history-toggle" aria-expanded="${state.historyOpen}"
           aria-controls="service-detail-history-panel">
           <span>${title}</span>
-          <span class="collapse-head__chevron" data-lucide="chevron-down"></span>
+          <span class="collapse-head__chevron" data-lucide="chevron-right"></span>
         </button>
       </h2>
       <div id="service-detail-history-panel" class="service-detail__history-panel">${content}</div>
