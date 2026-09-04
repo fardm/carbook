@@ -734,14 +734,16 @@ function itemDetailPageHtml(itemId: string): string {
   }
 
   const inactive = !item.active;
-  const backLink = `<a class="btn btn--text detail-back" href="${back}">${t("maintenance.detail.backToList")}</a>`;
+  const backLink = `<a class="btn btn--text detail-back" href="${back}">
+    <span data-lucide="arrow-right" aria-hidden="true"></span>
+    <span>${t("maintenance.detail.backToList")}</span>
+  </a>`;
 
   return `
     ${backLink}
     <section class="card service-detail-card">
-      ${serviceItemMenuHtml(item.id)}
       <div class="service-detail-card__sections">
-        <section class="service-detail__section">
+        <section class="service-detail-card__header">
           <div class="service-info">
             <span class="service-info__icon" data-lucide="${item.icon}"></span>
             <div class="service-info__main">
@@ -884,7 +886,7 @@ function detailOverviewSectionHtml(item: MaintenanceItem, dataset: ReturnType<ty
   }
 
   return `
-    <section class="service-detail__section">
+    <section class="service-detail-card__status">
       <div class="status-grid">
         <article class="status-card status-card--${calc.status}">
           <span class="status-card__icon" data-lucide="heart" aria-hidden="true"></span>
@@ -1015,7 +1017,7 @@ function detailHistorySectionHtml(
   }
 
   return `
-    <section class="service-detail__section service-detail__section--board">
+    <section class="service-detail-card__history service-detail__section--board">
       <h2 class="service-detail__section-title">
         <button type="button" class="collapse-head js-history-toggle" aria-expanded="${state.historyOpen}"
           aria-controls="service-detail-history-panel">

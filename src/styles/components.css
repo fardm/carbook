@@ -897,17 +897,15 @@ textarea.field__input {
 /* --- Service detail page: one unified card with three sections --- */
 .detail-back {
   align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-space-1);
   margin-inline-start: calc(-1 * var(--md-space-2));
 }
 
-/* The unified detail card hosts the three-dot menu pinned to its top corner. */
-.service-detail-card {
-  position: relative;
-}
-
-.service-detail-card .service-card-menu {
-  top: var(--md-space-2);
-  left: var(--md-space-2);
+.detail-back svg {
+  width: 16px;
+  height: 16px;
 }
 
 .service-detail-card__sections {
@@ -917,9 +915,14 @@ textarea.field__input {
 }
 
 /* Sections of the unified card: plain, borderless, background-free so the
- * page reads as ONE cohesive layout. The Service History section is the
- * only part that keeps its own board (see --board below). */
-.service-detail__section {
+ * page reads as ONE cohesive layout. Each section carries its own unique,
+ * semantic class so padding and layout can be tuned independently. */
+.service-detail-card__header,
+.service-detail-card__status {
+  padding-block: var(--md-space-4);
+}
+
+.service-detail-card__history {
   padding: var(--md-space-4);
 }
 
@@ -1087,9 +1090,10 @@ textarea.field__input {
   text-align: center;
   gap: var(--md-space-2);
   padding: var(--md-space-4);
+  border: none;
+  border-radius: var(--md-shape-small);
+  background-color: color-mix(in srgb, var(--md-sys-color-surface-container-highest) 45%, transparent);
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: var(--md-shape-medium);
-  background-color: var(--md-sys-color-surface);
 }
 
 .status-card__icon {
