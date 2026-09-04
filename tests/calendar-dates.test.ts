@@ -74,8 +74,10 @@ describe("month grid math", () => {
     const grid = monthGrid("gregorian", 2024, 2, "2026-09-04");
     expect(grid.days).toBe(29);
     expect(grid.lead).toBe(5); // 1 Feb 2024 is a Thursday; Saturday-first weeks
-    expect(grid.cells[5].iso).toBe("2024-02-01");
-    expect(grid.cells[5].day).toBe(1);
+    // Day cells start at day 1; the renderer adds `lead` blanks in front.
+    expect(grid.cells[0].iso).toBe("2024-02-01");
+    expect(grid.cells[0].day).toBe(1);
+    expect(grid.cells[28].iso).toBe("2024-02-29");
   });
 
   it("isToday highlights only the matching cell", () => {

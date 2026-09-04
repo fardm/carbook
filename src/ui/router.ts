@@ -1,22 +1,26 @@
 /**
  * Minimal hash-based router.
  *
- * URLs look like `#/vehicle`, `#/maintenance`, … which keeps the app
- * hostable on any static server (including GitHub Pages) with zero
- * server-side configuration.
+ * URLs look like `#/vehicle`, `#/services`, … which keeps the app hostable
+ * on any static server (including GitHub Pages) with zero server-side
+ * configuration.
  *
- * - Detail hashes `#/maintenance/<itemId>` (§32) keep the "maintenance"
- *   route so the bottom nav stays on سرویس ها; the item id is read
- *   separately via `maintenanceItemIdFromHash`.
+ * - Detail hashes `#/maintenance/<itemId>` keep the "maintenance" route so
+ *   the bottom nav stays on سرویس ها; the item id is read separately via
+ *   `maintenanceItemIdFromHash`.
  * - The services page accepts `#/maintenance?vehicle=<id>` to pre-select a
  *   vehicle (used by سرویس ها buttons on vehicle cards); read via
  *   `servicesVehicleIdFromHash`.
+ *
+ * Note: the hash path for the services page stays "/maintenance" (historic
+ * route id) so old detail links keep working; only the visible label and
+ * page title are "سرویس ها".
  */
 
 /** Matches `#/maintenance/<id>` (single path segment after the view). */
 const MAINTENANCE_DETAIL_RE = /^\/maintenance\/([^/]+)$/;
 
-export type RouteId = "maintenance" | "history" | "vehicle" | "settings";
+export type RouteId = "maintenance" | "vehicle" | "settings";
 
 export interface RouteDef {
   id: RouteId;
@@ -29,7 +33,6 @@ export interface RouteDef {
 export const routes: readonly RouteDef[] = [
   { id: "vehicle", hash: "/vehicle", icon: "car-front" },
   { id: "maintenance", hash: "/maintenance", icon: "wrench" },
-  { id: "history", hash: "/history", icon: "history" },
   { id: "settings", hash: "/settings", icon: "settings" },
 ];
 

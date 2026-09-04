@@ -12,7 +12,6 @@ export const fa = {
   nav: {
     vehicle: "خودروها",
     maintenance: "سرویس ها",
-    history: "سوابق",
     settings: "تنظیمات",
   },
   common: {
@@ -26,10 +25,6 @@ export const fa = {
     today: "امروز",
     prevMonth: "ماه قبل",
     nextMonth: "ماه بعد",
-  },
-  placeholder: {
-    badge: "در دست ساخت",
-    notImplemented: "این بخش در فاز بعدی پیاده‌سازی می‌شود.",
   },
   status: {
     ok: "خوب",
@@ -172,27 +167,27 @@ export const fa = {
   },
   services: {
     addService: "ثبت سرویس",
+    submit: "ثبت",
     noServices: "هنوز سرویسی برای این خودرو ثبت نشده است.",
     noVehicles: "برای ثبت سرویس، ابتدا یک خودرو اضافه کنید.",
     goToVehicles: "رفتن به خودروها",
     vehicleLabel: "خودرو",
-    typeLabel: "نوع سرویس",
+    pickTypeTitle: "انتخاب نوع سرویس",
+    pickTypeHint: "نوع سرویس را انتخاب کنید؛ عنوان به‌طور خودکار پر می‌شود و بعداً قابل ویرایش است.",
     customType: "دلخواه",
-    titleLabel: "عنوان",
+    titleLabel: "عنوان سرویس",
     titlePlaceholder: "مثلاً روغن موتور",
     iconLabel: "آیکون",
     replacementTitle: "تعویض",
     replacementDate: "تاریخ تعویض",
     replacementKm: "کیلومتر تعویض",
-    lifeTitle: "عمر سرویس",
+    lifeTitle: "عمر قطعه",
     lifeMonths: "مدت زمان (ماه)",
     lifeKm: "کیلومتر",
-    calcPartLife: "محاسبه عمر قطعه",
-    calcPartLifeHint: "بر پایه تاریخ و کیلومتر تعویض و عمر تعیین‌شده، باقی‌مانده عمر قطعه محاسبه می‌شود.",
-    calcPartLifeIncomplete: "برای محاسبه، تاریخ تعویض و حداقل یک معیار عمر را وارد کنید.",
+    calculationMode: "نحوه محاسبه عمر قطعه",
+    calculationModeHint:
+      "باقی‌مانده عمر به‌صورت خودکار از آخرین تعویض محاسبه می‌شود؛ «خودکار» یعنی هر معیاری زودتر برسد ملاک است.",
     lastServiceLabel: "آخرین سرویس",
-    replacementLabel: "تعویض",
-    partLifeTitle: "عمر باقی‌مانده قطعه",
     editService: "ویرایش",
   },
   settings: {
@@ -301,11 +296,6 @@ export const fa = {
   view: {
     maintenance: {
       title: "سرویس ها",
-    },
-    history: {
-      title: "سوابق",
-      description:
-        "تاریخچه سرویس‌ها و بازرسی‌ها. به‌زودی: ثبت و بررسی کامل سوابق تعویض و بازرسی.",
     },
     vehicle: {
       title: "خودروها",

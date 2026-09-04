@@ -46,8 +46,11 @@ describe("jalaliToGregorian — known dates", () => {
     expect(jalaliToGregorian(1405, 1, 13)).toEqual({ gy: 2026, gm: 4, gd: 2 });
   });
 
-  it("leap Esfand 1403: 30 Esfand 1403 = 20 March 2024", () => {
-    expect(jalaliToGregorian(1403, 12, 30)).toEqual({ gy: 2024, gm: 3, gd: 20 });
+  it("leap Esfand 1403: 30 Esfand 1403 = 20 March 2025", () => {
+    // 1403 is a leap year: its extra day is 30 Esfand, which falls on
+    // 20 March 2025 — the day before Nowruz 1404 (21 March 2025).
+    expect(jalaliToGregorian(1403, 12, 30)).toEqual({ gy: 2025, gm: 3, gd: 20 });
+    expect(gregorianToJalali(2025, 3, 20)).toEqual({ jy: 1403, jm: 12, jd: 30 });
   });
 });
 
@@ -103,9 +106,13 @@ describe("parseJalaliIso — validation", () => {
   });
 
   it("rejects day 31 in a 30-day month", () => {
-    expect(parseJalaliIso("1405-07-31")).toBeNull();
-    expect(parseJalaliIso("1405-06-31")).toBeNull();
-    expect(parseJalaliIso("1405-06-30")).toEqual({ jy: 1405, jm: 6, jd: 30 });
+    expect(parseJalaliIso("1405-07-31")).toBeNull(); // مهر has 30 days
+    expect(parseJalaliIso("1405-08-31")).toBeNull(); // آبان has 30 days
+  });
+
+  it("accepts day 31 in a 31-day month", () => {
+    expect(parseJalaliIso("1405-06-31")).toEqual({ jy: 1405, jm: 6, jd: 31 }); // شهریور has 31 days
+    expect(parseJalaliIso("1405-01-31")).toEqual({ jy: 1405, jm: 1, jd: 31 });
   });
 
   it("rejects 30 Esfand in a non-leap year but allows it in a leap year", () => {

@@ -140,15 +140,28 @@ describe("validateImportText — round trip (§49: export → import → equival
     expect(result.dataset).toEqual(d);
   });
 
-  it("migrates a legacy version-0 file (same migration table as loading)", () => {
+  it("migrates a legacy single-vehicle file (same migration table as loading)", () => {
+    // A pre-multi-vehicle backup: singular `vehicle` + `odometerHistory`,
+    // items/records with NO vehicleId (v4 links them to the vehicle).
     const d = cloneValid();
     d.version = 0;
+    const legacy = d as unknown as Record<string, unknown>;
+    legacy.vehicle = d.vehicles[0];
+    legacy.odometerHistory = [];
+    delete legacy.vehicles;
+    for (const row of d.maintenanceItems) delete (row as { vehicleId?: string }).vehicleId;
+    for (const row of d.serviceHistory) delete (row as { vehicleId?: string }).vehicleId;
+    for (const row of d.inspectionHistory) delete (row as { vehicleId?: string }).vehicleId;
     const result = validateImportText(textOf(d));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.dataset.version).toBe(CURRENT_VERSION);
     expect(result.dataset.vehicles[0].id).toBe("v1");
     expect(result.dataset.vehicles[0].name).toBe("پژو ۲۰۷");
+    // Items/records were linked to the migrated vehicle.
+    expect(result.dataset.maintenanceItems[0].vehicleId).toBe("v1");
+    expect(result.dataset.serviceHistory[0].vehicleId).toBe("v1");
+    expect(result.dataset.inspectionHistory[0].vehicleId).toBe("v1");
   });
 
   it("tolerates extra unknown top-level keys (forward-compatible within a version)", () => {
