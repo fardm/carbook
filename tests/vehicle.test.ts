@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LARGE_INCREASE_KM, validateOdometerEntry } from "../src/domain/odometer";
+import { validateMileage } from "../src/domain/odometer";
 import { validateVehicle, type VehicleInput } from "../src/domain/vehicle";
 import { faNum, formatDate, toLatinDigits } from "../src/ui/format";
 
@@ -8,15 +8,12 @@ function vehicleInput(partial: Partial<VehicleInput> = {}): VehicleInput {
     name: "پژو ۲۰۷",
     make: "پژو",
     model: "207",
-    year: 2019,
+    year: 1390,
     fuelType: "gasoline",
     averageDailyDistance: 40,
     ...partial,
   };
 }
-
-const validReading = { date: "2026-09-04", odometer: 104500 };
-const latest = { id: "r1", date: "2026-08-20", odometer: 103900, createdAt: "2026-08-20T00:00:00.000Z" };
 
 describe("validateVehicle", () => {
   it("accepts a complete valid input", () => {
@@ -31,9 +28,19 @@ describe("validateVehicle", () => {
     expect(validateVehicle(vehicleInput({ name: "  " }))).toEqual(["nameRequired"]);
   });
 
-  it("rejects out-of-range or non-integer years", () => {
+  it("accepts a Solar Hijri production year (1390)", () => {
+    expect(validateVehicle(vehicleInput({ year: 1390 }))).toEqual([]);
+    expect(validateVehicle(vehicleInput({ year: 1403 }))).toEqual([]);
+  });
+
+  it("accepts a Gregorian production year (2019)", () => {
+    expect(validateVehicle(vehicleInput({ year: 2019 }))).toEqual([]);
+  });
+
+  it("rejects out-of-range or non-integer years in either calendar system", () => {
     expect(validateVehicle(vehicleInput({ year: 1800 }))).toEqual(["yearInvalid"]);
     expect(validateVehicle(vehicleInput({ year: 2101 }))).toEqual(["yearInvalid"]);
+    expect(validateVehicle(vehicleInput({ year: 999 }))).toEqual(["yearInvalid"]);
     expect(validateVehicle(vehicleInput({ year: 2019.5 }))).toEqual(["yearInvalid"]);
   });
 
@@ -43,64 +50,19 @@ describe("validateVehicle", () => {
   });
 });
 
-describe("validateOdometerEntry (§47)", () => {
-  it("accepts a valid reading", () => {
-    expect(validateOdometerEntry(validReading, { today: "2026-09-04", latest })).toEqual({ errors: [], warnings: [] });
+describe("validateMileage", () => {
+  it("accepts a non-negative integer", () => {
+    expect(validateMileage(104500)).toEqual([]);
+    expect(validateMileage(0)).toEqual([]);
   });
 
-  it("accepts the first reading (no latest)", () => {
-    expect(validateOdometerEntry(validReading, { today: "2026-09-04", latest: null })).toEqual({ errors: [], warnings: [] });
-  });
-
-  it("requires a date", () => {
-    expect(validateOdometerEntry({ ...validReading, date: "" }, { today: "2026-09-04", latest })).toEqual({
-      errors: ["missingDate"],
-      warnings: [],
-    });
-  });
-
-  it("rejects malformed dates", () => {
-    expect(validateOdometerEntry({ ...validReading, date: "2026-13-45" }, { today: "2026-09-04", latest }).errors).toContain("invalidDate");
-    expect(validateOdometerEntry({ ...validReading, date: "04/09/2026" }, { today: "2026-09-04", latest }).errors).toContain("invalidDate");
-  });
-
-  it("rejects future dates", () => {
-    expect(validateOdometerEntry({ ...validReading, date: "2026-09-05" }, { today: "2026-09-04", latest })).toEqual({
-      errors: ["futureDate"],
-      warnings: [],
-    });
-  });
-
-  it("requires an odometer value", () => {
-    expect(validateOdometerEntry({ ...validReading, odometer: null }, { today: "2026-09-04", latest }).errors).toContain("missingOdometer");
+  it("rejects a missing value", () => {
+    expect(validateMileage(null)).toEqual(["missingOdometer"]);
   });
 
   it("rejects negative or non-integer values", () => {
-    expect(validateOdometerEntry({ ...validReading, odometer: -5 }, { today: "2026-09-04", latest }).errors).toContain("invalidOdometer");
-    expect(validateOdometerEntry({ ...validReading, odometer: 104.5 }, { today: "2026-09-04", latest }).errors).toContain("invalidOdometer");
-  });
-
-  it("warns (but allows) a decrease", () => {
-    const result = validateOdometerEntry({ ...validReading, odometer: 103000 }, { today: "2026-09-04", latest });
-    expect(result.errors).toEqual([]);
-    expect(result.warnings).toEqual([{ kind: "decrease", delta: -900 }]);
-  });
-
-  it("warns (but allows) a large increase beyond the threshold", () => {
-    const result = validateOdometerEntry(
-      { ...validReading, odometer: latest.odometer + LARGE_INCREASE_KM + 1 },
-      { today: "2026-09-04", latest },
-    );
-    expect(result.errors).toEqual([]);
-    expect(result.warnings).toEqual([{ kind: "largeIncrease", delta: LARGE_INCREASE_KM + 1 }]);
-  });
-
-  it("does not warn for an increase at or below the threshold", () => {
-    const atThreshold = validateOdometerEntry(
-      { ...validReading, odometer: latest.odometer + LARGE_INCREASE_KM },
-      { today: "2026-09-04", latest },
-    );
-    expect(atThreshold.warnings).toEqual([]);
+    expect(validateMileage(-5)).toEqual(["invalidOdometer"]);
+    expect(validateMileage(104.5)).toEqual(["invalidOdometer"]);
   });
 });
 

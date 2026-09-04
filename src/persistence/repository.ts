@@ -1,5 +1,5 @@
 import { CURRENT_VERSION, defaultDataset } from "../domain/defaults";
-import type { Dataset, Settings, Vehicle } from "../domain/types";
+import type { Dataset, Settings } from "../domain/types";
 
 /**
  * Centralized persistence layer (§39): the whole dataset lives under ONE
@@ -137,7 +137,51 @@ const migrations: Record<number, (raw: Record<string, unknown>) => Record<string
     }
     return raw;
   },
+  // v3 → v4 (Multi-vehicle): the single `vehicle` + `odometerHistory` become
+  // `vehicles[]`. The current odometer is the latest reading (history is no
+  // longer kept). Every maintenance item and record is linked to the vehicle
+  // (null when no vehicle existed), so nothing is ever shared between cars.
+  3: (raw) => {
+    const vehicles: unknown[] = [];
+    if (isRecord(raw.vehicle)) {
+      const readings = Array.isArray(raw.odometerHistory) ? (raw.odometerHistory as unknown[]) : [];
+      const sorted = [...readings].sort((a, b) =>
+        isRecord(a) && isRecord(b)
+          ? compareCreated(a, b)
+          : 0,
+      );
+      const latest = sorted.length > 0 ? sorted[sorted.length - 1] : null;
+      const currentOdometer =
+        latest != null && isRecord(latest) && typeof latest.odometer === "number"
+          ? latest.odometer
+          : null;
+      vehicles.push({ ...raw.vehicle, currentOdometer });
+    }
+    const vehicleId = vehicles.length > 0 && isRecord(vehicles[0]) ? (vehicles[0].id as string) : null;
+    const link = (collection: unknown): unknown[] =>
+      Array.isArray(collection)
+        ? collection.map((element) => (isRecord(element) ? { ...element, vehicleId } : element))
+        : [];
+    raw.vehicles = vehicles;
+    raw.maintenanceItems = link(raw.maintenanceItems);
+    raw.serviceHistory = link(raw.serviceHistory);
+    raw.inspectionHistory = link(raw.inspectionHistory);
+    delete raw.vehicle;
+    delete raw.odometerHistory;
+    return raw;
+  },
 };
+
+/** Sorts odometer readings for the v3→v4 migration by (date, createdAt). */
+function compareCreated(a: Record<string, unknown>, b: Record<string, unknown>): number {
+  const aDate = typeof a.date === "string" ? a.date : "";
+  const bDate = typeof b.date === "string" ? b.date : "";
+  if (aDate !== bDate) return aDate < bDate ? -1 : 1;
+  const aCreated = typeof a.createdAt === "string" ? a.createdAt : "";
+  const bCreated = typeof b.createdAt === "string" ? b.createdAt : "";
+  if (aCreated !== bCreated) return aCreated < bCreated ? -1 : 1;
+  return 0;
+}
 
 /** Ensures the migrated object has the exact Dataset shape (§40 step 5). */
 function normalize(raw: Record<string, unknown>): Dataset {
@@ -145,21 +189,22 @@ function normalize(raw: Record<string, unknown>): Dataset {
   return {
     version: CURRENT_VERSION,
     exportedAt: typeof raw.exportedAt === "string" ? raw.exportedAt : null,
-    vehicle: isRecord(raw.vehicle) ? (raw.vehicle as unknown as Vehicle) : null,
-    odometerHistory: Array.isArray(raw.odometerHistory)
-      ? (raw.odometerHistory as Dataset["odometerHistory"])
+    vehicles: Array.isArray(raw.vehicles)
+      ? (raw.vehicles as Dataset["vehicles"])
       : [],
-    maintenanceItems: Array.isArray(raw.maintenanceItems)
-      ? (raw.maintenanceItems as Dataset["maintenanceItems"])
-      : [],
-    serviceHistory: Array.isArray(raw.serviceHistory)
-      ? (raw.serviceHistory as Dataset["serviceHistory"])
-      : [],
-    inspectionHistory: Array.isArray(raw.inspectionHistory)
-      ? (raw.inspectionHistory as Dataset["inspectionHistory"])
-      : [],
+    maintenanceItems: withVehicleId(Array.isArray(raw.maintenanceItems) ? raw.maintenanceItems : []) as Dataset["maintenanceItems"],
+    serviceHistory: withVehicleId(Array.isArray(raw.serviceHistory) ? raw.serviceHistory : []) as Dataset["serviceHistory"],
+    inspectionHistory: withVehicleId(Array.isArray(raw.inspectionHistory) ? raw.inspectionHistory : []) as Dataset["inspectionHistory"],
     settings: normalizeSettings(raw.settings, fallback.settings),
   };
+}
+
+/** Defensive repair: every item/record carries a `vehicleId` (null default). */
+function withVehicleId(rows: unknown[]): unknown[] {
+  return rows.map((row) => {
+    if (!isRecord(row)) return row;
+    return row.vehicleId === undefined ? { ...row, vehicleId: null } : row;
+  });
 }
 
 const THEME_PREFERENCES = ["system", "light", "dark"];

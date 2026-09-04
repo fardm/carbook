@@ -7,3 +7,31 @@
 
   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
 [2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
+[2m۱۸:۳۳:۱۸[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/domain/defaults.ts[22m
+[2m۱۸:۳۳:۳۲[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/domain/odometer.ts[22m
+[2m۱۸:۳۳:۵۴[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/domain/vehicle.ts[22m
+[2m۱۸:۳۴:۱۰[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/domain/vehicle.ts[22m
+[2m۱۸:۳۴:۳۰[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/domain/baselines.ts[22m
+[2m۱۸:۳۴:۵۸[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/domain/baselines.ts[22m
+[2m۱۸:۳۵:۲۹[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/domain/maintenance/calculations.ts[22m
+[2m۱۸:۳۵:۵۰[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/domain/maintenance/index.ts[22m
+[2m۱۸:۳۶:۴۲[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/persistence/repository.ts[22m
+[2m۱۸:۳۷:۲۶[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/persistence/repository.ts[22m
+[2m۱۸:۳۷:۵۱[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/persistence/repository.ts[22m
+[2m۱۸:۳۸:۱۸[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/persistence/import-export.ts[22m
+[2m۱۸:۳۹:۱۸[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/vehicle.ts[22m
+[2m۱۸:۴۸:۱۲[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/i18n/fa.ts[22m
+[2m۱۸:۴۸:۳۷[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/settings.ts[22m
+[2m۱۸:۴۹:۱۵[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/dashboard.ts[22m
+[2m۱۸:۴۹:۳۷[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/dashboard.ts[22m
+[2m۱۸:۴۹:۳۷[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/i18n/fa.ts[22m
+[2m۱۸:۵۰:۴۸[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/maintenance.ts[22m
+[2m۱۸:۵۱:۱۱[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/maintenance.ts[22m
+[2m۱۸:۵۱:۱۹[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/maintenance.ts[22m
+[2m۱۸:۵۱:۲۸[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/maintenance.ts[22m
+[2m۱۸:۵۱:۴۶[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/maintenance.ts[22m
+[2m۱۸:۵۱:۵۷[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/maintenance.ts[22m
+[2m۱۸:۵۲:۵۶[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/maintenance.ts[22m
+[2m۱۸:۵۳:۲۱[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/maintenance.ts[22m
+[2m۱۸:۵۴:۱۰[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/components.css[22m
+[2m۱۸:۵۵:۱۲[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/vehicle.ts[22m

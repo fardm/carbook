@@ -1,5 +1,6 @@
 import { CURRENT_VERSION } from "../domain/defaults";
 import { isIsoDate } from "../domain/odometer";
+import { isValidProductionYear } from "../domain/vehicle";
 import type { Dataset } from "../domain/types";
 import { migrateRaw } from "./repository";
 
@@ -54,8 +55,7 @@ const CALENDAR_PREFERENCES = ["jalali", "gregorian"] as const;
 
 const TOP_LEVEL_FIELDS = [
   "exportedAt",
-  "vehicle",
-  "odometerHistory",
+  "vehicles",
   "maintenanceItems",
   "serviceHistory",
   "inspectionHistory",
@@ -146,16 +146,15 @@ export function validateImportText(text: string): ImportResult {
   if (issues.length > 0) return { ok: false, issues };
 
   validateExportedAt(raw.exportedAt, issues);
-  validateVehicle(raw.vehicle, "vehicle", issues);
 
-  const odometerIds = new Set<string>();
-  validateOdometerHistory(raw.odometerHistory, odometerIds, issues);
+  const vehicleIds = new Set<string>();
+  validateVehicles(raw.vehicles, vehicleIds, issues);
 
   const itemIds = new Set<string>();
-  validateMaintenanceItems(raw.maintenanceItems, itemIds, issues);
+  validateMaintenanceItems(raw.maintenanceItems, vehicleIds, itemIds, issues);
 
-  validateServiceHistory(raw.serviceHistory, itemIds, issues);
-  validateInspectionHistory(raw.inspectionHistory, itemIds, issues);
+  validateServiceHistory(raw.serviceHistory, vehicleIds, itemIds, issues);
+  validateInspectionHistory(raw.inspectionHistory, vehicleIds, itemIds, issues);
   validateSettings(raw.settings, issues);
 
   if (issues.length > 0) return { ok: false, issues };
@@ -174,58 +173,53 @@ function validateExportedAt(value: unknown, issues: ImportIssue[]): void {
   }
 }
 
-function validateVehicle(raw: unknown, path: string, issues: ImportIssue[]): void {
-  if (raw === null) return;
-  if (!isRecord(raw)) {
-    issues.push({ path, kind: "wrongType" });
-    return;
-  }
-  checkField(issues, raw, "id", `${path}.id`, { type: "string", nonEmpty: true });
-  checkField(issues, raw, "name", `${path}.name`, { type: "string", nonEmpty: true });
-  checkField(issues, raw, "make", `${path}.make`, { type: "string" });
-  checkField(issues, raw, "model", `${path}.model`, { type: "string" });
-  checkField(issues, raw, "year", `${path}.year`, { type: "number", allowNull: true }, (v) =>
-    Number.isInteger(v) && v >= 1900 && v <= 2100,
-  );
-  checkField(issues, raw, "fuelType", `${path}.fuelType`, { type: "string", allowNull: true }, (v) =>
-    (FUEL_TYPES as readonly string[]).includes(v),
-  );
-  checkField(
-    issues,
-    raw,
-    "averageDailyDistance",
-    `${path}.averageDailyDistance`,
-    { type: "number", allowNull: true },
-    (v) => v >= 0,
-  );
-  checkField(issues, raw, "createdAt", `${path}.createdAt`, { type: "string", nonEmpty: true });
-  checkField(issues, raw, "updatedAt", `${path}.updatedAt`, { type: "string", nonEmpty: true });
-}
-
-function validateOdometerHistory(
+function validateVehicles(
   raw: unknown,
   seenIds: Set<string>,
   issues: ImportIssue[],
 ): void {
-  forEachRow(raw, "odometerHistory", issues, (row, path) => {
+  forEachRow(raw, "vehicles", issues, (row, path) => {
     checkId(row, path, seenIds, issues);
-    checkField(issues, row, "date", `${path}.date`, { type: "string", nonEmpty: true }, (v) =>
-      isIsoDate(v),
+    checkField(issues, row, "name", `${path}.name`, { type: "string", nonEmpty: true });
+    checkField(issues, row, "make", `${path}.make`, { type: "string" });
+    checkField(issues, row, "model", `${path}.model`, { type: "string" });
+    // Production year accepts Solar Hijri (1300–1500) OR Gregorian (1900–2100).
+    checkField(issues, row, "year", `${path}.year`, { type: "number", allowNull: true }, (v) =>
+      Number.isInteger(v) && isValidProductionYear(v),
     );
-    checkField(issues, row, "odometer", `${path}.odometer`, { type: "number" }, (v) =>
-      Number.isInteger(v) && v >= 0,
+    checkField(issues, row, "fuelType", `${path}.fuelType`, { type: "string", allowNull: true }, (v) =>
+      (FUEL_TYPES as readonly string[]).includes(v),
+    );
+    checkField(
+      issues,
+      row,
+      "averageDailyDistance",
+      `${path}.averageDailyDistance`,
+      { type: "number", allowNull: true },
+      (v) => v >= 0,
+    );
+    checkField(
+      issues,
+      row,
+      "currentOdometer",
+      `${path}.currentOdometer`,
+      { type: "number", allowNull: true },
+      (v) => Number.isInteger(v) && v >= 0,
     );
     checkField(issues, row, "createdAt", `${path}.createdAt`, { type: "string", nonEmpty: true });
+    checkField(issues, row, "updatedAt", `${path}.updatedAt`, { type: "string", nonEmpty: true });
   });
 }
 
 function validateMaintenanceItems(
   raw: unknown,
+  vehicleIds: Set<string>,
   seenIds: Set<string>,
   issues: ImportIssue[],
 ): void {
   forEachRow(raw, "maintenanceItems", issues, (row, path) => {
     checkId(row, path, seenIds, issues);
+    checkVehicleField(row, path, vehicleIds, issues);
     checkField(issues, row, "catalogId", `${path}.catalogId`, { type: "string", allowNull: true });
     checkField(issues, row, "name", `${path}.name`, { type: "string", nonEmpty: true });
     checkField(issues, row, "category", `${path}.category`, { type: "string", nonEmpty: true });
@@ -268,6 +262,7 @@ function validateMaintenanceItems(
 
 function validateServiceHistory(
   raw: unknown,
+  vehicleIds: Set<string>,
   itemIds: Set<string>,
   issues: ImportIssue[],
 ): void {
@@ -275,6 +270,7 @@ function validateServiceHistory(
   forEachRow(raw, "serviceHistory", issues, (row, path) => {
     checkId(row, path, seenIds, issues);
     checkItemReference(row, path, itemIds, issues);
+    checkVehicleField(row, path, vehicleIds, issues);
     checkField(issues, row, "date", `${path}.date`, { type: "string", nonEmpty: true }, (v) =>
       isIsoDate(v),
     );
@@ -289,6 +285,7 @@ function validateServiceHistory(
 
 function validateInspectionHistory(
   raw: unknown,
+  vehicleIds: Set<string>,
   itemIds: Set<string>,
   issues: ImportIssue[],
 ): void {
@@ -296,6 +293,7 @@ function validateInspectionHistory(
   forEachRow(raw, "inspectionHistory", issues, (row, path) => {
     checkId(row, path, seenIds, issues);
     checkItemReference(row, path, itemIds, issues);
+    checkVehicleField(row, path, vehicleIds, issues);
     checkField(issues, row, "date", `${path}.date`, { type: "string", nonEmpty: true }, (v) =>
       isIsoDate(v),
     );
@@ -458,13 +456,30 @@ function checkItemReference(
   }
 }
 
+/** items/records: `vehicleId` must exist (or be null = legacy unassigned). */
+function checkVehicleField(
+  row: Record<string, unknown>,
+  path: string,
+  vehicleIds: Set<string>,
+  issues: ImportIssue[],
+): void {
+  const value = row.vehicleId;
+  if (value === null || value === undefined) return;
+  if (!isString(value)) {
+    issues.push({ path: `${path}.vehicleId`, kind: "wrongType" });
+    return;
+  }
+  if (value === "" || !vehicleIds.has(value)) {
+    issues.push({ path: `${path}.vehicleId`, kind: "unknownReference" });
+  }
+}
+
 /** Builds the typed dataset. Only called when validation passed. */
 function assembleDataset(raw: Record<string, unknown>): Dataset {
   return {
     version: CURRENT_VERSION,
     exportedAt: raw.exportedAt as string | null,
-    vehicle: raw.vehicle as Dataset["vehicle"],
-    odometerHistory: raw.odometerHistory as Dataset["odometerHistory"],
+    vehicles: raw.vehicles as Dataset["vehicles"],
     maintenanceItems: raw.maintenanceItems as Dataset["maintenanceItems"],
     serviceHistory: raw.serviceHistory as Dataset["serviceHistory"],
     inspectionHistory: raw.inspectionHistory as Dataset["inspectionHistory"],

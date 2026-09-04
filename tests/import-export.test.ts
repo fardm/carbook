@@ -9,27 +9,28 @@ import {
   type ImportIssueKind,
 } from "../src/persistence/import-export";
 
-/** A fully populated, schema-valid dataset (§41 shape). */
+/** A fully populated, schema-valid dataset (§41 shape, multi-vehicle). */
 function validDataset(): Dataset {
   const d = defaultDataset();
   d.exportedAt = "2026-09-04T10:30:00.000Z";
-  d.vehicle = {
-    id: "v1",
-    name: "پژو ۲۰۷",
-    make: "پژو",
-    model: "207",
-    year: 2019,
-    fuelType: "gasoline",
-    averageDailyDistance: 40,
-    createdAt: "2026-09-01T08:00:00.000Z",
-    updatedAt: "2026-09-01T08:00:00.000Z",
-  };
-  d.odometerHistory = [
-    { id: "o1", date: "2026-09-01", odometer: 104500, createdAt: "2026-09-01T09:00:00.000Z" },
+  d.vehicles = [
+    {
+      id: "v1",
+      name: "پژو ۲۰۷",
+      make: "پژو",
+      model: "207",
+      year: 1390, // Solar Hijri production year is valid
+      fuelType: "gasoline",
+      averageDailyDistance: 40,
+      currentOdometer: 104500,
+      createdAt: "2026-09-01T08:00:00.000Z",
+      updatedAt: "2026-09-01T08:00:00.000Z",
+    },
   ];
   d.maintenanceItems = [
     {
       id: "m1",
+      vehicleId: "v1",
       catalogId: "engineOil",
       name: "روغن موتور",
       category: "engine",
@@ -50,6 +51,7 @@ function validDataset(): Dataset {
     {
       id: "s1",
       maintenanceItemId: "m1",
+      vehicleId: "v1",
       date: "2026-06-01",
       odometer: 94500,
       notes: "روغن 10W-40",
@@ -61,6 +63,7 @@ function validDataset(): Dataset {
     {
       id: "i1",
       maintenanceItemId: "m1",
+      vehicleId: "v1",
       date: "2026-09-01",
       odometer: 104500,
       condition: "watch",
@@ -102,7 +105,7 @@ describe("export helpers (§41)", () => {
     const exported = buildExport(dataset, "2026-09-04T12:00:00.000Z");
     expect(exported.version).toBe(CURRENT_VERSION);
     expect(exported.exportedAt).toBe("2026-09-04T12:00:00.000Z");
-    expect(exported.vehicle).toEqual(dataset.vehicle);
+    expect(exported.vehicles).toEqual(dataset.vehicles);
     expect(exported.maintenanceItems).toEqual(dataset.maintenanceItems);
   });
 
@@ -144,7 +147,8 @@ describe("validateImportText — round trip (§49: export → import → equival
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.dataset.version).toBe(CURRENT_VERSION);
-    expect(result.dataset.vehicle?.id).toBe("v1");
+    expect(result.dataset.vehicles[0].id).toBe("v1");
+    expect(result.dataset.vehicles[0].name).toBe("پژو ۲۰۷");
   });
 
   it("tolerates extra unknown top-level keys (forward-compatible within a version)", () => {
@@ -201,8 +205,8 @@ describe("validateImportText — structure & types (§42, §47)", () => {
 
   it("rejects a wrong-typed top-level array", () => {
     const d = cloneValid();
-    (d as unknown as Record<string, unknown>).odometerHistory = "nope";
-    expectIssue(textOf(d), "odometerHistory", "wrongType");
+    (d as unknown as Record<string, unknown>).vehicles = "nope";
+    expectIssue(textOf(d), "vehicles", "wrongType");
   });
 
   it("rejects a wrong-typed exportedAt", () => {
@@ -218,79 +222,75 @@ describe("validateImportText — structure & types (§42, §47)", () => {
   });
 });
 
-describe("validateImportText — vehicle", () => {
+describe("validateImportText — vehicles", () => {
   it("rejects a missing vehicle name", () => {
     const d = cloneValid();
-    delete (d.vehicle as unknown as Record<string, unknown>).name;
-    expectIssue(textOf(d), "vehicle.name", "missingField");
+    delete (d.vehicles[0] as unknown as Record<string, unknown>).name;
+    expectIssue(textOf(d), "vehicles[0].name", "missingField");
   });
 
   it("rejects a blank vehicle name", () => {
     const d = cloneValid();
-    d.vehicle!.name = "   ";
-    expectIssue(textOf(d), "vehicle.name", "invalidValue");
+    d.vehicles[0].name = "   ";
+    expectIssue(textOf(d), "vehicles[0].name", "invalidValue");
   });
 
   it("rejects a wrong-typed vehicle field", () => {
     const d = cloneValid();
-    (d.vehicle as unknown as Record<string, unknown>).make = 7;
-    expectIssue(textOf(d), "vehicle.make", "wrongType");
+    (d.vehicles[0] as unknown as Record<string, unknown>).make = 7;
+    expectIssue(textOf(d), "vehicles[0].make", "wrongType");
   });
 
-  it("rejects an out-of-range year", () => {
+  it("accepts a Solar Hijri production year (1390)", () => {
     const d = cloneValid();
-    d.vehicle!.year = 1800;
-    expectIssue(textOf(d), "vehicle.year", "invalidValue");
+    d.vehicles[0].year = 1390;
+    expect(validateImportText(textOf(d)).ok).toBe(true);
+  });
+
+  it("accepts a Gregorian production year (2019)", () => {
+    const d = cloneValid();
+    d.vehicles[0].year = 2019;
+    expect(validateImportText(textOf(d)).ok).toBe(true);
+  });
+
+  it("rejects an out-of-range year in either calendar system", () => {
+    const d = cloneValid();
+    d.vehicles[0].year = 1800;
+    expectIssue(textOf(d), "vehicles[0].year", "invalidValue");
+    d.vehicles[0].year = 9999;
+    expectIssue(textOf(d), "vehicles[0].year", "invalidValue");
   });
 
   it("rejects an unknown fuel type", () => {
     const d = cloneValid();
-    (d.vehicle as unknown as Record<string, unknown>).fuelType = "ethanol";
-    expectIssue(textOf(d), "vehicle.fuelType", "invalidValue");
+    (d.vehicles[0] as unknown as Record<string, unknown>).fuelType = "ethanol";
+    expectIssue(textOf(d), "vehicles[0].fuelType", "invalidValue");
   });
 
   it("rejects a negative average daily distance", () => {
     const d = cloneValid();
-    d.vehicle!.averageDailyDistance = -5;
-    expectIssue(textOf(d), "vehicle.averageDailyDistance", "invalidValue");
+    d.vehicles[0].averageDailyDistance = -5;
+    expectIssue(textOf(d), "vehicles[0].averageDailyDistance", "invalidValue");
   });
 
-  it("accepts a null vehicle", () => {
+  it("rejects a negative or fractional current odometer", () => {
     const d = cloneValid();
-    d.vehicle = null;
+    d.vehicles[0].currentOdometer = -1;
+    expectIssue(textOf(d), "vehicles[0].currentOdometer", "invalidValue");
+    d.vehicles[0].currentOdometer = 12.5;
+    expectIssue(textOf(d), "vehicles[0].currentOdometer", "invalidValue");
+  });
+
+  it("accepts a null current odometer (mileage never recorded)", () => {
+    const d = cloneValid();
+    d.vehicles[0].currentOdometer = null;
     expect(validateImportText(textOf(d)).ok).toBe(true);
   });
-});
 
-describe("validateImportText — odometer readings", () => {
-  it("rejects a string odometer value", () => {
+  it("rejects duplicate vehicle ids", () => {
     const d = cloneValid();
-    (d.odometerHistory[0] as unknown as Record<string, unknown>).odometer = "104500";
-    expectIssue(textOf(d), "odometerHistory[0].odometer", "wrongType");
-  });
-
-  it("rejects a negative odometer value", () => {
-    const d = cloneValid();
-    d.odometerHistory[0].odometer = -1;
-    expectIssue(textOf(d), "odometerHistory[0].odometer", "invalidValue");
-  });
-
-  it("rejects an out-of-range calendar date", () => {
-    const d = cloneValid();
-    d.odometerHistory[0].date = "2026-09-32";
-    expectIssue(textOf(d), "odometerHistory[0].date", "invalidValue");
-  });
-
-  it("rejects a malformed date format", () => {
-    const d = cloneValid();
-    d.odometerHistory[0].date = "2026/09/01";
-    expectIssue(textOf(d), "odometerHistory[0].date", "invalidValue");
-  });
-
-  it("rejects a duplicate reading id", () => {
-    const d = cloneValid();
-    d.odometerHistory.push({ ...d.odometerHistory[0] });
-    expectIssue(textOf(d), "odometerHistory[1].id", "duplicateId");
+    d.vehicles.push({ ...d.vehicles[0], name: "دیگر" });
+    expectIssue(textOf(d), "vehicles[1].id", "duplicateId");
   });
 });
 
@@ -299,6 +299,18 @@ describe("validateImportText — maintenance items & rules", () => {
     const d = cloneValid();
     d.maintenanceItems.push(JSON.parse(JSON.stringify(d.maintenanceItems[0])) as Dataset["maintenanceItems"][number]);
     expectIssue(textOf(d), "maintenanceItems[1].id", "duplicateId");
+  });
+
+  it("rejects an item referencing an unknown vehicle", () => {
+    const d = cloneValid();
+    d.maintenanceItems[0].vehicleId = "ghost-vehicle";
+    expectIssue(textOf(d), "maintenanceItems[0].vehicleId", "unknownReference");
+  });
+
+  it("accepts a null vehicleId (legacy unassigned item)", () => {
+    const d = cloneValid();
+    d.maintenanceItems[0].vehicleId = null;
+    expect(validateImportText(textOf(d)).ok).toBe(true);
   });
 
   it("rejects a missing rule object", () => {
@@ -353,6 +365,12 @@ describe("validateImportText — service & inspection history", () => {
     const d = cloneValid();
     d.serviceHistory[0].maintenanceItemId = "ghost-item";
     expectIssue(textOf(d), "serviceHistory[0].maintenanceItemId", "unknownReference");
+  });
+
+  it("rejects a service referencing an unknown vehicle", () => {
+    const d = cloneValid();
+    d.serviceHistory[0].vehicleId = "ghost-vehicle";
+    expectIssue(textOf(d), "serviceHistory[0].vehicleId", "unknownReference");
   });
 
   it("rejects duplicate service ids", () => {
@@ -433,20 +451,31 @@ describe("validateImportText — settings", () => {
       expect(validateImportText(textOf(d)).ok).toBe(true);
     }
   });
+
+  it("accepts both calendar preferences and rejects unknown ones", () => {
+    for (const calendar of ["jalali", "gregorian"]) {
+      const d = cloneValid();
+      (d.settings as unknown as Record<string, unknown>).calendar = calendar;
+      expect(validateImportText(textOf(d)).ok).toBe(true);
+    }
+    const d = cloneValid();
+    (d.settings as unknown as Record<string, unknown>).calendar = "buddhist";
+    expectIssue(textOf(d), "settings.calendar", "invalidValue");
+  });
 });
 
 describe("validateImportText — reporting", () => {
   it("reports every problem found in one pass", () => {
     const d = cloneValid();
-    d.vehicle!.name = "";
-    d.odometerHistory[0].odometer = -10;
+    d.vehicles[0].name = "";
+    d.vehicles[0].currentOdometer = -10;
     d.maintenanceItems[0].rule.displayMode = "weeks" as Dataset["maintenanceItems"][number]["rule"]["displayMode"];
     const result = validateImportText(textOf(d));
     expect(result.ok).toBe(false);
     if (result.ok) return;
     const paths = result.issues.map((issue) => issue.path);
-    expect(paths).toContain("vehicle.name");
-    expect(paths).toContain("odometerHistory[0].odometer");
+    expect(paths).toContain("vehicles[0].name");
+    expect(paths).toContain("vehicles[0].currentOdometer");
     expect(paths).toContain("maintenanceItems[0].rule.displayMode");
   });
 });

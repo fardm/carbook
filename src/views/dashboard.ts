@@ -1,6 +1,9 @@
 import { lastInspectionFor } from "../domain/baselines";
-import { calculateMaintenance, type MaintenanceCalculation } from "../domain/maintenance";
-import { getCurrentOdometer } from "../domain/odometer";
+import {
+  calculateMaintenance,
+  contextForVehicle,
+  type MaintenanceCalculation,
+} from "../domain/maintenance";
 import type { MaintenanceItem, Vehicle } from "../domain/types";
 import { t } from "../i18n";
 import { store } from "../state/store";
@@ -17,13 +20,20 @@ import {
 } from "../ui/maintenance-display";
 
 /**
- * Dashboard (§30): vehicle summary, maintenance summary counts, and the most
- * urgent maintenance items. Everything derives from the engine — no
- * duplicated calculations.
+ * Dashboard: vehicle summary, maintenance summary counts, and the most urgent
+ * maintenance items for the selected vehicle. Everything derives from the
+ * engine — no duplicated calculations. With several vehicles a selector
+ * appears at the top; the summary/priority cards always follow the selected
+ * vehicle's items so data is never shared between cars.
  */
+
+/** View-local vehicle selection (defaults to the first vehicle). */
+let selectedVehicleId: string | null = null;
+
 export function renderDashboard(container: HTMLElement): () => void {
   const draw = (): void => {
     container.innerHTML = dashboardHtml();
+    bind(container);
     applyIcons();
   };
   draw();
@@ -32,24 +42,29 @@ export function renderDashboard(container: HTMLElement): () => void {
 
 function dashboardHtml(): string {
   const dataset = store.get();
-  const vehicle = dataset.vehicle;
-  const odometer = getCurrentOdometer(dataset);
+  const vehicles = dataset.vehicles;
+  const vehicle = resolveSelectedVehicle(vehicles);
 
-  const activeItems = dataset.maintenanceItems.filter((item) => item.active);
+  // Items are scoped to the selected vehicle (legacy null-vehicle items show
+  // while the garage is empty). Calculations use that vehicle's context.
+  const activeItems = dataset.maintenanceItems.filter(
+    (item) => item.active && item.vehicleId === (vehicle?.id ?? null),
+  );
   const calcs = activeItems.map((item) => ({
     item,
-    calc: calculateMaintenance(item, dataset),
+    calc: calculateMaintenance(item, contextForVehicle(dataset, item.vehicleId)),
   }));
 
   const vehicleCard = vehicle
     ? `
       <section class="card vehicle-summary">
+        ${vehicleSelectorHtml(vehicles, vehicle.id)}
         <span class="vehicle-summary__icon" data-lucide="car-front"></span>
         <div class="vehicle-summary__info">
           <div class="vehicle-summary__name">${escHtml(vehicle.name)}</div>
           ${vehicleMeta(vehicle) ? `<div class="vehicle-summary__meta">${escHtml(vehicleMeta(vehicle))}</div>` : ""}
           <div class="vehicle-summary__odometer">
-            ${odometer ? `${faNum(odometer.odometer)} ${t("common.kmUnit")}` : t("vehicle.notRecorded")}
+            ${vehicle.currentOdometer != null ? `${faNum(vehicle.currentOdometer)} ${t("common.kmUnit")}` : t("vehicle.notRecorded")}
           </div>
         </div>
         <a class="btn btn--text" href="#/vehicle">${t("dashboard.updateOdometer")}</a>
@@ -114,6 +129,39 @@ function dashboardHtml(): string {
   `;
 }
 
+/** The currently selected vehicle, or the first one when none/dangling. */
+function resolveSelectedVehicle(vehicles: readonly Vehicle[]): Vehicle | null {
+  if (vehicles.length === 0) return null;
+  const selected = vehicles.find((v) => v.id === selectedVehicleId);
+  return selected ?? vehicles[0];
+}
+
+/** A small selector shown only when several vehicles exist. */
+function vehicleSelectorHtml(vehicles: readonly Vehicle[], selectedId: string): string {
+  if (vehicles.length <= 1) return "";
+  const options = vehicles
+    .map(
+      (v) =>
+        `<option value="${escHtml(v.id)}" ${v.id === selectedId ? "selected" : ""}>${escHtml(v.name)}</option>`,
+    )
+    .join("");
+  return `
+    <div class="field vehicle-select">
+      <label class="field__label" for="dashboard-vehicle-select">${t("vehicle.selectVehicle")}</label>
+      <select class="field__input js-vehicle-select" id="dashboard-vehicle-select">${options}</select>
+    </div>
+  `;
+}
+
+function bind(container: HTMLElement): void {
+  container.querySelectorAll<HTMLSelectElement>(".js-vehicle-select").forEach((select) => {
+    select.addEventListener("change", () => {
+      selectedVehicleId = select.value || null;
+      redraw(container);
+    });
+  });
+}
+
 function summaryChip(
   bucket: "overdue" | "dueSoon" | "ok",
   calcs: { calc: ReturnType<typeof calculateMaintenance> }[],
@@ -161,4 +209,11 @@ function vehicleMeta(vehicle: Vehicle): string {
   return [vehicle.make, vehicle.model, vehicle.year != null ? String(vehicle.year) : ""]
     .filter((part) => part !== "")
     .join(" — ");
+}
+
+/** Re-renders without notifying the store (view-local selection change). */
+function redraw(container: HTMLElement): void {
+  container.innerHTML = dashboardHtml();
+  bind(container);
+  applyIcons();
 }

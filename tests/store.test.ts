@@ -28,7 +28,7 @@ describe("Store", () => {
     store.subscribe(listener);
 
     store.update((draft) => {
-      draft.vehicle = {
+      draft.vehicles.push({
         id: "v1",
         name: "خودروی من",
         make: "",
@@ -36,12 +36,13 @@ describe("Store", () => {
         year: null,
         fuelType: null,
         averageDailyDistance: null,
+        currentOdometer: null,
         createdAt: "2026-09-04T00:00:00.000Z",
         updatedAt: "2026-09-04T00:00:00.000Z",
-      };
+      });
     });
 
-    expect(store.get().vehicle?.name).toBe("خودروی من");
+    expect(store.get().vehicles[0].name).toBe("خودروی من");
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
@@ -49,13 +50,22 @@ describe("Store", () => {
     const backend = memoryBackend();
     const first = new Store(createRepository(backend));
     first.update((draft) => {
-      draft.odometerHistory = [
-        { id: "r1", date: "2026-09-04", odometer: 104500, createdAt: "2026-09-04T00:00:00.000Z" },
-      ];
+      draft.vehicles.push({
+        id: "v1",
+        name: "خودروی من",
+        make: "",
+        model: "",
+        year: null,
+        fuelType: null,
+        averageDailyDistance: null,
+        currentOdometer: 104500,
+        createdAt: "2026-09-04T00:00:00.000Z",
+        updatedAt: "2026-09-04T00:00:00.000Z",
+      });
     });
 
     const second = new Store(createRepository(backend));
-    expect(second.get().odometerHistory[0].odometer).toBe(104500);
+    expect(second.get().vehicles[0].currentOdometer).toBe(104500);
   });
 
   it("replace() swaps the dataset and persists", () => {
@@ -68,7 +78,7 @@ describe("Store", () => {
   it("reset() restores the default dataset and clears storage", () => {
     const store = freshStore();
     store.update((draft) => {
-      draft.vehicle = { id: "v1", name: "x", make: "", model: "", year: null, fuelType: null, averageDailyDistance: null, createdAt: "", updatedAt: "" };
+      draft.vehicles.push({ id: "v1", name: "x", make: "", model: "", year: null, fuelType: null, averageDailyDistance: null, currentOdometer: null, createdAt: "", updatedAt: "" });
     });
     store.reset();
     expect(store.get()).toEqual(defaultDataset());

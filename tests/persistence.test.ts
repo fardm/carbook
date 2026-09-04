@@ -17,23 +17,24 @@ function memoryBackend(): StorageBackend & { dump(): Record<string, string> } {
 
 function populatedDataset(): Dataset {
   const dataset = defaultDataset();
-  dataset.vehicle = {
-    id: createId(),
-    name: "پژو ۲۰۷",
-    make: "پژو",
-    model: "207",
-    year: 2019,
-    fuelType: "gasoline",
-    averageDailyDistance: 40,
-    createdAt: "2026-09-04T10:00:00.000Z",
-    updatedAt: "2026-09-04T10:00:00.000Z",
-  };
-  dataset.odometerHistory = [
-    { id: createId(), date: "2026-08-20", odometer: 103900, createdAt: "2026-08-20T08:00:00.000Z" },
+  dataset.vehicles = [
+    {
+      id: createId(),
+      name: "پژو ۲۰۷",
+      make: "پژو",
+      model: "207",
+      year: 1390,
+      fuelType: "gasoline",
+      averageDailyDistance: 40,
+      currentOdometer: 103900,
+      createdAt: "2026-09-04T10:00:00.000Z",
+      updatedAt: "2026-09-04T10:00:00.000Z",
+    },
   ];
   dataset.maintenanceItems = [
     {
       id: createId(),
+      vehicleId: dataset.vehicles[0].id,
       catalogId: "engineOil",
       name: "روغن موتور",
       category: "engine",
@@ -42,6 +43,18 @@ function populatedDataset(): Dataset {
       active: true,
       createdAt: "2026-09-04T10:00:00.000Z",
       updatedAt: "2026-09-04T10:00:00.000Z",
+    },
+  ];
+  dataset.serviceHistory = [
+    {
+      id: createId(),
+      maintenanceItemId: dataset.maintenanceItems[0].id,
+      vehicleId: dataset.vehicles[0].id,
+      date: "2026-08-20",
+      odometer: 100000,
+      notes: "",
+      cost: null,
+      createdAt: "2026-08-20T08:00:00.000Z",
     },
   ];
   return dataset;
@@ -100,23 +113,25 @@ describe("loadFromString — defensive loading", () => {
   });
 
   it("falls back to default when version is missing or not a number", () => {
-    expect(loadFromString('{"vehicle":null}')).toEqual(defaultDataset());
+    expect(loadFromString('{"vehicles":[]}')).toEqual(defaultDataset());
     expect(loadFromString('{"version":"1"}')).toEqual(defaultDataset());
   });
 
   it("falls back to default for a future (unsupported) version", () => {
-    expect(loadFromString(JSON.stringify({ version: 99, vehicle: { id: "x" } }))).toEqual(defaultDataset());
+    expect(loadFromString(JSON.stringify({ version: 99, vehicles: [{ id: "x" }] }))).toEqual(defaultDataset());
   });
 
   it("migrates legacy version-0 data to the current version", () => {
     const migrated = loadFromString(
-      JSON.stringify({ version: 0, vehicle: { id: "v1" }, settings: { statusThresholds: { dueSoonPercent: 30 } } }),
+      JSON.stringify({ version: 0, vehicle: { id: "v1", name: "پژو" }, settings: { statusThresholds: { dueSoonPercent: 30 } } }),
     );
     expect(migrated.version).toBe(CURRENT_VERSION);
-    expect(migrated.vehicle?.id).toBe("v1");
-    // Missing arrays are repaired; settings merge with defaults + theme.
-    expect(migrated.odometerHistory).toEqual([]);
+    expect(migrated.vehicles[0].id).toBe("v1");
+    expect(migrated.vehicles[0].name).toBe("پژو");
+    // Missing arrays are repaired; settings merge with defaults + theme + calendar.
     expect(migrated.maintenanceItems).toEqual([]);
+    expect(migrated.serviceHistory).toEqual([]);
+    expect(migrated.inspectionHistory).toEqual([]);
     expect(migrated.settings.statusThresholds).toEqual({ dueSoonPercent: 30, duePercent: 5 });
     expect(migrated.settings.theme).toBe("system");
     expect(migrated.settings.calendar).toBe("jalali");
@@ -155,6 +170,48 @@ describe("loadFromString — defensive loading", () => {
     expect(migrated.version).toBe(CURRENT_VERSION);
     expect(migrated.settings.theme).toBe("dark");
     expect(migrated.settings.calendar).toBe("jalali"); // Solar Hijri default
+  });
+
+  it("migrates v3 single-vehicle data: vehicle + odometerHistory → vehicles[] with current odometer", () => {
+    const raw = JSON.stringify({
+      version: 3,
+      exportedAt: null,
+      vehicle: {
+        id: "v1",
+        name: "پژو ۲۰۷",
+        make: "پژو",
+        model: "207",
+        year: 2019,
+        fuelType: "gasoline",
+        averageDailyDistance: 40,
+        createdAt: "2026-09-04T10:00:00.000Z",
+        updatedAt: "2026-09-04T10:00:00.000Z",
+      },
+      odometerHistory: [
+        { id: "o1", date: "2026-08-20", odometer: 103900, createdAt: "2026-08-20T08:00:00.000Z" },
+        { id: "o2", date: "2026-09-01", odometer: 104500, createdAt: "2026-09-01T08:00:00.000Z" },
+        { id: "o3", date: "2026-08-20", odometer: 103200, createdAt: "2026-08-20T07:00:00.000Z" },
+      ],
+      maintenanceItems: [{ id: "m1", catalogId: "engineOil", name: "روغن موتور", category: "engine", icon: "droplets", active: true }],
+      serviceHistory: [{ id: "s1", maintenanceItemId: "m1", date: "2026-06-01", odometer: 94500, notes: "", cost: null, createdAt: "2026-06-01T08:00:00.000Z" }],
+      inspectionHistory: [{ id: "i1", maintenanceItemId: "m1", date: "2026-09-01", odometer: 104500, condition: "good", measurement: null, notes: "", createdAt: "2026-09-01T11:00:00.000Z" }],
+      settings: { statusThresholds: { dueSoonPercent: 20, duePercent: 5 }, theme: "system", calendar: "jalali" },
+    });
+    const migrated = loadFromString(raw);
+    expect(migrated.version).toBe(CURRENT_VERSION);
+    // Single vehicle preserved, current odometer = latest reading by (date, createdAt).
+    expect(migrated.vehicles).toHaveLength(1);
+    expect(migrated.vehicles[0].id).toBe("v1");
+    expect(migrated.vehicles[0].name).toBe("پژو ۲۰۷");
+    expect(migrated.vehicles[0].currentOdometer).toBe(104500);
+    // Every item/record is linked to the vehicle (nothing shared, nothing dropped).
+    expect(migrated.maintenanceItems[0].vehicleId).toBe("v1");
+    expect(migrated.serviceHistory[0].vehicleId).toBe("v1");
+    expect(migrated.inspectionHistory[0].vehicleId).toBe("v1");
+    expect(migrated.inspectionHistory[0].condition).toBe("good");
+    // Legacy collections are gone.
+    expect((migrated as unknown as Record<string, unknown>).odometerHistory).toBeUndefined();
+    expect((migrated as unknown as Record<string, unknown>).vehicle).toBeUndefined();
   });
 
   it("repairs partially-shaped current-version data", () => {

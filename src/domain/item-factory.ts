@@ -24,13 +24,15 @@ export type ItemDraftError = "nameRequired" | "kmInvalid" | "monthsInvalid" | "r
 
 export type CustomItemError = ItemDraftError;
 
-/** Builds an active item from user configuration. */
+/** Builds an active item from user configuration. The item is linked to its
+ * owning vehicle via `opts.vehicleId` (null = legacy unassigned). */
 export function buildItem(
   draft: ItemDraft,
-  opts: { catalogId: string | null; now: string; id?: string },
+  opts: { catalogId: string | null; now: string; id?: string; vehicleId?: string | null },
 ): MaintenanceItem {
   return {
     id: opts.id ?? createId(),
+    vehicleId: opts.vehicleId ?? null,
     catalogId: opts.catalogId,
     name: draft.name.trim(),
     category: draft.category,

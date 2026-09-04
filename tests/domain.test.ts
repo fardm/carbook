@@ -2,11 +2,49 @@ import { describe, expect, it } from "vitest";
 import { defaultDataset } from "../src/domain/defaults";
 import { createId } from "../src/domain/ids";
 import { lastInspectionFor, lastServiceFor } from "../src/domain/baselines";
-import { getCurrentOdometer, sortReadings } from "../src/domain/odometer";
-import type { Dataset, InspectionRecord, OdometerReading, ServiceRecord } from "../src/domain/types";
+import { validateMileage, isIsoDate } from "../src/domain/odometer";
+import { validateVehicle, type VehicleInput } from "../src/domain/vehicle";
+import type { Dataset, InspectionRecord, ServiceRecord } from "../src/domain/types";
 
-function reading(partial: Partial<OdometerReading>): OdometerReading {
-  return { id: createId(), date: "2026-01-01", odometer: 1000, createdAt: "2026-01-01T00:00:00.000Z", ...partial };
+function vehicleInput(partial: Partial<VehicleInput> = {}): VehicleInput {
+  return {
+    name: "پژو ۲۰۷",
+    make: "پژو",
+    model: "207",
+    year: null,
+    fuelType: "gasoline",
+    averageDailyDistance: null,
+    ...partial,
+  };
+}
+
+function service(partial: Partial<ServiceRecord>): ServiceRecord {
+  return {
+    id: createId(),
+    maintenanceItemId: "item-1",
+    vehicleId: "v1",
+    date: "2026-01-01",
+    odometer: 1000,
+    notes: "",
+    cost: null,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    ...partial,
+  };
+}
+
+function inspection(partial: Partial<InspectionRecord>): InspectionRecord {
+  return {
+    id: createId(),
+    maintenanceItemId: "item-1",
+    vehicleId: "v1",
+    date: "2026-01-01",
+    odometer: 1000,
+    condition: "good",
+    measurement: null,
+    notes: "",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    ...partial,
+  };
 }
 
 describe("createId", () => {
@@ -19,35 +57,40 @@ describe("createId", () => {
   });
 });
 
-describe("getCurrentOdometer", () => {
-  it("returns null when there are no readings", () => {
-    expect(getCurrentOdometer(defaultDataset())).toBeNull();
+describe("validateMileage", () => {
+  it("accepts a non-negative integer", () => {
+    expect(validateMileage(1024)).toEqual([]);
+    expect(validateMileage(0)).toEqual([]);
   });
 
-  it("returns the latest reading by date", () => {
-    const dataset = defaultDataset();
-    dataset.odometerHistory = [
-      reading({ date: "2026-08-20", odometer: 103900 }),
-      reading({ date: "2026-09-03", odometer: 104500 }),
-      reading({ date: "2026-08-05", odometer: 103200 }),
-    ];
-    expect(getCurrentOdometer(dataset)?.odometer).toBe(104500);
+  it("rejects missing / negative / fractional values", () => {
+    expect(validateMileage(null)).toContain("missingOdometer");
+    expect(validateMileage(-1)).toContain("invalidOdometer");
+    expect(validateMileage(12.5)).toContain("invalidOdometer");
+  });
+});
+
+describe("isIsoDate", () => {
+  it("accepts valid yyyy-mm-dd and rejects malformed dates", () => {
+    expect(isIsoDate("2026-03-21")).toBe(true);
+    expect(isIsoDate("2026-13-01")).toBe(false);
+    expect(isIsoDate("2026-02-30")).toBe(false);
+    expect(isIsoDate("26-03-21")).toBe(false);
+  });
+});
+
+describe("validateVehicle", () => {
+  it("requires a name", () => {
+    expect(validateVehicle(vehicleInput({ name: "   " }))).toContain("nameRequired");
   });
 
-  it("breaks date ties by createdAt", () => {
-    const dataset = defaultDataset();
-    dataset.odometerHistory = [
-      reading({ date: "2026-09-03", odometer: 104000, createdAt: "2026-09-03T08:00:00.000Z" }),
-      reading({ date: "2026-09-03", odometer: 105000, createdAt: "2026-09-03T10:00:00.000Z" }),
-    ];
-    expect(getCurrentOdometer(dataset)?.odometer).toBe(105000);
+  it("accepts a Solar Hijri production year (1390) — no Gregorian-only bounds", () => {
+    expect(validateVehicle(vehicleInput({ year: 1390 }))).not.toContain("yearInvalid");
   });
 
-  it("sortReadings does not mutate the input", () => {
-    const readings = [reading({ date: "2026-09-03" }), reading({ date: "2026-08-05" })];
-    const before = [...readings];
-    sortReadings(readings);
-    expect(readings).toEqual(before);
+  it("rejects clearly invalid years in either calendar system", () => {
+    expect(validateVehicle(vehicleInput({ year: -5 }))).toContain("yearInvalid");
+    expect(validateVehicle(vehicleInput({ year: 99.5 }))).toContain("yearInvalid");
   });
 });
 
@@ -63,25 +106,21 @@ describe("lastServiceFor / lastInspectionFor", () => {
   it("picks the latest service by (date, createdAt) and ignores other items", () => {
     const dataset = defaultDataset();
     dataset.serviceHistory = [
-      { id: "s1", maintenanceItemId: "other", date: "2026-09-03", odometer: 1, notes: "", cost: null, createdAt: "2026-09-03T00:00:00.000Z" },
-      { id: "s2", maintenanceItemId: itemId, date: "2026-03-10", odometer: 96800, notes: "", cost: null, createdAt: "2026-03-10T00:00:00.000Z" },
-      { id: "s3", maintenanceItemId: itemId, date: "2026-09-03", odometer: 104500, notes: "", cost: null, createdAt: "2026-09-03T09:00:00.000Z" },
-      { id: "s4", maintenanceItemId: itemId, date: "2026-09-03", odometer: 104000, notes: "", cost: null, createdAt: "2026-09-03T08:00:00.000Z" },
+      service({ id: "s1", maintenanceItemId: "other", date: "2026-09-03", odometer: 1 }),
+      service({ id: "s2", maintenanceItemId: itemId, date: "2026-03-10", odometer: 96800 }),
+      service({ id: "s3", maintenanceItemId: itemId, date: "2026-09-03", odometer: 104500, createdAt: "2026-09-03T09:00:00.000Z" }),
+      service({ id: "s4", maintenanceItemId: itemId, date: "2026-09-03", odometer: 104000, createdAt: "2026-09-03T08:00:00.000Z" }),
     ];
     expect(lastServiceFor(dataset.serviceHistory, itemId)?.id).toBe("s3");
   });
 
   it("keeps services and inspections fully separate (§18)", () => {
     const dataset = defaultDataset();
-    dataset.serviceHistory = [
-      { id: "s1", maintenanceItemId: itemId, date: "2026-01-10", odometer: 80000, notes: "", cost: null, createdAt: "2026-01-10T00:00:00.000Z" },
-    ];
-    dataset.inspectionHistory = [
-      { id: "i1", maintenanceItemId: itemId, date: "2026-08-20", odometer: 103900, condition: "good", measurement: null, notes: "", createdAt: "2026-08-20T00:00:00.000Z" },
-    ];
-    const inspection: InspectionRecord = dataset.inspectionHistory[0];
-    const service: ServiceRecord = dataset.serviceHistory[0];
-    expect(lastInspectionFor(dataset.inspectionHistory, itemId)?.id).toBe(inspection.id);
-    expect(lastServiceFor(dataset.serviceHistory, itemId)?.id).toBe(service.id);
+    dataset.serviceHistory = [service({ id: "s1", date: "2026-01-10", odometer: 80000 })];
+    dataset.inspectionHistory = [inspection({ id: "i1", date: "2026-08-20", odometer: 103900 })];
+    const inspectionRecord: InspectionRecord = dataset.inspectionHistory[0];
+    const serviceRecord: ServiceRecord = dataset.serviceHistory[0];
+    expect(lastInspectionFor(dataset.inspectionHistory, itemId)?.id).toBe(inspectionRecord.id);
+    expect(lastServiceFor(dataset.serviceHistory, itemId)?.id).toBe(serviceRecord.id);
   });
 });

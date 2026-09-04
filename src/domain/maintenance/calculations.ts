@@ -1,9 +1,7 @@
 import { lastInspectionFor, lastServiceFor } from "../baselines";
-import { getCurrentOdometer } from "../odometer";
 import type {
   InspectionRecord,
   MaintenanceItem,
-  OdometerReading,
   ServiceRecord,
   Settings,
   Vehicle,
@@ -18,13 +16,42 @@ import {
 /** Criterion types that can drive a maintenance rule (§16). */
 export type Criterion = "km" | "time";
 
-/** Everything the calculation needs. A Dataset satisfies this type. */
+/** Everything the calculation needs for ONE vehicle (multi-vehicle: each
+ * item is computed against its own vehicle's facts). */
 export interface CalculationContext {
-  vehicle: Pick<Vehicle, "averageDailyDistance"> | null;
-  odometerHistory: readonly OdometerReading[];
+  /** The item's vehicle facts; null for legacy unassigned items / no vehicle. */
+  vehicle: { averageDailyDistance: number | null; currentOdometer: number | null } | null;
   serviceHistory: readonly ServiceRecord[];
   inspectionHistory: readonly InspectionRecord[];
   settings: Pick<Settings, "statusThresholds">;
+}
+
+/**
+ * Builds the calculation context for a dataset + vehicle id. History is NOT
+ * filtered here — the engine looks records up by the item's id, and item ids
+ * are globally unique, so cross-vehicle sharing is impossible.
+ */
+export function contextForVehicle(
+  dataset: {
+    vehicles: readonly Vehicle[];
+    serviceHistory: readonly ServiceRecord[];
+    inspectionHistory: readonly InspectionRecord[];
+    settings: Pick<Settings, "statusThresholds">;
+  },
+  vehicleId: string | null,
+): CalculationContext {
+  const vehicle = vehicleId == null ? null : dataset.vehicles.find((v) => v.id === vehicleId) ?? null;
+  return {
+    vehicle: vehicle
+      ? {
+          averageDailyDistance: vehicle.averageDailyDistance,
+          currentOdometer: vehicle.currentOdometer,
+        }
+      : null,
+    serviceHistory: dataset.serviceHistory,
+    inspectionHistory: dataset.inspectionHistory,
+    settings: dataset.settings,
+  };
 }
 
 /**
@@ -69,7 +96,7 @@ export function calculateMaintenance(
   const lastService = lastServiceFor(ctx.serviceHistory, item.id);
   const dueOdometer = nextDueOdometer(lastService, item.rule.intervalKm);
   const dueDate = nextDueDate(lastService, item.rule.intervalMonths);
-  const currentOdometer = getCurrentOdometer(ctx)?.odometer ?? null;
+  const currentOdometer = ctx.vehicle?.currentOdometer ?? null;
 
   const remainingKm = calculateRemainingKm(dueOdometer, currentOdometer);
   const remainingDays = calculateRemainingDays(dueDate, today);

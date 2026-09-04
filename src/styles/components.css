@@ -1029,3 +1029,137 @@
   padding: 0 var(--md-space-3);
   font-size: var(--md-typescale-label-medium);
 }
+
+/* --- Multi-vehicle garage (Phase: خودروهای من) --- */
+.vehicles-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--md-space-3);
+  padding: var(--md-space-7) var(--md-space-4);
+}
+
+.vehicles-empty__text {
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 0;
+}
+
+.vehicles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--md-space-3);
+}
+
+.vehicle-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-4);
+}
+
+.vehicle-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--md-space-3);
+}
+
+.vehicle-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--md-shape-medium);
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  flex-shrink: 0;
+}
+
+.vehicle-card__icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.vehicle-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.vehicle-card__name {
+  font-size: var(--md-typescale-title-medium);
+  font-weight: 600;
+}
+
+.vehicle-card__meta {
+  font-size: var(--md-typescale-body-medium);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.vehicle-card__odometer {
+  padding: var(--md-space-3);
+  border-radius: var(--md-shape-medium);
+  background-color: var(--md-sys-color-surface-container-low);
+}
+
+.vehicle-card__odometer-label {
+  display: block;
+  font-size: var(--md-typescale-label-medium);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.vehicle-card__odometer-value {
+  display: block;
+  margin-top: var(--md-space-1);
+  font-size: var(--md-typescale-title-large);
+  font-weight: 600;
+}
+
+.vehicle-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--md-space-2);
+  margin-top: auto;
+}
+
+/* --- Vehicle selector (dashboard / maintenance list) --- */
+.vehicle-select {
+  margin-block-end: var(--md-space-3);
+}
+
+/* --- Modal (add/edit/delete vehicle, mileage) --- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--md-space-6) var(--md-space-4);
+  overflow-y: auto;
+  background-color: color-mix(in srgb, var(--md-sys-color-scrim) 45%, transparent);
+}
+
+.modal {
+  width: min(520px, 100%);
+  border-radius: var(--md-shape-large);
+  background-color: var(--md-sys-color-surface-container-low);
+  box-shadow: var(--md-elevation-3);
+  padding: var(--md-space-5);
+}
+
+.modal .form__title {
+  margin-bottom: var(--md-space-4);
+}
+
+.vehicle-modal-actions {
+  justify-content: space-between;
+}
+
+.btn--danger-text {
+  color: var(--md-sys-color-error);
+}
+
+.btn--danger-text:hover {
+  background-color: color-mix(in srgb, var(--md-sys-color-error) 10%, transparent);
+}

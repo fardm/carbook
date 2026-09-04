@@ -13,30 +13,24 @@
 /** Fuel type values (extensible union). */
 export type FuelType = "gasoline" | "diesel" | "hybrid" | "electric" | "cng" | "lpg" | "other";
 
-/** Vehicle model (§9). `currentOdometer` is NOT stored — it is derived from
- * odometer history (§10). */
+/** A vehicle in the user's garage (multi-vehicle §9). Only facts are stored;
+ * the current odometer is a direct field — odometer history is no longer
+ * kept (mileage is updated in place via بروزرسانی کیلومتر). */
 export interface Vehicle {
   id: string;
   name: string;
   make: string;
   model: string;
-  /** Model year, e.g. 2019. Null when unknown. */
+  /** Production year — may be Solar Hijri (e.g. 1390) OR Gregorian
+   * (1900–2100). Null when unknown. */
   year: number | null;
   fuelType: FuelType | null;
   /** km/day estimate used ONLY for estimating future dates (§11). */
   averageDailyDistance: number | null;
+  /** Current odometer in km; null until the user records one. */
+  currentOdometer: number | null;
   createdAt: string; // ISO datetime
   updatedAt: string; // ISO datetime
-}
-
-/** A recorded odometer reading (§10). Readings are never discarded. */
-export interface OdometerReading {
-  id: string;
-  /** "yyyy-mm-dd". */
-  date: string;
-  /** Odometer value in km. */
-  odometer: number;
-  createdAt: string; // ISO datetime
 }
 
 /** Display preference for the primary metric (§26). */
@@ -64,9 +58,13 @@ export interface MaintenanceRule {
   inspectionBased: boolean;
 }
 
-/** An active maintenance item (§14). Separate from the catalog templates. */
+/** An active maintenance item (§14). Separate from the catalog templates.
+ * Every item belongs to exactly one vehicle (or is a legacy item with
+ * `vehicleId` null, migrated from the pre-multi-vehicle schema). */
 export interface MaintenanceItem {
   id: string;
+  /** Owning vehicle; null = legacy unassigned item (schema ≤3 data). */
+  vehicleId: string | null;
   /** Catalog template id (Phase 5); null for custom items (§14, §37). */
   catalogId: string | null;
   /** Display name — a localized snapshot the user can edit (§14, §37). */
@@ -86,6 +84,8 @@ export interface MaintenanceItem {
 export interface ServiceRecord {
   id: string;
   maintenanceItemId: string;
+  /** Owning vehicle (the item's vehicle at record time); null for legacy. */
+  vehicleId: string | null;
   /** "yyyy-mm-dd". */
   date: string;
   /** Odometer at service time in km; null when unknown. */
@@ -103,6 +103,8 @@ export type InspectionCondition = "good" | "watch" | "replaceSoon" | "replaceNow
 export interface InspectionRecord {
   id: string;
   maintenanceItemId: string;
+  /** Owning vehicle (the item's vehicle at record time); null for legacy. */
+  vehicleId: string | null;
   /** "yyyy-mm-dd". */
   date: string;
   odometer: number | null;
@@ -145,8 +147,8 @@ export interface Dataset {
   version: number;
   /** ISO datetime of the last JSON export; null until the first export (§41). */
   exportedAt: string | null;
-  vehicle: Vehicle | null;
-  odometerHistory: OdometerReading[];
+  /** All vehicles (multi-vehicle). */
+  vehicles: Vehicle[];
   maintenanceItems: MaintenanceItem[];
   serviceHistory: ServiceRecord[];
   inspectionHistory: InspectionRecord[];

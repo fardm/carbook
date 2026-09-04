@@ -2,19 +2,17 @@ import { describe, expect, it } from "vitest";
 import { defaultDataset } from "../src/domain/defaults";
 import {
   calculateMaintenance,
+  contextForVehicle,
   type CalculationContext,
 } from "../src/domain/maintenance";
-import type {
-  MaintenanceItem,
-  OdometerReading,
-  ServiceRecord,
-} from "../src/domain/types";
+import type { MaintenanceItem, ServiceRecord } from "../src/domain/types";
 
 const TODAY = "2026-04-01";
 
 function makeItem(partial: Partial<MaintenanceItem> = {}): MaintenanceItem {
   return {
     id: "item-1",
+    vehicleId: "v1",
     catalogId: null,
     name: "Item",
     category: "engine",
@@ -31,6 +29,7 @@ function service(date: string, odometer: number | null, id = `s-${date}`): Servi
   return {
     id,
     maintenanceItemId: "item-1",
+    vehicleId: "v1",
     date,
     odometer,
     notes: "",
@@ -39,14 +38,14 @@ function service(date: string, odometer: number | null, id = `s-${date}`): Servi
   };
 }
 
-function reading(date: string, odometer: number): OdometerReading {
-  return { id: `r-${date}`, date, odometer, createdAt: `${date}T00:00:00.000Z` };
+/** The current odometer is a per-vehicle fact; a vehicle at `km`. */
+function vehicleAt(km: number | null, avg: number | null = 40): { averageDailyDistance: number | null; currentOdometer: number | null } {
+  return { averageDailyDistance: avg, currentOdometer: km };
 }
 
 function makeCtx(overrides: Partial<CalculationContext> = {}): CalculationContext {
   return {
-    vehicle: { averageDailyDistance: 40 },
-    odometerHistory: [],
+    vehicle: vehicleAt(null),
     serviceHistory: [],
     inspectionHistory: [],
     settings: { statusThresholds: { dueSoonPercent: 20, duePercent: 5 } },
@@ -59,7 +58,7 @@ describe("calculateMaintenance — distance (§22)", () => {
     const item = makeItem({ rule: { ...makeItem().rule, intervalKm: 10000 } });
     const ctx = makeCtx({
       serviceHistory: [service("2026-01-10", 100000)],
-      odometerHistory: [reading("2026-03-01", 104000)],
+      vehicle: vehicleAt(104000),
     });
     const result = calculateMaintenance(item, ctx, TODAY);
     expect(result.nextDueOdometer).toBe(110000);
@@ -72,19 +71,19 @@ describe("calculateMaintenance — distance (§22)", () => {
     const item = makeItem({ rule: { ...makeItem().rule, intervalKm: 10000 } });
     const base = { serviceHistory: [service("2026-01-10", 100000)] };
 
-    const fresh = calculateMaintenance(item, makeCtx({ ...base, odometerHistory: [reading("2026-01-10", 100000)] }), TODAY);
+    const fresh = calculateMaintenance(item, makeCtx({ ...base, vehicle: vehicleAt(100000) }), TODAY);
     expect(fresh.remainingPercent).toBe(100);
     expect(fresh.status).toBe("ok");
 
-    const half = calculateMaintenance(item, makeCtx({ ...base, odometerHistory: [reading("2026-03-01", 105000)] }), TODAY);
+    const half = calculateMaintenance(item, makeCtx({ ...base, vehicle: vehicleAt(105000) }), TODAY);
     expect(half.remainingPercent).toBe(50);
 
-    const due = calculateMaintenance(item, makeCtx({ ...base, odometerHistory: [reading("2026-04-01", 110000)] }), TODAY);
+    const due = calculateMaintenance(item, makeCtx({ ...base, vehicle: vehicleAt(110000) }), TODAY);
     expect(due.remainingPercent).toBe(0);
     expect(due.remainingKm).toBe(0);
     expect(due.status).toBe("due");
 
-    const overdue = calculateMaintenance(item, makeCtx({ ...base, odometerHistory: [reading("2026-04-01", 111000)] }), TODAY);
+    const overdue = calculateMaintenance(item, makeCtx({ ...base, vehicle: vehicleAt(111000) }), TODAY);
     expect(overdue.remainingPercent).toBe(0);
     expect(overdue.remainingKm).toBe(-1000);
     expect(overdue.status).toBe("overdue");
@@ -94,7 +93,7 @@ describe("calculateMaintenance — distance (§22)", () => {
     const item = makeItem({ rule: { ...makeItem().rule, intervalKm: 10000 } });
     const ctx = makeCtx({
       serviceHistory: [service("2026-01-10", 100000)],
-      odometerHistory: [reading("2026-04-01", 112000)],
+      vehicle: vehicleAt(112000),
     });
     const result = calculateMaintenance(item, ctx, TODAY);
     expect(result.remainingKm).toBe(-2000);
@@ -131,7 +130,7 @@ describe("calculateMaintenance — distance + time (§25)", () => {
     });
     const ctx = makeCtx({
       serviceHistory: [service("2025-12-01", 100000)],
-      odometerHistory: [reading("2026-04-01", 104000)], // 6,000 km left → 150 days @ 40/day
+      vehicle: vehicleAt(104000), // 6,000 km left → 150 days @ 40/day
     });
     const result = calculateMaintenance(item, ctx, "2026-04-01");
     expect(result.remainingKm).toBe(6000);
@@ -147,7 +146,7 @@ describe("calculateMaintenance — distance + time (§25)", () => {
     });
     const ctx = makeCtx({
       serviceHistory: [service("2025-09-01", 100000)],
-      odometerHistory: [reading("2026-01-01", 107000)], // 3,000 km left → 75 days @ 40/day
+      vehicle: vehicleAt(107000), // 3,000 km left → 75 days @ 40/day
     });
     const result = calculateMaintenance(item, ctx, "2026-01-01");
     expect(result.remainingKm).toBe(3000);
@@ -161,7 +160,7 @@ describe("calculateMaintenance — distance + time (§25)", () => {
     const item = makeItem({ rule: { ...makeItem().rule, intervalKm: 10000 } });
     const ctx = makeCtx({
       serviceHistory: [service("2026-01-10", 100000)],
-      odometerHistory: [reading("2026-04-01", 104000)],
+      vehicle: vehicleAt(104000),
     });
     const result = calculateMaintenance(item, ctx, "2026-04-01");
     expect(result.estimatedDueDate).toBe("2026-08-29"); // Apr 1 + 150 days
@@ -172,8 +171,8 @@ describe("calculateMaintenance — odometer update propagation (§49)", () => {
   it("all km calculations update when the odometer changes", () => {
     const item = makeItem({ rule: { ...makeItem().rule, intervalKm: 10000 } });
     const base = { serviceHistory: [service("2026-01-10", 100000)] };
-    const at104000 = calculateMaintenance(item, makeCtx({ ...base, odometerHistory: [reading("2026-04-01", 104000)] }), TODAY);
-    const at108000 = calculateMaintenance(item, makeCtx({ ...base, odometerHistory: [reading("2026-04-01", 108000)] }), TODAY);
+    const at104000 = calculateMaintenance(item, makeCtx({ ...base, vehicle: vehicleAt(104000) }), TODAY);
+    const at108000 = calculateMaintenance(item, makeCtx({ ...base, vehicle: vehicleAt(108000) }), TODAY);
     expect(at104000.remainingKm).toBe(6000);
     expect(at108000.remainingKm).toBe(2000);
     expect(at104000.status).toBe("upcoming"); // 60% left
@@ -186,7 +185,7 @@ describe("calculateMaintenance — service reset (§49)", () => {
     const item = makeItem({ rule: { ...makeItem().rule, intervalKm: 10000 } });
     const ctx = makeCtx({
       serviceHistory: [service("2026-01-10", 100000, "s1"), service("2026-04-01", 104000, "s2")],
-      odometerHistory: [reading("2026-04-01", 104500)],
+      vehicle: vehicleAt(104500),
     });
     const result = calculateMaintenance(item, ctx, TODAY);
     expect(result.lastService).toEqual({ date: "2026-04-01", odometer: 104000 });
@@ -197,7 +196,7 @@ describe("calculateMaintenance — service reset (§49)", () => {
 });
 
 describe("calculateMaintenance — edge cases (§47)", () => {
-  it("no odometer reading → km values null, status ok, no estimate", () => {
+  it("no current odometer → km values null, status ok, no estimate", () => {
     const item = makeItem({ rule: { ...makeItem().rule, intervalKm: 10000 } });
     const result = calculateMaintenance(item, makeCtx({ serviceHistory: [service("2026-01-10", 100000)] }), TODAY);
     expect(result.remainingKm).toBeNull();
@@ -209,9 +208,8 @@ describe("calculateMaintenance — edge cases (§47)", () => {
   it("no average distance → estimated dates null, remaining km still shown (§11)", () => {
     const item = makeItem({ rule: { ...makeItem().rule, intervalKm: 10000 } });
     const ctx = makeCtx({
-      vehicle: { averageDailyDistance: null },
+      vehicle: vehicleAt(104000, null),
       serviceHistory: [service("2026-01-10", 100000)],
-      odometerHistory: [reading("2026-04-01", 104000)],
     });
     const result = calculateMaintenance(item, ctx, TODAY);
     expect(result.remainingKm).toBe(6000);
@@ -223,9 +221,8 @@ describe("calculateMaintenance — edge cases (§47)", () => {
   it("zero average distance behaves like missing (§47)", () => {
     const item = makeItem({ rule: { ...makeItem().rule, intervalKm: 10000 } });
     const ctx = makeCtx({
-      vehicle: { averageDailyDistance: 0 },
+      vehicle: vehicleAt(104000, 0),
       serviceHistory: [service("2026-01-10", 100000)],
-      odometerHistory: [reading("2026-04-01", 104000)],
     });
     const result = calculateMaintenance(item, ctx, TODAY);
     expect(result.estimatedDueDate).toBeNull();
@@ -234,9 +231,8 @@ describe("calculateMaintenance — edge cases (§47)", () => {
   it("km+time with no average distance: time wins as the only estimable trigger", () => {
     const item = makeItem({ rule: { ...makeItem().rule, intervalKm: 10000, intervalMonths: 6 } });
     const ctx = makeCtx({
-      vehicle: { averageDailyDistance: null },
+      vehicle: vehicleAt(104000, null),
       serviceHistory: [service("2025-12-01", 100000)],
-      odometerHistory: [reading("2026-04-01", 104000)],
     });
     const result = calculateMaintenance(item, ctx, "2026-04-01");
     expect(result.primaryCriterion).toBe("time");
@@ -253,13 +249,15 @@ describe("calculateMaintenance — edge cases (§47)", () => {
     expect(result.status).toBe("ok");
   });
 
-  it("a fresh dataset satisfies CalculationContext", () => {
+  it("a fresh dataset builds a context via contextForVehicle (§39)", () => {
     const item = makeItem({ rule: { ...makeItem().rule, intervalKm: 10000 } });
     const dataset = defaultDataset();
-    dataset.vehicle = { id: "v1", name: "", make: "", model: "", year: null, fuelType: null, averageDailyDistance: 40, createdAt: "", updatedAt: "" };
+    dataset.vehicles = [
+      { id: "v1", name: "", make: "", model: "", year: null, fuelType: null, averageDailyDistance: 40, currentOdometer: 104000, createdAt: "", updatedAt: "" },
+    ];
     dataset.serviceHistory = [service("2026-01-10", 100000)];
-    dataset.odometerHistory = [reading("2026-04-01", 104000)];
-    const result = calculateMaintenance(item, dataset, TODAY);
+    const ctx = contextForVehicle(dataset, item.vehicleId);
+    const result = calculateMaintenance(item, ctx, TODAY);
     expect(result.remainingKm).toBe(6000);
   });
 });

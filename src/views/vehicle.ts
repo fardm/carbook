@@ -1,26 +1,37 @@
-import { todayIso } from "../domain/maintenance";
 import { createId } from "../domain/ids";
-import {
-  getCurrentOdometer,
-  sortReadings,
-  validateOdometerEntry,
-  type OdometerError,
-} from "../domain/odometer";
-import type { FuelType, OdometerReading, Vehicle } from "../domain/types";
+import { validateMileage, type OdometerValueError } from "../domain/odometer";
+import type { FuelType, Vehicle } from "../domain/types";
 import { validateVehicle, type VehicleError } from "../domain/vehicle";
 import { t, type MessageKey } from "../i18n";
 import { store } from "../state/store";
-import { bindDateFields, dateFieldHtml } from "../ui/date-field";
 import { escHtml } from "../ui/escape";
-import { faNum, formatDate, toLatinDigits } from "../ui/format";
+import { faNum, toLatinDigits } from "../ui/format";
+import { applyIcons } from "../ui/icons";
 
-/** View-local UI state (not persisted). */
+/**
+ * Vehicle view — multi-vehicle garage ("خودروهای من").
+ *
+ * - Empty state: an افزودن خودرو button only.
+ * - Vehicle cards: name + current mileage with two actions (ویرایش /
+ *   بروزرسانی کیلومتر). No delete button on the card.
+ * - Add/Edit modal (ویرایش → انصراف / ثبت تغییرات / حذف خودرو).
+ * - Mileage modal: only a mileage field — odometer history is gone.
+ * - Deleting a vehicle permanently removes the vehicle AND all of its
+ *   maintenance items / service / inspection history (cascade delete).
+ */
+
 interface VehicleViewState {
-  editing: boolean;
-  odometerForm: { open: boolean; readingId: string | null };
+  /** Open modal; null = none. */
+  modal:
+    | { kind: "add" }
+    | { kind: "edit"; vehicleId: string; confirmDelete: boolean }
+    | { kind: "mileage"; vehicleId: string }
+    | null;
+  /** Typed form values keyed by input name (survive re-renders). */
+  formValues: Record<string, string>;
 }
 
-const state: VehicleViewState = { editing: false, odometerForm: { open: false, readingId: null } };
+const state: VehicleViewState = { modal: null, formValues: {} };
 
 const FUEL_KEYS: Record<FuelType, MessageKey> = {
   gasoline: "vehicle.fuelGasoline",
@@ -32,13 +43,10 @@ const FUEL_KEYS: Record<FuelType, MessageKey> = {
   other: "vehicle.fuelOther",
 };
 
-const ERROR_KEYS: Record<VehicleError | OdometerError, MessageKey> = {
+const ERROR_KEYS: Record<VehicleError | OdometerValueError, MessageKey> = {
   nameRequired: "vehicle.errorNameRequired",
   yearInvalid: "vehicle.errorYearInvalid",
   averageInvalid: "vehicle.errorAverageInvalid",
-  missingDate: "vehicle.errorMissingDate",
-  invalidDate: "vehicle.errorInvalidDate",
-  futureDate: "vehicle.errorFutureDate",
   missingOdometer: "vehicle.errorMissingOdometer",
   invalidOdometer: "vehicle.errorInvalidOdometer",
 };
@@ -49,105 +57,150 @@ const VEHICLE_ERROR_FIELD: Record<VehicleError, string> = {
   averageInvalid: "vehicle-error-average",
 };
 
-const ODOMETER_ERROR_FIELD: Record<OdometerError, "date" | "value"> = {
-  missingDate: "date",
-  invalidDate: "date",
-  futureDate: "date",
-  missingOdometer: "value",
-  invalidOdometer: "value",
-};
-
 export function renderVehicle(container: HTMLElement): () => void {
   const draw = (): void => {
     container.innerHTML = vehicleViewHtml();
     bind(container);
+    applyIcons();
   };
   draw();
   return store.subscribe(draw);
 }
 
+/* --- Layout --- */
+
 function vehicleViewHtml(): string {
-  const vehicle = store.get().vehicle;
+  const vehicles = store.get().vehicles;
+  const heading = `
+    <div class="view-head">
+      <h1 class="view-title">${t("view.vehicle.title")}</h1>
+      ${vehicles.length > 0 ? `<button type="button" class="btn btn--filled js-add-vehicle">${t("vehicle.addVehicle")}</button>` : ""}
+    </div>
+  `;
+  const body =
+    vehicles.length === 0
+      ? emptyStateHtml()
+      : `<div class="vehicles-grid">${vehicles.map(vehicleCardHtml).join("")}</div>`;
   return `
     <div class="view-stack">
-      <h1 class="view-title">${t("view.vehicle.title")}</h1>
-      ${vehicle ? vehicleCardHtml(vehicle) : vehicleFormHtml(null)}
-      ${vehicle ? odometerSectionHtml() : ""}
+      ${heading}
+      ${body}
+      ${modalHtml()}
     </div>
   `;
 }
 
-function vehicleCardHtml(vehicle: Vehicle): string {
-  if (state.editing) return vehicleFormHtml(vehicle);
-  const rows = [
-    infoRow(t("vehicle.make"), vehicle.make || null),
-    infoRow(t("vehicle.model"), vehicle.model || null),
-    infoRow(t("vehicle.year"), vehicle.year != null ? String(vehicle.year) : null),
-    infoRow(t("vehicle.fuelType"), vehicle.fuelType ? t(FUEL_KEYS[vehicle.fuelType]) : null),
-    infoRow(
-      t("vehicle.averageDaily"),
-      vehicle.averageDailyDistance != null
-        ? `${faNum(vehicle.averageDailyDistance)} ${t("vehicle.averageDailyUnit")}`
-        : null,
-    ),
-  ].join("");
+function emptyStateHtml(): string {
   return `
-    <section class="card">
-      <div class="card__head">
-        <h2 class="card__title">${escHtml(vehicle.name)}</h2>
-        <button type="button" class="btn btn--text js-edit-vehicle">${t("vehicle.edit")}</button>
-      </div>
-      ${rows ? `<dl class="info-list">${rows}</dl>` : ""}
+    <section class="card vehicles-empty">
+      <p class="vehicles-empty__text">${t("vehicle.noVehicles")}</p>
+      <button type="button" class="btn btn--filled js-add-vehicle">
+        <span data-lucide="plus"></span>
+        ${t("vehicle.addVehicle")}
+      </button>
     </section>
   `;
 }
 
-function infoRow(label: string, value: string | null): string {
-  if (!value) return "";
-  return `<div class="info-list__row"><dt>${escHtml(label)}</dt><dd>${escHtml(value)}</dd></div>`;
+function vehicleCardHtml(vehicle: Vehicle): string {
+  const meta = [vehicle.make, vehicle.model, vehicle.year != null ? String(vehicle.year) : ""]
+    .filter((part) => part !== "")
+    .join(" — ");
+  return `
+    <section class="card vehicle-card">
+      <div class="vehicle-card__head">
+        <span class="vehicle-card__icon" data-lucide="car-front"></span>
+        <div class="vehicle-card__info">
+          <div class="vehicle-card__name">${escHtml(vehicle.name)}</div>
+          ${meta ? `<div class="vehicle-card__meta">${escHtml(meta)}</div>` : ""}
+        </div>
+      </div>
+      <div class="vehicle-card__odometer">
+        <span class="vehicle-card__odometer-label">${t("vehicle.currentMileage")}</span>
+        <span class="vehicle-card__odometer-value">
+          ${vehicle.currentOdometer != null ? `${faNum(vehicle.currentOdometer)} ${t("common.kmUnit")}` : t("vehicle.notRecorded")}
+        </span>
+      </div>
+      <div class="vehicle-card__actions">
+        <button type="button" class="btn btn--text js-edit-vehicle" data-id="${escHtml(vehicle.id)}">
+          ${t("vehicle.edit")}
+        </button>
+        <button type="button" class="btn btn--filled js-update-mileage" data-id="${escHtml(vehicle.id)}">
+          ${t("vehicle.updateMileage")}
+        </button>
+      </div>
+    </section>
+  `;
 }
 
-function vehicleFormHtml(vehicle: Vehicle | null): string {
-  const vehicleValue = (field: keyof Vehicle): string =>
-    vehicle ? String(vehicle[field] ?? "") : "";
+/* --- Modal --- */
 
+function modalHtml(): string {
+  const modal = state.modal;
+  if (!modal) return "";
+  if (modal.kind === "add" || modal.kind === "edit") {
+    const vehicle = modal.kind === "edit"
+      ? (store.get().vehicles.find((v) => v.id === modal.vehicleId) ?? null)
+      : null;
+    return `<div class="modal-overlay">${vehicleFormModalHtml(vehicle, modal.kind === "edit" && modal.confirmDelete)}</div>`;
+  }
+  const vehicle = store.get().vehicles.find((v) => v.id === modal.vehicleId) ?? null;
+  return `<div class="modal-overlay">${mileageModalHtml(vehicle)}</div>`;
+}
+
+/** Form value helper (survives re-renders, same pattern as the item form). */
+function formValue(field: string, fallback: string = ""): string {
+  return state.formValues[field] ?? fallback;
+}
+
+function vehicleFormModalHtml(vehicle: Vehicle | null, confirmDelete: boolean): string {
+  const editing = vehicle != null;
   const fuelOptions = (Object.keys(FUEL_KEYS) as FuelType[])
     .map(
       (fuel) =>
         `<option value="${fuel}" ${vehicle?.fuelType === fuel ? "selected" : ""}>${t(FUEL_KEYS[fuel])}</option>`,
     )
     .join("");
+  const field = (name: string, get: () => string | null): string =>
+    formValue(name, editing && vehicle ? get() ?? "" : "");
 
   return `
-    <section class="card">
-      <form id="vehicle-form" class="form" novalidate>
-        <div class="form__title">${vehicle ? t("vehicle.editTitle") : t("vehicle.setupTitle")}</div>
+    <div class="modal" role="dialog" aria-modal="true" aria-label="${editing ? t("vehicle.editTitle") : t("vehicle.setupTitle")}">
+      <form id="vehicle-modal-form" class="form" novalidate>
+        <div class="form__title">${editing ? t("vehicle.editTitle") : t("vehicle.setupTitle")}</div>
+        ${confirmDelete ? deleteConfirmBlock() : ""}
         <div class="field">
           <label class="field__label" for="vehicle-name">${t("vehicle.name")}</label>
           <input class="field__input" id="vehicle-name" name="name" type="text"
-            value="${escHtml(vehicleValue("name"))}" placeholder="${t("vehicle.namePlaceholder")}" />
+            value="${escHtml(field("name", () => vehicle?.name ?? null))}"
+            placeholder="${t("vehicle.namePlaceholder")}" ${confirmDelete ? "disabled" : ""} />
           <p class="field__error" id="vehicle-error-name" hidden></p>
         </div>
         <div class="form__grid">
           <div class="field">
             <label class="field__label" for="vehicle-make">${t("vehicle.make")}</label>
             <input class="field__input" id="vehicle-make" name="make" type="text"
-              value="${escHtml(vehicleValue("make"))}" placeholder="${t("vehicle.makePlaceholder")}" />
+              value="${escHtml(field("make", () => vehicle?.make ?? null))}"
+              placeholder="${t("vehicle.makePlaceholder")}" ${confirmDelete ? "disabled" : ""} />
           </div>
           <div class="field">
             <label class="field__label" for="vehicle-model">${t("vehicle.model")}</label>
             <input class="field__input" id="vehicle-model" name="model" type="text"
-              value="${escHtml(vehicleValue("model"))}" placeholder="${t("vehicle.modelPlaceholder")}" />
+              value="${escHtml(field("model", () => vehicle?.model ?? null))}"
+              placeholder="${t("vehicle.modelPlaceholder")}" ${confirmDelete ? "disabled" : ""} />
           </div>
           <div class="field">
             <label class="field__label" for="vehicle-year">${t("vehicle.year")}</label>
             <input class="field__input" id="vehicle-year" name="year" type="number"
-              inputmode="numeric" min="1900" max="2100" step="1" value="${escHtml(vehicleValue("year"))}" />
+              inputmode="numeric" min="1300" max="2100" step="1"
+              value="${escHtml(field("year", () => (vehicle?.year != null ? String(vehicle.year) : null)))}"
+              ${confirmDelete ? "disabled" : ""} />
+            <p class="field__hint">${t("vehicle.yearHint")}</p>
             <p class="field__error" id="vehicle-error-year" hidden></p>
           </div>
           <div class="field">
             <label class="field__label" for="vehicle-fuel">${t("vehicle.fuelType")}</label>
-            <select class="field__input" id="vehicle-fuel" name="fuelType">
+            <select class="field__input" id="vehicle-fuel" name="fuelType" ${confirmDelete ? "disabled" : ""}>
               <option value="">—</option>
               ${fuelOptions}
             </select>
@@ -156,154 +209,139 @@ function vehicleFormHtml(vehicle: Vehicle | null): string {
         <div class="field">
           <label class="field__label" for="vehicle-average">${t("vehicle.averageDaily")} (${t("vehicle.averageDailyUnit")})</label>
           <input class="field__input" id="vehicle-average" name="averageDaily" type="number"
-            inputmode="decimal" min="0" step="any" value="${escHtml(vehicleValue("averageDailyDistance"))}" />
+            inputmode="decimal" min="0" step="any"
+            value="${escHtml(field("averageDaily", () => (vehicle?.averageDailyDistance != null ? String(vehicle.averageDailyDistance) : null)))}"
+            ${confirmDelete ? "disabled" : ""} />
           <p class="field__hint">${t("vehicle.averageHint")}</p>
           <p class="field__error" id="vehicle-error-average" hidden></p>
         </div>
+        <div class="form__actions vehicle-modal-actions">
+          <button type="button" class="btn btn--text js-cancel-modal">${t("common.cancel")}</button>
+          ${editing ? `<button type="button" class="btn btn--text btn--danger-text js-delete-vehicle">${t("vehicle.deleteVehicle")}</button>` : ""}
+          ${!confirmDelete ? `<button type="submit" class="btn btn--filled">${editing ? t("vehicle.saveChanges") : t("vehicle.saveVehicle")}</button>` : ""}
+        </div>
+      </form>
+    </div>
+  `;
+}
+
+function deleteConfirmBlock(): string {
+  return `
+    <div class="box box--danger" role="alert">
+      <span data-lucide="triangle-alert"></span>
+      <span>${t("vehicle.deleteConfirm")}</span>
+    </div>
+    <div class="form__actions">
+      <button type="button" class="btn btn--text js-cancel-delete-vehicle">${t("common.cancel")}</button>
+      <button type="button" class="btn btn--danger js-confirm-delete-vehicle">${t("vehicle.confirmDelete")}</button>
+    </div>
+  `;
+}
+
+function mileageModalHtml(vehicle: Vehicle | null): string {
+  const name = vehicle ? escHtml(vehicle.name) : "";
+  return `
+    <div class="modal" role="dialog" aria-modal="true" aria-label="${t("vehicle.updateMileage")}">
+      <form id="mileage-form" class="form" novalidate>
+        <div class="form__title">${t("vehicle.updateMileage")}</div>
+        ${vehicle ? `<p class="card__text">${t("vehicle.mileageFor")}: ${name}</p>` : ""}
+        <div class="field">
+          <label class="field__label" for="mileage-value">${t("vehicle.mileageLabel")} (${t("common.kmUnit")})</label>
+          <input class="field__input" id="mileage-value" name="mileage" type="number"
+            inputmode="numeric" min="0" step="1" autofocus
+            value="${escHtml(formValue("mileage", vehicle?.currentOdometer != null ? String(vehicle.currentOdometer) : ""))}" />
+          <p class="field__hint">${t("vehicle.mileageHint")}</p>
+          <p class="field__error" id="mileage-error" hidden></p>
+        </div>
         <div class="form__actions">
-          ${vehicle ? `<button type="button" class="btn btn--text js-cancel-edit">${t("common.cancel")}</button>` : ""}
+          <button type="button" class="btn btn--text js-cancel-modal">${t("common.cancel")}</button>
           <button type="submit" class="btn btn--filled">${t("common.save")}</button>
         </div>
       </form>
-    </section>
+    </div>
   `;
 }
 
-function odometerSectionHtml(): string {
-  const dataset = store.get();
-  const current = getCurrentOdometer(dataset);
-  const readings = sortReadings(dataset.odometerHistory).reverse();
-
-  const currentBlock = `
-    <section class="card odometer-card">
-      <div class="odometer-card__head">
-        <div>
-          <div class="odometer-card__label">${t("vehicle.currentOdometer")}</div>
-          <div class="odometer-card__value">
-            ${current ? `${faNum(current.odometer)} ${t("common.kmUnit")}` : t("vehicle.notRecorded")}
-          </div>
-        </div>
-        ${state.odometerForm.open ? "" : `<button type="button" class="btn btn--filled js-record-odometer">${t("vehicle.recordOdometer")}</button>`}
-      </div>
-    </section>
-  `;
-
-  const formBlock = state.odometerForm.open ? odometerFormHtml() : "";
-
-  const historyRows =
-    readings.length === 0
-      ? `<p class="history__empty">${t("vehicle.noHistory")}</p>`
-      : `
-        <ul class="history__list">
-          ${readings
-            .map(
-              (reading) => `
-                <li class="history__item">
-                  <div>
-                    <div class="history__date">${formatDate(reading.date)}</div>
-                    <div class="history__km">${faNum(reading.odometer)} ${t("common.kmUnit")}</div>
-                  </div>
-                  <button type="button" class="btn btn--text js-edit-reading" data-id="${reading.id}">${t("vehicle.editReading")}</button>
-                </li>
-              `,
-            )
-            .join("")}
-        </ul>
-      `;
-
-  return `
-    ${currentBlock}
-    ${formBlock}
-    <section class="card history">
-      <h2 class="card__title">${t("vehicle.historyTitle")}</h2>
-      ${historyRows}
-    </section>
-  `;
-}
-
-function odometerFormHtml(): string {
-  const reading = state.odometerForm.readingId
-    ? (store.get().odometerHistory.find((r) => r.id === state.odometerForm.readingId) ?? null)
-    : null;
-  const title = reading ? t("vehicle.editReadingTitle") : t("vehicle.recordTitle");
-  return `
-    <section class="card">
-      <form id="odometer-form" class="form" novalidate>
-        <div class="form__title">${title}</div>
-        <div class="form__grid">
-          <div class="field">
-            <label class="field__label" for="odometer-date">${t("vehicle.dateLabel")}</label>
-            ${dateFieldHtml({
-              fieldId: "odometer-date",
-              name: "date",
-              value: reading ? reading.date : todayIso(),
-              label: t("vehicle.dateLabel"),
-            })}
-            <p class="field__error" id="odometer-error-date" hidden></p>
-          </div>
-          <div class="field">
-            <label class="field__label" for="odometer-value">${t("vehicle.valueLabel")} (${t("common.kmUnit")})</label>
-            <input class="field__input" id="odometer-value" name="odometer" type="number"
-              inputmode="numeric" min="0" step="1" value="${reading ? reading.odometer : ""}" />
-            <p class="field__error" id="odometer-error-value" hidden></p>
-            <p class="field__warn" id="odometer-warnings" hidden></p>
-          </div>
-        </div>
-        <div class="form__actions">
-          <button type="button" class="btn btn--text js-cancel-odometer">${t("common.cancel")}</button>
-          <button type="submit" class="btn btn--filled">${t("common.save")}</button>
-        </div>
-      </form>
-    </section>
-  `;
-}
+/* --- Events --- */
 
 function bind(container: HTMLElement): void {
-  bindDateFields(container);
-  container.querySelector<HTMLButtonElement>(".js-edit-vehicle")?.addEventListener("click", () => {
-    state.editing = true;
-    redraw(container);
-  });
-  container.querySelector<HTMLButtonElement>(".js-cancel-edit")?.addEventListener("click", () => {
-    state.editing = false;
-    redraw(container);
-  });
-  container.querySelector<HTMLButtonElement>(".js-record-odometer")?.addEventListener("click", () => {
-    state.odometerForm = { open: true, readingId: null };
-    redraw(container);
-  });
-  container.querySelectorAll<HTMLButtonElement>(".js-edit-reading").forEach((button) => {
+  container.querySelectorAll<HTMLButtonElement>(".js-add-vehicle").forEach((button) => {
     button.addEventListener("click", () => {
-      state.odometerForm = { open: true, readingId: button.dataset.id ?? null };
+      state.modal = { kind: "add" };
+      state.formValues = {};
       redraw(container);
     });
   });
-  container.querySelector<HTMLButtonElement>(".js-cancel-odometer")?.addEventListener("click", () => {
-    state.odometerForm = { open: false, readingId: null };
+  container.querySelectorAll<HTMLButtonElement>(".js-edit-vehicle").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.modal = { kind: "edit", vehicleId: button.dataset.id ?? "", confirmDelete: false };
+      state.formValues = {};
+      redraw(container);
+    });
+  });
+  container.querySelectorAll<HTMLButtonElement>(".js-update-mileage").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.modal = { kind: "mileage", vehicleId: button.dataset.id ?? "" };
+      state.formValues = {};
+      redraw(container);
+    });
+  });
+  container.querySelectorAll<HTMLButtonElement>(".js-cancel-modal").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.modal = null;
+      state.formValues = {};
+      redraw(container);
+    });
+  });
+  container.querySelector<HTMLButtonElement>(".js-delete-vehicle")?.addEventListener("click", () => {
+    if (state.modal?.kind !== "edit") return;
+    state.modal = { ...state.modal, confirmDelete: true };
+    redraw(container);
+  });
+  container.querySelector<HTMLButtonElement>(".js-cancel-delete-vehicle")?.addEventListener("click", () => {
+    if (state.modal?.kind !== "edit") return;
+    state.modal = { ...state.modal, confirmDelete: false };
+    redraw(container);
+  });
+  container.querySelector<HTMLButtonElement>(".js-confirm-delete-vehicle")?.addEventListener("click", () => {
+    const modal = state.modal;
+    if (modal?.kind !== "edit") return;
+    deleteVehicle(modal.vehicleId);
+    state.modal = null;
+    state.formValues = {};
     redraw(container);
   });
 
-  container.querySelector<HTMLFormElement>("#vehicle-form")?.addEventListener("submit", (event) => {
+  // Re-render-safe value capture (decision 31 pattern).
+  const modalForm = container.querySelector<HTMLFormElement>("#vehicle-modal-form");
+  modalForm?.addEventListener("input", captureValue);
+  modalForm?.addEventListener("change", captureValue);
+  modalForm?.addEventListener("submit", (event) => {
     event.preventDefault();
     submitVehicleForm(container, event.currentTarget as HTMLFormElement);
   });
-
-  container.querySelector<HTMLFormElement>("#odometer-form")?.addEventListener("submit", (event) => {
+  const mileageForm = container.querySelector<HTMLFormElement>("#mileage-form");
+  mileageForm?.addEventListener("input", captureValue);
+  mileageForm?.addEventListener("submit", (event) => {
     event.preventDefault();
-    submitOdometerForm(container, event.currentTarget as HTMLFormElement);
-  });
-
-  container.querySelector<HTMLInputElement>("#odometer-value")?.addEventListener("input", (event) => {
-    const input = event.currentTarget as HTMLInputElement;
-    const raw = input.value.trim();
-    renderOdometerWarnings(container, raw === "" ? null : Number(toLatinDigits(raw)));
+    submitMileageForm(container, event.currentTarget as HTMLFormElement);
   });
 }
 
-/** Re-renders without notifying the store (pure view-local transitions). */
-function redraw(container: HTMLElement): void {
-  container.innerHTML = vehicleViewHtml();
-  bind(container);
+function captureValue(event: Event): void {
+  const target = event.target as HTMLInputElement | HTMLSelectElement | null;
+  if (!target || !target.name) return;
+  state.formValues[target.name] = target.value;
+}
+
+/** Permanently removes the vehicle and ALL of its data (cascade). */
+function deleteVehicle(vehicleId: string): void {
+  store.update((draft) => {
+    draft.vehicles = draft.vehicles.filter((v) => v.id !== vehicleId);
+    draft.maintenanceItems = draft.maintenanceItems.filter((item) => item.vehicleId !== vehicleId);
+    draft.serviceHistory = draft.serviceHistory.filter((record) => record.vehicleId !== vehicleId);
+    draft.inspectionHistory = draft.inspectionHistory.filter((record) => record.vehicleId !== vehicleId);
+  });
 }
 
 function submitVehicleForm(container: HTMLElement, form: HTMLFormElement): void {
@@ -330,77 +368,66 @@ function submitVehicleForm(container: HTMLElement, form: HTMLFormElement): void 
     return;
   }
 
-  state.editing = false;
+  const modal = state.modal;
+  const now = new Date().toISOString();
+  if (modal?.kind === "edit") {
+    const vehicleId = modal.vehicleId;
+    state.modal = null;
+    state.formValues = {};
+    store.update((draft) => {
+      const vehicle = draft.vehicles.find((v) => v.id === vehicleId);
+      if (!vehicle) return;
+      vehicle.name = name;
+      vehicle.make = make;
+      vehicle.model = model;
+      vehicle.year = input.year;
+      vehicle.fuelType = input.fuelType;
+      vehicle.averageDailyDistance = input.averageDailyDistance;
+      vehicle.updatedAt = now;
+    });
+    return;
+  }
+
+  // Add — namespace is empty for a brand-new vehicle.
+  state.modal = null;
+  state.formValues = {};
   store.update((draft) => {
-    const now = new Date().toISOString();
-    if (draft.vehicle) {
-      draft.vehicle = { ...draft.vehicle, ...input, updatedAt: now };
-    } else {
-      draft.vehicle = { id: createId(), ...input, createdAt: now, updatedAt: now };
-    }
+    draft.vehicles.push({
+      id: createId(),
+      ...input,
+      currentOdometer: null,
+      createdAt: now,
+      updatedAt: now,
+    });
   });
 }
 
-function submitOdometerForm(container: HTMLElement, form: HTMLFormElement): void {
+function submitMileageForm(container: HTMLElement, form: HTMLFormElement): void {
+  const modal = state.modal;
+  if (modal?.kind !== "mileage") return;
   const data = new FormData(form);
-  const date = String(data.get("date") ?? "");
-  const valueRaw = String(data.get("odometer") ?? "").trim();
-  const odometer = valueRaw === "" ? null : Number(toLatinDigits(valueRaw));
-  const readingId = state.odometerForm.readingId;
+  const raw = String(data.get("mileage") ?? "").trim();
+  const value = raw === "" ? null : Number(toLatinDigits(raw));
 
-  const { errors } = validateOdometerEntry(
-    { date, odometer },
-    { today: todayIso(), latest: latestExcluding(readingId) },
-  );
+  const errors = validateMileage(value);
   if (errors.length > 0) {
-    showFieldErrors(
-      container,
-      errors.map((error) => [`odometer-error-${ODOMETER_ERROR_FIELD[error]}`, t(ERROR_KEYS[error])]),
-    );
-    return;
-  }
-
-  state.odometerForm = { open: false, readingId: null };
-  store.update((draft) => {
-    const now = new Date().toISOString();
-    if (readingId) {
-      const record = draft.odometerHistory.find((r) => r.id === readingId);
-      if (record && odometer != null) {
-        record.date = date;
-        record.odometer = odometer;
-      }
-    } else if (odometer != null) {
-      draft.odometerHistory.push({ id: createId(), date, odometer, createdAt: now });
+    const element = container.querySelector<HTMLElement>("#mileage-error");
+    if (element) {
+      element.textContent = t(ERROR_KEYS[errors[0]]);
+      element.hidden = false;
     }
-  });
-}
-
-/** The latest reading, ignoring the one currently being edited. */
-function latestExcluding(readingId: string | null): OdometerReading | null {
-  const readings = store.get().odometerHistory.filter((reading) => reading.id !== readingId);
-  const sorted = sortReadings(readings);
-  return sorted.length > 0 ? sorted[sorted.length - 1] : null;
-}
-
-function renderOdometerWarnings(container: HTMLElement, value: number | null): void {
-  const element = container.querySelector<HTMLElement>("#odometer-warnings");
-  if (!element) return;
-  const latest = latestExcluding(state.odometerForm.readingId);
-  const warnings =
-    value != null && latest != null
-      ? validateOdometerEntry({ date: todayIso(), odometer: value }, { today: todayIso(), latest }).warnings
-      : [];
-  if (warnings.length === 0) {
-    element.hidden = true;
     return;
   }
-  const texts = warnings.map(({ kind, delta }) => {
-    const amount = `${faNum(Math.abs(delta))} ${t("common.kmUnit")}`;
-    if (kind === "decrease") return `${t("vehicle.warnDecrease")} (${amount})`;
-    return `${t("vehicle.warnLargeIncrease")} (${amount})`;
+
+  const vehicleId = modal.vehicleId;
+  state.modal = null;
+  state.formValues = {};
+  store.update((draft) => {
+    const vehicle = draft.vehicles.find((v) => v.id === vehicleId);
+    if (!vehicle || value == null) return;
+    vehicle.currentOdometer = value;
+    vehicle.updatedAt = new Date().toISOString();
   });
-  element.textContent = texts.join(" ");
-  element.hidden = false;
 }
 
 function showFieldErrors(container: HTMLElement, errors: [string, string][]): void {
@@ -411,4 +438,11 @@ function showFieldErrors(container: HTMLElement, errors: [string, string][]): vo
       element.hidden = false;
     }
   }
+}
+
+/** Re-renders without notifying the store (pure view-local transitions). */
+function redraw(container: HTMLElement): void {
+  container.innerHTML = vehicleViewHtml();
+  bind(container);
+  applyIcons();
 }

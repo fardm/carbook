@@ -5,6 +5,7 @@ export {
   calculateRemainingDays,
   calculateRemainingKm,
   calculateRemainingPercentage,
+  contextForVehicle,
   determinePrimaryTrigger,
   type CalculationContext,
   type Criterion,

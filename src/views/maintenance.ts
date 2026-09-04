@@ -16,8 +16,7 @@ import {
   type ItemDraft,
   type ItemDraftError,
 } from "../domain/item-factory";
-import { calculateMaintenance, todayIso } from "../domain/maintenance";
-import { getCurrentOdometer } from "../domain/odometer";
+import { calculateMaintenance, contextForVehicle, todayIso } from "../domain/maintenance";
 import {
   sortHistoryNewestFirst,
   validateInspectionRecordEntry,
@@ -71,6 +70,8 @@ type RecordFormState =
   | { kind: "inspection"; recordId: string | null; itemId: string };
 
 interface MaintenanceViewState {
+  /** Active vehicle for the list page (defaults to the first vehicle). */
+  selectedVehicleId: string | null;
   tab: "catalog" | "custom";
   search: string;
   /** Current form selections (survive re-renders). */
@@ -90,6 +91,7 @@ interface MaintenanceViewState {
 }
 
 const state: MaintenanceViewState = {
+  selectedVehicleId: null,
   tab: "catalog",
   search: "",
   icon: "wrench",
@@ -190,11 +192,16 @@ function maintenanceViewHtml(): string {
   const itemId = maintenanceItemIdFromHash(window.location.hash);
   if (itemId) return itemDetailPageHtml(itemId);
 
-  const activeItems = store.get().maintenanceItems.filter((item) => item.active);
-  const inactiveItems = store.get().maintenanceItems.filter((item) => !item.active);
+  const dataset = store.get();
+  const vehicleId = resolveSelectedVehicleId(dataset);
+  const scoped = (items: MaintenanceItem[]): MaintenanceItem[] =>
+    items.filter((item) => item.vehicleId === vehicleId);
+  const activeItems = scoped(dataset.maintenanceItems.filter((item) => item.active));
+  const inactiveItems = scoped(dataset.maintenanceItems.filter((item) => !item.active));
   return `
     <div class="view-stack">
       <h1 class="view-title">${t("view.maintenance.title")}</h1>
+      ${vehicleSelectorHtml(dataset.vehicles, vehicleId)}
       <section class="card">
         <h2 class="card__title">${t("maintenance.activeTitle")}</h2>
         ${activeItemsHtml(activeItems)}
@@ -218,6 +225,35 @@ function maintenanceViewHtml(): string {
   `;
 }
 
+/* --- Vehicle scoping for the list page --- */
+
+/** The currently selected vehicle id, falling back to the first vehicle
+ * (or null when the garage is empty — legacy null-vehicle items show then). */
+function resolveSelectedVehicleId(dataset: ReturnType<typeof store.get>): string | null {
+  if (state.selectedVehicleId && dataset.vehicles.some((v) => v.id === state.selectedVehicleId)) {
+    return state.selectedVehicleId;
+  }
+  return dataset.vehicles[0]?.id ?? null;
+}
+
+/** A small selector rendered above the lists when several vehicles exist.
+ * New items added from this view are scoped to the selected vehicle. */
+function vehicleSelectorHtml(vehicles: readonly { id: string; name: string }[], selectedId: string | null): string {
+  if (vehicles.length <= 1) return "";
+  const options = vehicles
+    .map(
+      (v) =>
+        `<option value="${escHtml(v.id)}" ${v.id === selectedId ? "selected" : ""}>${escHtml(v.name)}</option>`,
+    )
+    .join("");
+  return `
+    <div class="field vehicle-select">
+      <label class="field__label" for="maintenance-vehicle-select">${t("vehicle.selectVehicle")}</label>
+      <select class="field__input js-vehicle-select" id="maintenance-vehicle-select">${options}</select>
+    </div>
+  `;
+}
+
 /* --- Active items list (list page) --- */
 
 function activeItemsHtml(items: MaintenanceItem[]): string {
@@ -226,8 +262,8 @@ function activeItemsHtml(items: MaintenanceItem[]): string {
   const dataset = store.get();
   const sorted = [...items].sort((a, b) => {
     if (state.sort === "name") return a.name.localeCompare(b.name, "fa");
-    const calcA = calculateMaintenance(a, dataset);
-    const calcB = calculateMaintenance(b, dataset);
+    const calcA = calculateMaintenance(a, contextForVehicle(dataset, a.vehicleId));
+    const calcB = calculateMaintenance(b, contextForVehicle(dataset, b.vehicleId));
     return compareByUrgency(
       { status: calcA.status, remainingPercent: calcA.remainingPercent },
       { status: calcB.status, remainingPercent: calcB.remainingPercent },
@@ -261,7 +297,7 @@ function itemMetricLines(item: MaintenanceItem, dataset: ReturnType<typeof store
   percent: number | null;
   calc: ReturnType<typeof calculateMaintenance>;
 } {
-  const calc = calculateMaintenance(item, dataset);
+  const calc = calculateMaintenance(item, contextForVehicle(dataset, item.vehicleId));
   const kind = resolvePrimaryMetric(calc, item.rule.displayMode);
 
   let primaryLine: string | null;
@@ -690,13 +726,14 @@ function detailOverviewHtml(item: MaintenanceItem, dataset: ReturnType<typeof st
     }
   }
 
-  const current = getCurrentOdometer(dataset);
+  const vehicle = item.vehicleId ? (dataset.vehicles.find((v) => v.id === item.vehicleId) ?? null) : null;
+  const currentOdometer = vehicle?.currentOdometer ?? null;
   rows.push({
     label: t("maintenance.detail.currentOdometer"),
-    value: current ? `${faNum(current.odometer)} ${t("common.kmUnit")}` : t("maintenance.detail.notRecorded"),
+    value: currentOdometer != null ? `${faNum(currentOdometer)} ${t("common.kmUnit")}` : t("maintenance.detail.notRecorded"),
   });
 
-  const avg = dataset.vehicle?.averageDailyDistance;
+  const avg = vehicle?.averageDailyDistance ?? null;
   if (avg != null && avg > 0 && calc.estimatedKmDays != null) {
     rows.push({
       label: t("maintenance.detail.avgDaily"),
@@ -828,9 +865,13 @@ function detailHistoryHtml(
 
 /* --- Record service / inspection forms (§35–§36) --- */
 
-function defaultRecordOdometer(): number | null {
-  const current = getCurrentOdometer(store.get());
-  return current ? current.odometer : null;
+function defaultRecordOdometer(itemId: string | null): number | null {
+  if (!itemId) return null;
+  const dataset = store.get();
+  const item = dataset.maintenanceItems.find((candidate) => candidate.id === itemId);
+  if (!item?.vehicleId) return null;
+  const vehicle = dataset.vehicles.find((v) => v.id === item.vehicleId);
+  return vehicle?.currentOdometer ?? null;
 }
 
 function findServiceRecord(recordId: string | null): ServiceRecord | null {
@@ -845,9 +886,10 @@ function findInspectionRecord(recordId: string | null): InspectionRecord | null 
 
 function recordServiceFormHtml(): string {
   const form = state.recordForm;
+  const itemId = form?.itemId ?? null;
   const record = form?.kind === "service" ? findServiceRecord(form.recordId) : null;
   const isEdit = record != null;
-  const defaultKm = defaultRecordOdometer();
+  const defaultKm = defaultRecordOdometer(itemId);
 
   return `
     <section class="card">
@@ -895,9 +937,10 @@ function recordServiceFormHtml(): string {
 
 function recordInspectionFormHtml(): string {
   const form = state.recordForm;
+  const itemId = form?.itemId ?? null;
   const record = form?.kind === "inspection" ? findInspectionRecord(form.recordId) : null;
   const isEdit = record != null;
-  const defaultKm = defaultRecordOdometer();
+  const defaultKm = defaultRecordOdometer(itemId);
   const conditionOptions = CONDITION_OPTIONS.map(
     (option) => `
       <option value="${option.value}" ${record?.condition === option.value ? "selected" : ""}>${t(option.key)}</option>
@@ -1219,6 +1262,13 @@ function bind(container: HTMLElement): void {
 
 /** Events on the list page (tabs, catalog, sort, item actions). */
 function bindListEvents(container: HTMLElement): void {
+  container.querySelectorAll<HTMLSelectElement>(".js-vehicle-select").forEach((select) => {
+    select.addEventListener("change", () => {
+      state.selectedVehicleId = select.value || null;
+      redraw(container);
+    });
+  });
+
   container.querySelectorAll<HTMLButtonElement>(".js-tab-catalog, .js-tab-custom").forEach((button) => {
     button.addEventListener("click", () => {
       state.tab = button.dataset.tab === "custom" ? "custom" : "catalog";
@@ -1446,7 +1496,7 @@ function submitRecordForm(container: HTMLElement, form: HTMLFormElement): void {
           return;
         }
       }
-      draft.serviceHistory.push({ id: createId(), maintenanceItemId: itemId, date, odometer, notes, cost, createdAt: now });
+      draft.serviceHistory.push({ id: createId(), maintenanceItemId: itemId, vehicleId: item.vehicleId, date, odometer, notes, cost, createdAt: now });
     });
     return;
   }
@@ -1484,6 +1534,7 @@ function submitRecordForm(container: HTMLElement, form: HTMLFormElement): void {
     draft.inspectionHistory.push({
       id: createId(),
       maintenanceItemId: itemId,
+      vehicleId: item.vehicleId,
       date,
       odometer,
       condition,
@@ -1587,11 +1638,13 @@ function submitItemForm(container: HTMLElement, form: HTMLFormElement): void {
 
   const catalogId = state.config?.mode === "catalog-add" ? state.config.entryId : null;
   const itemId = createId();
+  // New items are scoped to the vehicle selected on the list page.
+  const vehicleId = resolveSelectedVehicleId(store.get());
   // See above: clear local state before the store update.
   state.config = null;
   state.formValues = {};
   store.update((draftData) => {
-    const item = buildItem(draft, { catalogId, now, id: itemId });
+    const item = buildItem(draft, { catalogId, now, id: itemId, vehicleId });
     draftData.maintenanceItems.push(item);
     if (draft.inspectionBased) {
       const inspectionDate = String(data.get("lastInspectionDate") ?? "");
@@ -1599,6 +1652,7 @@ function submitItemForm(container: HTMLElement, form: HTMLFormElement): void {
         draftData.inspectionHistory.push({
           id: createId(),
           maintenanceItemId: itemId,
+          vehicleId,
           date: inspectionDate,
           odometer: null,
           condition: (String(data.get("lastInspectionCondition") ?? "") ||
@@ -1615,6 +1669,7 @@ function submitItemForm(container: HTMLElement, form: HTMLFormElement): void {
         draftData.serviceHistory.push({
           id: createId(),
           maintenanceItemId: itemId,
+          vehicleId,
           date: serviceDate,
           odometer: rawOdometer === "" ? null : Number(toLatinDigits(rawOdometer)),
           notes: "",

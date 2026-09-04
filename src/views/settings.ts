@@ -217,8 +217,8 @@ function previewHtml(pending: { fileName: string; dataset: Dataset }): string {
     dataset.exportedAt
       ? `<div class="info-list__row"><dt>${t("settings.exportedOn")}</dt><dd>${escHtml(formatDateTime(dataset.exportedAt))}</dd></div>`
       : "",
-    `<div class="info-list__row"><dt>${t("settings.rowVehicle")}</dt><dd>${dataset.vehicle ? escHtml(dataset.vehicle.name) : t("dashboard.noVehicle")}</dd></div>`,
-    `<div class="info-list__row"><dt>${t("settings.rowOdometer")}</dt><dd>${faNum(dataset.odometerHistory.length)}</dd></div>`,
+    `<div class="info-list__row"><dt>${t("settings.rowVehicles")}</dt><dd>${faNum(dataset.vehicles.length)}</dd></div>`,
+    `<div class="info-list__row"><dt>${t("settings.rowOdometer")}</dt><dd>${faNum(dataset.vehicles.filter((v) => v.currentOdometer != null).length)}</dd></div>`,
     `<div class="info-list__row"><dt>${t("settings.rowItems")}</dt><dd>${faNum(dataset.maintenanceItems.length)}</dd></div>`,
     `<div class="info-list__row"><dt>${t("settings.rowServices")}</dt><dd>${faNum(dataset.serviceHistory.length)}</dd></div>`,
     `<div class="info-list__row"><dt>${t("settings.rowInspections")}</dt><dd>${faNum(dataset.inspectionHistory.length)}</dd></div>`,

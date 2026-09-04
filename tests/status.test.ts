@@ -7,7 +7,6 @@ import {
 import type {
   InspectionRecord,
   MaintenanceItem,
-  OdometerReading,
   ServiceRecord,
   StatusThresholds,
 } from "../src/domain/types";
@@ -18,6 +17,7 @@ const THRESHOLDS: StatusThresholds = { dueSoonPercent: 20, duePercent: 5 };
 function makeItem(partial: Partial<MaintenanceItem> = {}): MaintenanceItem {
   return {
     id: "item-1",
+    vehicleId: "v1",
     catalogId: null,
     name: "Item",
     category: "engine",
@@ -31,17 +31,19 @@ function makeItem(partial: Partial<MaintenanceItem> = {}): MaintenanceItem {
 }
 
 function service(date: string, odometer: number | null): ServiceRecord {
-  return { id: `s-${date}`, maintenanceItemId: "item-1", date, odometer, notes: "", cost: null, createdAt: `${date}T00:00:00.000Z` };
+  return { id: `s-${date}`, maintenanceItemId: "item-1", vehicleId: "v1", date, odometer, notes: "", cost: null, createdAt: `${date}T00:00:00.000Z` };
 }
 
-function reading(date: string, odometer: number): OdometerReading {
-  return { id: `r-${date}`, date, odometer, createdAt: `${date}T00:00:00.000Z` };
+/** The current odometer is a per-vehicle fact; a vehicle at `km`. */
+function vehicleAt(km: number | null): { averageDailyDistance: number | null; currentOdometer: number | null } {
+  return { averageDailyDistance: 40, currentOdometer: km };
 }
 
 function inspection(partial: Partial<InspectionRecord>): InspectionRecord {
   return {
     id: "i1",
     maintenanceItemId: "item-1",
+    vehicleId: "v1",
     date: "2026-01-01",
     odometer: null,
     condition: "good",
@@ -54,8 +56,7 @@ function inspection(partial: Partial<InspectionRecord>): InspectionRecord {
 
 function makeCtx(overrides: Partial<CalculationContext> = {}): CalculationContext {
   return {
-    vehicle: { averageDailyDistance: 40 },
-    odometerHistory: [],
+    vehicle: vehicleAt(null),
     serviceHistory: [],
     inspectionHistory: [],
     settings: { statusThresholds: THRESHOLDS },
@@ -75,7 +76,7 @@ describe("status — interval items", () => {
   it("maps percent tiers to statuses via configured thresholds (§29)", () => {
     const item = makeItem({ rule: { ...makeItem().rule, intervalKm: 10000 } });
     const base = { serviceHistory: [service("2026-01-10", 100000)] };
-    const at = (km: number) => statusOf(item, makeCtx({ ...base, odometerHistory: [reading("2026-04-01", km)] }));
+    const at = (km: number) => statusOf(item, makeCtx({ ...base, vehicle: vehicleAt(km) }));
 
     expect(at(100000)).toBe("ok"); // 100%
     expect(at(105000)).toBe("upcoming"); // 50%
@@ -92,7 +93,7 @@ describe("status — interval items", () => {
     const ctx = makeCtx({
       settings: { statusThresholds: { dueSoonPercent: 50, duePercent: 25 } },
       serviceHistory: [service("2026-01-10", 100000)],
-      odometerHistory: [reading("2026-04-01", 106000)], // 40% remaining
+      vehicle: vehicleAt(106000), // 40% remaining
     });
     // With stock thresholds 40% would be "upcoming"; custom thresholds make it "dueSoon".
     expect(statusOf(item, ctx)).toBe("dueSoon");
@@ -141,13 +142,13 @@ describe("status — inspection items (§16, §28, §36)", () => {
     });
     const overdue = makeCtx({
       inspectionHistory: [inspection({ odometer: 100000, condition: "good" })],
-      odometerHistory: [reading("2026-04-01", 111000)],
+      vehicle: vehicleAt(111000),
     });
     expect(statusOf(item, overdue)).toBe("inspectionRequired"); // 111,000 ≥ 110,000
 
     const within = makeCtx({
       inspectionHistory: [inspection({ odometer: 100000, condition: "good" })],
-      odometerHistory: [reading("2026-04-01", 109000)],
+      vehicle: vehicleAt(109000),
     });
     expect(statusOf(item, within)).toBe("ok");
   });
@@ -173,7 +174,7 @@ describe("status — misc", () => {
     });
     const ctx = makeCtx({
       serviceHistory: [service("2025-09-01", 100000)],
-      odometerHistory: [reading("2026-04-01", 104000)], // km: plenty left
+      vehicle: vehicleAt(104000), // km: plenty left
     });
     const result = calculateMaintenance(item, ctx, "2026-04-01");
     expect(result.remainingDays).toBe(-31); // time due 2026-03-01, already passed
