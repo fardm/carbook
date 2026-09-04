@@ -1320,6 +1320,54 @@ Post-Phase-13 visual restyle (user-requested, outside the phase plan):
     2.34:1 (links, text buttons, active nav label) — inherently low for
     the exact brand hue and not part of this request.
 
+Post-Phase-13 UI adjustments (user-requested, layout):
+61. **Desktop nav is now a dashboard-style sidebar** (`src/styles/layout.css`
+    desktop media query only). The mobile bottom bar is untouched: it keeps
+    its stacked (column) items, `space-around` distribution and top
+    indicator bar. On ≥900 px the sidebar: (a) groups items vertically one
+    after another — no `space-between`/justified distribution; (b) lays
+    each item out HORIZONTALLY (icon + label on the same row,
+    `flex-direction: row`, `justify-content: flex-start`); (c) uses
+    uniform 48 px-tall rows with consistent padding/gap and a pill-shaped
+    active state (secondary-container background replaces the mobile top
+    indicator, which is hidden); hover keeps the existing highlight.
+    Because icon+text rows need more room than the old 96 px icon-only
+    rail, the sidebar width grew to 232 px — the one necessary layout
+    change; colors, icons, labels, fonts and the grid/area structure are
+    otherwise unchanged. CSS-only — nav markup (main.ts) was already
+    icon + label per item. Verified: build clean; mobile layout re-checked
+    live at 440 px (unchanged). NOTE: the desktop ≥900 px view could NOT
+    be screenshot-verified from the 440 px preview window — needs a quick
+    visual check on a real desktop-width browser.
+61b. **Desktop sidebar items must NOT stretch to fill the sidebar height**
+    (follow-up fix): the base `.nav` rule (bottom bar) sets
+    `align-items: stretch`, which — because `.nav` is also
+    `flex-direction: column` — stretches every `.nav__item` across the
+    container's cross axis (its FULL `100dvh` height) on desktop. The
+    desktop media query now explicitly overrides `align-items:
+    flex-start` (so items keep their content-driven height and flow one
+    after another from the top) and gives `.nav__item` `width: 100%` so
+    each row still spans the full sidebar for the pill/hover background.
+    Items use `min-height: 48px` + inline padding only — no vertical
+    distribution, no `space-between` anywhere in the desktop rules.
+    Mobile bottom bar untouched.
+61c. **Desktop nav shell height is separated from item layout via an
+    inner `.nav__list` wrapper** (structural fix — the correct pattern
+    for “100dvh sidebar, content-sized items”): `renderNav()` in
+    `main.ts` now wraps the items in `<div class="nav__list">`. On
+    desktop the `.nav` shell keeps `height: 100dvh` (fills the
+    viewport), while `.nav__list` is `flex: 0 0 auto; height: auto;
+    flex-direction: column; justify-content: flex-start` — it only ever
+    grows to its content, so items sit grouped at the top with the
+    4px gap and the rest of the sidebar stays empty. Items are
+    `flex: 0 0 auto` (no vertical stretch) with `min-height: 48px`.
+    Base/mobile CSS was refactored to match the new markup: the mobile
+    bottom bar now distributes via `.nav__list` inside a
+    `max-width: 899.98px` block (items flex: 1, space-around, bar
+    height 72px) — layout verified live at 440px as visually
+    identical (5 equal items, indicator bar, active/hover states).
+    Desktop ≥900px still needs a real-browser visual check.
+
 ---
 
 ## Known Issues / Limitations

@@ -13,16 +13,23 @@ import "./styles/components.css";
 function renderNav(): void {
   const nav = document.getElementById("app-nav");
   if (!nav) return;
-  nav.innerHTML = routes
-    .map(
-      (route) => `
-        <a class="nav__item" href="#${route.hash}" data-route="${route.id}">
-          <span data-lucide="${route.icon}"></span>
-          <span>${t(`nav.${route.id}` as const)}</span>
-        </a>
-      `,
-    )
-    .join("");
+  // Items live in an inner .nav__list so the mobile bottom bar and the
+  // desktop sidebar can size/lay them out independently of the shell (the
+  // desktop <nav> keeps height: 100dvh while .nav__list is content-sized).
+  nav.innerHTML = `
+    <div class="nav__list">
+      ${routes
+        .map(
+          (route) => `
+            <a class="nav__item" href="#${route.hash}" data-route="${route.id}">
+              <span data-lucide="${route.icon}"></span>
+              <span>${t(`nav.${route.id}` as const)}</span>
+            </a>
+          `,
+        )
+        .join("")}
+    </div>
+  `;
   applyIcons();
 }
 
