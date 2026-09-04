@@ -7,7 +7,7 @@ import { store } from "../state/store";
 import { escHtml } from "../ui/escape";
 import { alignFabBar } from "../ui/fab";
 import { bindFloatingFields } from "../ui/floating-field";
-import { faNum, formatDate, toLatinDigits } from "../ui/format";
+import { faNum, toLatinDigits } from "../ui/format";
 import { applyIcons } from "../ui/icons";
 
 /**
@@ -114,13 +114,12 @@ function vehicleRowHtml(vehicle: Vehicle, defaultVehicleId: string | null): stri
   const meta = vehicleMeta(vehicle);
   const isDefault = vehicle.id === defaultVehicleId;
   const mileage = vehicle.currentOdometer;
-  const updatedAt = vehicle.odometerUpdatedAt;
   const menuOpen = state.menuVehicleId === vehicle.id;
 
   return `
     <section class="card vehicle-row${isDefault ? " vehicle-row--default" : ""}">
       <div class="vehicle-row__main">
-        <span class="vehicle-row__icon" data-lucide="car-front"></span>
+        <span class="vehicle-row__icon" data-lucide="car"></span>
         <div class="vehicle-row__info">
           <div class="vehicle-row__name">${escHtml(vehicle.name)}</div>
           ${meta ? `<div class="vehicle-row__meta">${escHtml(meta)}</div>` : ""}
@@ -132,11 +131,6 @@ function vehicleRowHtml(vehicle: Vehicle, defaultVehicleId: string | null): stri
           <span data-lucide="gauge"></span>
           <span>${mileage != null ? `${faNum(mileage)} ${t("common.kmUnit")}` : t("vehicle.notRecorded")}</span>
         </div>
-        ${
-          updatedAt
-            ? `<div class="vehicle-row__mileage-updated" aria-label="${t("vehicle.mileageUpdated")}">${formatDate(updatedAt.slice(0, 10))}</div>`
-            : ""
-        }
         <button type="button" class="btn btn--text vehicle-row__update js-update-mileage" data-id="${escHtml(vehicle.id)}">
           <span data-lucide="refresh-cw"></span>
           ${t("vehicle.updateMileage")}

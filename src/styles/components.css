@@ -1559,12 +1559,15 @@ textarea.field__input {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 46px;
+  width: 52px;
+  height: 52px;
   border-radius: var(--md-shape-medium);
   background-color: var(--md-sys-color-primary-container);
   color: var(--md-sys-color-on-primary-container);
   flex-shrink: 0;
+  /* Padding around the glyph gives the icon breathing room without
+   * growing the icon itself. */
+  padding: 10px;
 }
 
 .vehicle-row__icon svg {
@@ -1594,8 +1597,8 @@ textarea.field__input {
   align-items: flex-end;
   gap: var(--md-space-1);
   flex-shrink: 0;
-  padding-inline: var(--md-space-4);
-  border-inline-start: 1px solid var(--md-sys-color-outline-variant);
+  /* Compact, divider-free separation from the vehicle info. */
+  padding-inline: var(--md-space-2);
   /* Keep the column clear of the three-dot menu pinned to the top-left. */
   margin-inline-end: 48px;
 }
@@ -1611,11 +1614,6 @@ textarea.field__input {
 .vehicle-row__mileage-value svg {
   width: 20px;
   height: 20px;
-  color: var(--md-sys-color-on-surface-variant);
-}
-
-.vehicle-row__mileage-updated {
-  font-size: var(--md-typescale-label-small);
   color: var(--md-sys-color-on-surface-variant);
 }
 
