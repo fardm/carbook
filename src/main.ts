@@ -21,7 +21,10 @@ function renderNav(): void {
   nav.innerHTML = `
     <div class="nav__brand">
       <img class="app-bar__icon" src="./favicon.svg" alt="" width="24" height="24" />
-      <span class="nav__brand-title" id="nav-brand-title"></span>
+      <span class="app-bar__titles">
+        <span class="app-bar__title-main" id="nav-brand-title"></span>
+        <span class="app-bar__subtitle" id="nav-brand-subtitle"></span>
+      </span>
     </div>
     <div class="nav__list">
       ${routes
@@ -39,12 +42,19 @@ function renderNav(): void {
   applyIcons();
 }
 
-/** Fills both the mobile header title and the desktop sidebar brand. */
+/** Fills the mobile header and desktop sidebar brand (main title +
+ * subtitle) from the shared catalog. */
 function setAppTitles(): void {
-  const appTitle = document.getElementById("app-title");
-  if (appTitle) appTitle.textContent = t("app.title");
-  const brandTitle = document.getElementById("nav-brand-title");
-  if (brandTitle) brandTitle.textContent = t("app.title");
+  const pairs: Array<[string | null, string | null]> = [
+    ["app-title", "app-subtitle"],
+    ["nav-brand-title", "nav-brand-subtitle"],
+  ];
+  for (const [titleId, subtitleId] of pairs) {
+    const titleEl = titleId ? document.getElementById(titleId) : null;
+    const subtitleEl = subtitleId ? document.getElementById(subtitleId) : null;
+    if (titleEl) titleEl.textContent = t("app.title");
+    if (subtitleEl) subtitleEl.textContent = t("app.subtitle");
+  }
 }
 
 function setActiveNav(routeId: RouteId): void {

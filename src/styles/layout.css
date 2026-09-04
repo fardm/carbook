@@ -35,13 +35,37 @@
   gap: var(--md-space-3);
 }
 
+/* Header brand (mobile top bar AND desktop sidebar): logo image, then a
+ * two-line text block — main title (CarBook) over a smaller Persian
+ * subtitle. */
 .app-bar__title {
   display: flex;
   align-items: center;
   gap: var(--md-space-2);
+  min-width: 0;
+}
+
+.app-bar__titles {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.app-bar__title-main {
   font-size: var(--md-typescale-title-medium);
   font-weight: 600;
   color: var(--md-sys-color-on-surface);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.app-bar__subtitle {
+  font-size: var(--md-typescale-label-small);
+  font-weight: 400;
+  color: var(--md-sys-color-on-surface-variant);
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 /* Header logo — the favicon artwork (favicon.svg). Width/height mirror
@@ -49,9 +73,11 @@
  * like the app icon does. */
 .app-bar__icon {
   display: block;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   border-radius: 5px;
+  background-color: #f5f5f5;
+  padding: 4px;
   object-fit: contain;
   flex: none;
 }
@@ -198,12 +224,19 @@
     flex: 0 0 auto;
     align-items: center;
     gap: var(--md-space-2);
-    font-size: var(--md-typescale-title-medium);
-    font-weight: 600;
-    color: var(--md-sys-color-on-surface);
     padding: var(--md-space-1) var(--md-space-3) var(--md-space-4);
     margin-bottom: var(--md-space-4);
     border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  }
+
+  /* Sidebar brand uses the shared title/subtitle classes; only sizing
+   * differs slightly from the mobile header (more room on desktop). */
+  .nav__brand .app-bar__title-main {
+    font-size: var(--md-typescale-title-medium);
+  }
+
+  .nav__brand .app-bar__subtitle {
+    font-size: var(--md-typescale-label-small);
   }
 
   .nav__brand .app-bar__icon {

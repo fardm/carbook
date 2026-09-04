@@ -22,12 +22,12 @@
     </script>
     <!-- theme-color content is kept in sync with the resolved theme by src/ui/theme.ts -->
     <meta name="theme-color" content="#f2870d" />
-    <meta name="description" content="دفترچه نگهداری خودرو — ابزار شخصی ثبت و پیگیری سرویس‌های خودرو" />
+    <meta name="description" content="CarBook — ابزار شخصی ثبت و پیگیری سرویس‌های خودرو" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="دفترچه خودرو" />
-    <title>دفترچه نگهداری خودرو</title>
+    <meta name="apple-mobile-web-app-title" content="CarBook" />
+    <title>CarBook</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
   <body>
@@ -36,7 +36,10 @@
         <div class="app-bar__inner">
           <div class="app-bar__title">
             <img class="app-bar__icon" src="./favicon.svg" alt="" width="24" height="24" />
-            <span id="app-title"></span>
+            <span class="app-bar__titles">
+              <span class="app-bar__title-main" id="app-title"></span>
+              <span class="app-bar__subtitle" id="app-subtitle"></span>
+            </span>
           </div>
           <div class="app-bar__actions" id="app-bar-actions"></div>
         </div>

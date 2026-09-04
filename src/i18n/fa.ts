@@ -6,7 +6,8 @@
  */
 export const fa = {
   app: {
-    title: "دفترچه نگهداری خودرو",
+    title: "CarBook",
+    subtitle: "دفترچه نگهداری خودرو",
   },
   nav: {
     dashboard: "داشبورد",

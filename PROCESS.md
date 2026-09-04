@@ -1409,12 +1409,24 @@ Post-Phase-13 UI adjustments (user-requested, layout):
     block`, explicit 24×24, `border-radius: 5px`, `flex: none` (the
     `color: var(--md-sys-color-primary)` tint that only applied to the
     monochrome lucide glyph was removed; the favicon carries its own
-    colors). The brand rows keep their existing flex alignment/gap, so
+    colors). The    brand rows keep their existing flex alignment/gap, so
     size/positioning are unchanged. The dashboard vehicle card and nav
     route icons still use `car-front` via lucide (different components,
     untouched). Verified live at 440 px: 24px favicon image renders in the
     mobile header; typecheck/tests/build clean, `./favicon.svg` in the
     built index.html.
+61g. **Project branding is now “CarBook”** (user request): the catalog
+    defines `app.title = "CarBook"` and `app.subtitle =
+    "دفترچه نگهداری خودرو"`. Both header brand spots (mobile `.app-bar`
+    and desktop `.nav__brand`) show the logo followed by a two-line block
+    — CarBook as the primary title over the smaller muted Persian
+    subtitle (`.app-bar__title-main` 16px/600 on-surface, `.app-bar__
+    subtitle` 11px/400 on-surface-variant). Browser `<title>` and the
+    `apple-mobile-web-app-title` meta are now CarBook; the description
+    meta leads with CarBook. Subtitle text is set from the catalog by
+    `setAppTitles()` (new app-subtitle / nav-brand-subtitle ids).
+    Verified live at 440 px: two-line header fits the 64px bar centered,
+    no clipping; typecheck/205 tests/build clean.
 
 ---
 
