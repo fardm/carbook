@@ -1,9 +1,9 @@
 import {
   CATALOG,
   CATEGORIES,
+  catalogEntry,
   categoryName,
   type CatalogCategoryId,
-  type CatalogEntry,
 } from "../catalog";
 import { lastInspectionFor, lastServiceFor } from "../domain/baselines";
 import { createId } from "../domain/ids";
@@ -30,6 +30,7 @@ import type {
   MaintenanceItem,
   ServiceRecord,
   InspectionRecord,
+  Vehicle,
 } from "../domain/types";
 import { t, type MessageKey } from "../i18n";
 import { store } from "../state/store";
@@ -46,7 +47,11 @@ import {
   secondaryMetricText,
   statusLabel,
 } from "../ui/maintenance-display";
-import { maintenanceDetailHash, maintenanceItemIdFromHash } from "../ui/router";
+import {
+  maintenanceDetailHash,
+  maintenanceItemIdFromHash,
+  servicesVehicleIdFromHash,
+} from "../ui/router";
 
 /**
  * Maintenance view (Phases 5–8): active items list + catalog browser + the

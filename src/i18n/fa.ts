@@ -10,10 +10,9 @@ export const fa = {
     subtitle: "دفترچه نگهداری خودرو",
   },
   nav: {
-    dashboard: "داشبورد",
-    maintenance: "نگهداری",
+    vehicle: "خودروها",
+    maintenance: "سرویس ها",
     history: "سوابق",
-    vehicle: "خودرو",
     settings: "تنظیمات",
   },
   common: {
@@ -39,15 +38,6 @@ export const fa = {
     due: "رسیده",
     overdue: "گذشته",
     inspectionRequired: "نیازمند بازرسی",
-  },
-  dashboard: {
-    updateOdometer: "بروزرسانی کیلومتر",
-    noVehicle: "خودرویی ثبت نشده است.",
-    setupVehicle: "ثبت خودرو",
-    maintenanceTitle: "خلاصه وضعیت نگهداری",
-    priorityTitle: "اولویت‌های نگهداری",
-    noItems: "هنوز نگهداری‌ای ثبت نشده است.",
-    viewAll: "مشاهده همه",
   },
   maintenance: {
     activeTitle: "نگهداری‌های فعال",
@@ -81,10 +71,10 @@ export const fa = {
       errorRuleRequired: "حداقل یک معیار (کیلومتر، زمان یا بازرسی) را مشخص کنید.",
     },
     editItem: "ویرایش",
-    editTitle: "ویرایش نگهداری",
+    editTitle: "ویرایش سرویس",
     detail: {
-      notFound: "نگهداری موردنظر یافت نشد.",
-      backToList: "بازگشت به فهرست نگهداری",
+      notFound: "سرویس موردنظر یافت نشد.",
+      backToList: "بازگشت به سرویس‌ها",
       overviewTitle: "وضعیت و محاسبات",
       serviceHistoryTitle: "سوابق سرویس",
       inspectionHistoryTitle: "سوابق بازرسی",
@@ -180,6 +170,31 @@ export const fa = {
       replaceNow: "تعویض فوری",
     },
   },
+  services: {
+    addService: "ثبت سرویس",
+    noServices: "هنوز سرویسی برای این خودرو ثبت نشده است.",
+    noVehicles: "برای ثبت سرویس، ابتدا یک خودرو اضافه کنید.",
+    goToVehicles: "رفتن به خودروها",
+    vehicleLabel: "خودرو",
+    typeLabel: "نوع سرویس",
+    customType: "دلخواه",
+    titleLabel: "عنوان",
+    titlePlaceholder: "مثلاً روغن موتور",
+    iconLabel: "آیکون",
+    replacementTitle: "تعویض",
+    replacementDate: "تاریخ تعویض",
+    replacementKm: "کیلومتر تعویض",
+    lifeTitle: "عمر سرویس",
+    lifeMonths: "مدت زمان (ماه)",
+    lifeKm: "کیلومتر",
+    calcPartLife: "محاسبه عمر قطعه",
+    calcPartLifeHint: "بر پایه تاریخ و کیلومتر تعویض و عمر تعیین‌شده، باقی‌مانده عمر قطعه محاسبه می‌شود.",
+    calcPartLifeIncomplete: "برای محاسبه، تاریخ تعویض و حداقل یک معیار عمر را وارد کنید.",
+    lastServiceLabel: "آخرین سرویس",
+    replacementLabel: "تعویض",
+    partLifeTitle: "عمر باقی‌مانده قطعه",
+    editService: "ویرایش",
+  },
   settings: {
     backupTitle: "پشتیبان‌گیری",
     backupIntro:
@@ -265,6 +280,10 @@ export const fa = {
     mileageFor: "خودرو",
     mileageLabel: "کیلومتر فعلی",
     mileageHint: "کیلومتر فعلی خودرو را وارد کنید.",
+    services: "سرویس ها",
+    makeDefault: "انتخاب به عنوان پیشفرض",
+    defaultBadge: "پیشفرض",
+    menuLabel: "عملیات خودرو",
     yearHint: "هم سال شمسی (مثلاً ۱۴۰۳) و هم سال میلادی (مثلاً ۱۹۹۶) معتبر است.",
     selectVehicle: "انتخاب خودرو",
     oneVehicle: "خودرو",
@@ -280,11 +299,8 @@ export const fa = {
     errorInvalidOdometer: "کیلومتر باید عددی صحیح و غیرمنفی باشد.",
   },
   view: {
-    dashboard: {
-      title: "داشبورد",
-    },
     maintenance: {
-      title: "نگهداری",
+      title: "سرویس ها",
     },
     history: {
       title: "سوابق",
@@ -292,7 +308,7 @@ export const fa = {
         "تاریخچه سرویس‌ها و بازرسی‌ها. به‌زودی: ثبت و بررسی کامل سوابق تعویض و بازرسی.",
     },
     vehicle: {
-      title: "خودروهای من",
+      title: "خودروها",
     },
     settings: {
       title: "تنظیمات",

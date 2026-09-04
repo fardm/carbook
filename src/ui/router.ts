@@ -1,45 +1,54 @@
 /**
  * Minimal hash-based router.
  *
- * URLs look like `#/dashboard`, `#/maintenance`, … which keeps the app
+ * URLs look like `#/vehicle`, `#/maintenance`, … which keeps the app
  * hostable on any static server (including GitHub Pages) with zero
  * server-side configuration.
  *
- * Detail hashes `#/maintenance/<itemId>` (§32) keep the "maintenance" route
- * so the bottom nav stays on نگهداری; the item id is read separately via
- * `maintenanceItemIdFromHash`.
+ * - Detail hashes `#/maintenance/<itemId>` (§32) keep the "maintenance"
+ *   route so the bottom nav stays on سرویس ها; the item id is read
+ *   separately via `maintenanceItemIdFromHash`.
+ * - The services page accepts `#/maintenance?vehicle=<id>` to pre-select a
+ *   vehicle (used by سرویس ها buttons on vehicle cards); read via
+ *   `servicesVehicleIdFromHash`.
  */
 
 /** Matches `#/maintenance/<id>` (single path segment after the view). */
 const MAINTENANCE_DETAIL_RE = /^\/maintenance\/([^/]+)$/;
 
-export type RouteId = "dashboard" | "maintenance" | "history" | "vehicle" | "settings";
+export type RouteId = "maintenance" | "history" | "vehicle" | "settings";
 
 export interface RouteDef {
   id: RouteId;
-  /** Hash fragment without the leading "#", e.g. "/dashboard". */
+  /** Hash fragment without the leading "#", e.g. "/vehicle". */
   hash: string;
   /** Lucide icon name for the navigation item. */
   icon: string;
 }
 
 export const routes: readonly RouteDef[] = [
-  { id: "dashboard", hash: "/dashboard", icon: "layout-dashboard" },
+  { id: "vehicle", hash: "/vehicle", icon: "car-front" },
   { id: "maintenance", hash: "/maintenance", icon: "wrench" },
   { id: "history", hash: "/history", icon: "history" },
-  { id: "vehicle", hash: "/vehicle", icon: "car-front" },
   { id: "settings", hash: "/settings", icon: "settings" },
 ];
 
-export const DEFAULT_ROUTE: RouteId = "dashboard";
+/** The Vehicles page is the first/default page after login. */
+export const DEFAULT_ROUTE: RouteId = "vehicle";
+
+/** The path portion of a hash (query string stripped), e.g. "/maintenance". */
+function pathOf(hash: string): string {
+  const cleaned = hash.startsWith("#") ? hash.slice(1) : hash;
+  return cleaned.split("?")[0];
+}
 
 /** Parses a location.hash value into a route id, falling back to the default. */
 export function parseHash(hash: string): RouteId {
-  const cleaned = hash.startsWith("#") ? hash.slice(1) : hash;
-  const match = routes.find((route) => route.hash === cleaned);
+  const path = pathOf(hash);
+  const match = routes.find((route) => route.hash === path);
   if (match) return match.id;
   // Detail sub-hash of a view: same route (nav stays highlighted).
-  if (MAINTENANCE_DETAIL_RE.test(cleaned)) return "maintenance";
+  if (MAINTENANCE_DETAIL_RE.test(path)) return "maintenance";
   return DEFAULT_ROUTE;
 }
 
@@ -48,9 +57,20 @@ export function parseHash(hash: string): RouteId {
  * `#/maintenance/<itemId>`; returns null for non-detail hashes.
  */
 export function maintenanceItemIdFromHash(hash: string): string | null {
-  const cleaned = hash.startsWith("#") ? hash.slice(1) : hash;
-  const match = MAINTENANCE_DETAIL_RE.exec(cleaned);
+  const match = MAINTENANCE_DETAIL_RE.exec(pathOf(hash));
   return match ? decodeURIComponent(match[1]) : null;
+}
+
+/**
+ * Extracts the vehicle id from `#/maintenance?vehicle=<id>`; null when the
+ * hash is not a services-page hash with a vehicle param.
+ */
+export function servicesVehicleIdFromHash(hash: string): string | null {
+  const cleaned = hash.startsWith("#") ? hash.slice(1) : hash;
+  const [path, query] = cleaned.split("?");
+  if (path !== "/maintenance") return null;
+  const id = query != null ? new URLSearchParams(query).get("vehicle") : null;
+  return id ? decodeURIComponent(id) : null;
 }
 
 export function routeFor(id: RouteId): RouteDef {

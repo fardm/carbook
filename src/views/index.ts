@@ -1,5 +1,4 @@
 import type { RouteId } from "../ui/router";
-import { renderDashboard } from "./dashboard";
 import { renderHistory } from "./history";
 import { renderMaintenance } from "./maintenance";
 import { renderSettings } from "./settings";
@@ -9,7 +8,6 @@ import { renderVehicle } from "./vehicle";
 export type ViewRenderer = (container: HTMLElement) => (() => void) | void;
 
 const views: Record<RouteId, ViewRenderer> = {
-  dashboard: renderDashboard,
   maintenance: renderMaintenance,
   history: renderHistory,
   vehicle: renderVehicle,

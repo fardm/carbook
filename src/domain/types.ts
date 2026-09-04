@@ -139,6 +139,8 @@ export interface Settings {
   theme: ThemePreference;
   /** Calendar used for date display + date input throughout the app. */
   calendar: CalendarPreference;
+  /** Default vehicle id — the Services page auto-selects it. Null = none. */
+  defaultVehicleId: string | null;
 }
 
 /** Versioned application dataset (§39). The single persisted structure. */

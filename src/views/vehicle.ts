@@ -9,15 +9,18 @@ import { faNum, toLatinDigits } from "../ui/format";
 import { applyIcons } from "../ui/icons";
 
 /**
- * Vehicle view — multi-vehicle garage ("خودروهای من").
+ * Vehicle view — multi-vehicle garage ("خودروها", the first/default page).
  *
  * - Empty state: an افزودن خودرو button only.
- * - Vehicle cards: name + current mileage with two actions (ویرایش /
- *   بروزرسانی کیلومتر). No delete button on the card.
+ * - Vehicle cards: name + current mileage with بروزرسانی کیلومتر and
+ *   سرویس ها actions, plus a three-dot menu (ویرایش / حذف /
+ *   انتخاب به عنوان پیشفرض). No delete button directly on the card.
  * - Add/Edit modal (ویرایش → انصراف / ثبت تغییرات / حذف خودرو).
+ * - Dedicated delete-confirm modal (from the card menu).
  * - Mileage modal: only a mileage field — odometer history is gone.
  * - Deleting a vehicle permanently removes the vehicle AND all of its
- *   maintenance items / service / inspection history (cascade delete).
+ *   maintenance items / service / inspection history (cascade delete) and
+ *   clears the default-vehicle preference when it pointed at this car.
  */
 
 interface VehicleViewState {
@@ -25,13 +28,16 @@ interface VehicleViewState {
   modal:
     | { kind: "add" }
     | { kind: "edit"; vehicleId: string; confirmDelete: boolean }
+    | { kind: "delete"; vehicleId: string }
     | { kind: "mileage"; vehicleId: string }
     | null;
+  /** Vehicle whose three-dot menu is open; null = none. */
+  menuVehicleId: string | null;
   /** Typed form values keyed by input name (survive re-renders). */
   formValues: Record<string, string>;
 }
 
-const state: VehicleViewState = { modal: null, formValues: {} };
+const state: VehicleViewState = { modal: null, menuVehicleId: null, formValues: {} };
 
 const FUEL_KEYS: Record<FuelType, MessageKey> = {
   gasoline: "vehicle.fuelGasoline",
@@ -70,7 +76,8 @@ export function renderVehicle(container: HTMLElement): () => void {
 /* --- Layout --- */
 
 function vehicleViewHtml(): string {
-  const vehicles = store.get().vehicles;
+  const dataset = store.get();
+  const vehicles = dataset.vehicles;
   const heading = `
     <div class="view-head">
       <h1 class="view-title">${t("view.vehicle.title")}</h1>
@@ -80,7 +87,7 @@ function vehicleViewHtml(): string {
   const body =
     vehicles.length === 0
       ? emptyStateHtml()
-      : `<div class="vehicles-grid">${vehicles.map(vehicleCardHtml).join("")}</div>`;
+      : `<div class="vehicles-grid">${vehicles.map((v) => vehicleCardHtml(v, dataset.settings.defaultVehicleId)).join("")}</div>`;
   return `
     <div class="view-stack">
       ${heading}
@@ -102,18 +109,54 @@ function emptyStateHtml(): string {
   `;
 }
 
-function vehicleCardHtml(vehicle: Vehicle): string {
+function vehicleCardHtml(vehicle: Vehicle, defaultVehicleId: string | null): string {
   const meta = [vehicle.make, vehicle.model, vehicle.year != null ? String(vehicle.year) : ""]
     .filter((part) => part !== "")
     .join(" — ");
+  const isDefault = vehicle.id === defaultVehicleId;
+  const menuOpen = state.menuVehicleId === vehicle.id;
+
+  // The three-dot menu: a fixed backdrop (closes on outside click) plus an
+  // anchored popover with ویرایش / حذف / انتخاب به عنوان پیشفرض.
+  const menu = `
+    <div class="card-menu">
+      <button type="button" class="icon-btn js-menu-toggle" data-id="${escHtml(vehicle.id)}"
+        aria-haspopup="menu" aria-expanded="${menuOpen}" aria-label="${t("vehicle.menuLabel")}">
+        <span data-lucide="more-vertical"></span>
+      </button>
+      ${menuOpen
+        ? `
+        <div class="card-menu__backdrop js-menu-backdrop"></div>
+        <div class="card-menu__popover" role="menu" aria-label="${t("vehicle.menuLabel")}">
+          <button type="button" class="card-menu__item js-menu-edit" role="menuitem" data-id="${escHtml(vehicle.id)}">
+            <span data-lucide="pencil"></span>
+            ${t("vehicle.edit")}
+          </button>
+          <button type="button" class="card-menu__item js-menu-default" role="menuitem" data-id="${escHtml(vehicle.id)}">
+            <span data-lucide="star"></span>
+            ${t("vehicle.makeDefault")}
+          </button>
+          <button type="button" class="card-menu__item card-menu__item--danger js-menu-delete" role="menuitem" data-id="${escHtml(vehicle.id)}">
+            <span data-lucide="trash-2"></span>
+            ${t("vehicle.deleteVehicle")}
+          </button>
+        </div>`
+        : ""}
+    </div>
+  `;
+
   return `
     <section class="card vehicle-card">
       <div class="vehicle-card__head">
         <span class="vehicle-card__icon" data-lucide="car-front"></span>
         <div class="vehicle-card__info">
-          <div class="vehicle-card__name">${escHtml(vehicle.name)}</div>
+          <div class="vehicle-card__name">
+            ${escHtml(vehicle.name)}
+            ${isDefault ? `<span class="vehicle-card__badge">${t("vehicle.defaultBadge")}</span>` : ""}
+          </div>
           ${meta ? `<div class="vehicle-card__meta">${escHtml(meta)}</div>` : ""}
         </div>
+        ${menu}
       </div>
       <div class="vehicle-card__odometer">
         <span class="vehicle-card__odometer-label">${t("vehicle.currentMileage")}</span>
@@ -122,11 +165,13 @@ function vehicleCardHtml(vehicle: Vehicle): string {
         </span>
       </div>
       <div class="vehicle-card__actions">
-        <button type="button" class="btn btn--text js-edit-vehicle" data-id="${escHtml(vehicle.id)}">
-          ${t("vehicle.edit")}
-        </button>
-        <button type="button" class="btn btn--filled js-update-mileage" data-id="${escHtml(vehicle.id)}">
+        <button type="button" class="btn btn--text js-update-mileage" data-id="${escHtml(vehicle.id)}">
+          <span data-lucide="gauge"></span>
           ${t("vehicle.updateMileage")}
+        </button>
+        <button type="button" class="btn btn--filled js-open-services" data-id="${escHtml(vehicle.id)}">
+          <span data-lucide="wrench"></span>
+          ${t("vehicle.services")}
         </button>
       </div>
     </section>
@@ -145,6 +190,9 @@ function modalHtml(): string {
     return `<div class="modal-overlay">${vehicleFormModalHtml(vehicle, modal.kind === "edit" && modal.confirmDelete)}</div>`;
   }
   const vehicle = store.get().vehicles.find((v) => v.id === modal.vehicleId) ?? null;
+  if (modal.kind === "delete") {
+    return `<div class="modal-overlay">${deleteModalHtml(vehicle)}</div>`;
+  }
   return `<div class="modal-overlay">${mileageModalHtml(vehicle)}</div>`;
 }
 
@@ -238,6 +286,26 @@ function deleteConfirmBlock(): string {
   `;
 }
 
+/** Standalone delete confirmation (from the card menu's حذف item). */
+function deleteModalHtml(vehicle: Vehicle | null): string {
+  const name = vehicle ? escHtml(vehicle.name) : "";
+  return `
+    <div class="modal" role="alertdialog" aria-modal="true" aria-label="${t("vehicle.deleteVehicle")}">
+      <div class="form">
+        <div class="form__title">${t("vehicle.deleteVehicle")}</div>
+        <div class="box box--danger" role="alert">
+          <span data-lucide="triangle-alert"></span>
+          <span>${t("vehicle.deleteConfirm")}${name ? ` «${name}»` : ""}</span>
+        </div>
+        <div class="form__actions">
+          <button type="button" class="btn btn--text js-cancel-modal">${t("common.cancel")}</button>
+          <button type="button" class="btn btn--danger js-confirm-delete-vehicle">${t("vehicle.confirmDelete")}</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function mileageModalHtml(vehicle: Vehicle | null): string {
   const name = vehicle ? escHtml(vehicle.name) : "";
   return `
@@ -268,6 +336,7 @@ function bind(container: HTMLElement): void {
   container.querySelectorAll<HTMLButtonElement>(".js-add-vehicle").forEach((button) => {
     button.addEventListener("click", () => {
       state.modal = { kind: "add" };
+      state.menuVehicleId = null;
       state.formValues = {};
       redraw(container);
     });
@@ -275,6 +344,7 @@ function bind(container: HTMLElement): void {
   container.querySelectorAll<HTMLButtonElement>(".js-edit-vehicle").forEach((button) => {
     button.addEventListener("click", () => {
       state.modal = { kind: "edit", vehicleId: button.dataset.id ?? "", confirmDelete: false };
+      state.menuVehicleId = null;
       state.formValues = {};
       redraw(container);
     });
@@ -282,8 +352,16 @@ function bind(container: HTMLElement): void {
   container.querySelectorAll<HTMLButtonElement>(".js-update-mileage").forEach((button) => {
     button.addEventListener("click", () => {
       state.modal = { kind: "mileage", vehicleId: button.dataset.id ?? "" };
+      state.menuVehicleId = null;
       state.formValues = {};
       redraw(container);
+    });
+  });
+  // سرویس ها → the services page, pre-selecting this vehicle.
+  container.querySelectorAll<HTMLButtonElement>(".js-open-services").forEach((button) => {
+    button.addEventListener("click", () => {
+      const id = button.dataset.id ?? "";
+      window.location.hash = `#/maintenance?vehicle=${encodeURIComponent(id)}`;
     });
   });
   container.querySelectorAll<HTMLButtonElement>(".js-cancel-modal").forEach((button) => {
@@ -305,11 +383,48 @@ function bind(container: HTMLElement): void {
   });
   container.querySelector<HTMLButtonElement>(".js-confirm-delete-vehicle")?.addEventListener("click", () => {
     const modal = state.modal;
-    if (modal?.kind !== "edit") return;
+    if (modal?.kind !== "edit" && modal?.kind !== "delete") return;
     deleteVehicle(modal.vehicleId);
     state.modal = null;
     state.formValues = {};
     redraw(container);
+  });
+
+  /* Three-dot menu */
+  container.querySelectorAll<HTMLButtonElement>(".js-menu-toggle").forEach((button) => {
+    button.addEventListener("click", () => {
+      const id = button.dataset.id ?? null;
+      state.menuVehicleId = state.menuVehicleId === id ? null : id;
+      redraw(container);
+    });
+  });
+  container.querySelector<HTMLElement>(".js-menu-backdrop")?.addEventListener("click", () => {
+    state.menuVehicleId = null;
+    redraw(container);
+  });
+  container.querySelectorAll<HTMLButtonElement>(".js-menu-edit").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.modal = { kind: "edit", vehicleId: button.dataset.id ?? "", confirmDelete: false };
+      state.menuVehicleId = null;
+      state.formValues = {};
+      redraw(container);
+    });
+  });
+  container.querySelectorAll<HTMLButtonElement>(".js-menu-delete").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.modal = { kind: "delete", vehicleId: button.dataset.id ?? "" };
+      state.menuVehicleId = null;
+      redraw(container);
+    });
+  });
+  container.querySelectorAll<HTMLButtonElement>(".js-menu-default").forEach((button) => {
+    button.addEventListener("click", () => {
+      const id = button.dataset.id ?? "";
+      state.menuVehicleId = null;
+      store.update((draft) => {
+        draft.settings.defaultVehicleId = id;
+      });
+    });
   });
 
   // Re-render-safe value capture (decision 31 pattern).
@@ -334,13 +449,17 @@ function captureValue(event: Event): void {
   state.formValues[target.name] = target.value;
 }
 
-/** Permanently removes the vehicle and ALL of its data (cascade). */
+/** Permanently removes the vehicle and ALL of its data (cascade). Also
+ * clears the default-vehicle preference when it pointed at this car. */
 function deleteVehicle(vehicleId: string): void {
   store.update((draft) => {
     draft.vehicles = draft.vehicles.filter((v) => v.id !== vehicleId);
     draft.maintenanceItems = draft.maintenanceItems.filter((item) => item.vehicleId !== vehicleId);
     draft.serviceHistory = draft.serviceHistory.filter((record) => record.vehicleId !== vehicleId);
     draft.inspectionHistory = draft.inspectionHistory.filter((record) => record.vehicleId !== vehicleId);
+    if (draft.settings.defaultVehicleId === vehicleId) {
+      draft.settings.defaultVehicleId = null;
+    }
   });
 }
 

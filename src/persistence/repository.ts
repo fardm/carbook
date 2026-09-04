@@ -170,6 +170,15 @@ const migrations: Record<number, (raw: Record<string, unknown>) => Record<string
     delete raw.odometerHistory;
     return raw;
   },
+  // v4 → v5 (Default vehicle): the Settings gained a `defaultVehicleId`
+  // preference used to auto-select a vehicle on the Services page.
+  4: (raw) => {
+    const settings = raw.settings;
+    if (isRecord(settings) && !("defaultVehicleId" in settings)) {
+      settings.defaultVehicleId = null;
+    }
+    return raw;
+  },
 };
 
 /** Sorts odometer readings for the v3→v4 migration by (date, createdAt). */
@@ -232,6 +241,10 @@ function normalizeSettings(raw: unknown, fallback: Settings): Settings {
       typeof raw.calendar === "string" && CALENDAR_PREFERENCES.includes(raw.calendar)
         ? (raw.calendar as Settings["calendar"])
         : fallback.calendar,
+    defaultVehicleId:
+      typeof raw.defaultVehicleId === "string" && raw.defaultVehicleId !== ""
+        ? raw.defaultVehicleId
+        : null,
   };
 }
 

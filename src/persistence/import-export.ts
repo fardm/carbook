@@ -155,7 +155,7 @@ export function validateImportText(text: string): ImportResult {
 
   validateServiceHistory(raw.serviceHistory, vehicleIds, itemIds, issues);
   validateInspectionHistory(raw.inspectionHistory, vehicleIds, itemIds, issues);
-  validateSettings(raw.settings, issues);
+  validateSettings(raw.settings, vehicleIds, issues);
 
   if (issues.length > 0) return { ok: false, issues };
 
@@ -309,7 +309,11 @@ function validateInspectionHistory(
   });
 }
 
-function validateSettings(raw: unknown, issues: ImportIssue[]): void {
+function validateSettings(
+  raw: unknown,
+  vehicleIds: Set<string>,
+  issues: ImportIssue[],
+): void {
   if (!isRecord(raw)) {
     issues.push({ path: "settings", kind: "wrongType" });
     return;
@@ -334,6 +338,9 @@ function validateSettings(raw: unknown, issues: ImportIssue[]): void {
   );
   checkField(issues, raw, "calendar", "settings.calendar", { type: "string", nonEmpty: true }, (v) =>
     (CALENDAR_PREFERENCES as readonly string[]).includes(v),
+  );
+  checkField(issues, raw, "defaultVehicleId", "settings.defaultVehicleId", { type: "string", allowNull: true }, (v) =>
+    v !== "" && vehicleIds.has(v),
   );
   if (
     isNumber(thresholds.dueSoonPercent) &&

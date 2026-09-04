@@ -1,7 +1,7 @@
 import type { Dataset, Settings } from "./types";
 
 /** Current schema version. Bump when the dataset shape changes (§40). */
-export const CURRENT_VERSION = 4;
+export const CURRENT_VERSION = 5;
 
 export function defaultSettings(): Settings {
   return {
@@ -12,6 +12,8 @@ export function defaultSettings(): Settings {
     theme: "system",
     // Default calendar: Solar Hijri (شمسی) per product requirements.
     calendar: "jalali",
+    // No default vehicle until the user picks one (نقشه: انتخاب به عنوان پیشفرض).
+    defaultVehicleId: null,
   };
 }
 
