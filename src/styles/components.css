@@ -298,7 +298,7 @@
 
 .history__item {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: var(--md-space-3);
   padding: var(--md-space-3) 0;
@@ -307,6 +307,15 @@
 
 .history__item:last-child {
   border-bottom: none;
+}
+
+/* Single-row history entry: date first, then mileage, icons far left. */
+.history__main {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--md-space-3);
+  min-width: 0;
 }
 
 .history__date {
@@ -319,10 +328,50 @@
   margin-top: 2px;
 }
 
+.history__main .history__km {
+  margin-top: 0;
+}
+
 .history__note {
   color: var(--md-sys-color-on-surface-variant);
   font-size: var(--md-typescale-body-small);
   margin-top: 2px;
+  white-space: pre-line;
+}
+
+/* History row actions (edit / details / delete) at the row's far left. */
+.history__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-space-1);
+  flex-shrink: 0;
+  margin-inline-start: auto;
+}
+
+.history__actions .icon-btn {
+  width: 34px;
+  height: 34px;
+}
+
+.history__actions .icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.history__item--confirm {
+  justify-content: flex-end;
+}
+
+.icon-btn--danger {
+  color: var(--md-sys-color-error);
+}
+
+.icon-btn--danger:hover {
+  background-color: color-mix(in srgb, var(--md-sys-color-error) 10%, transparent);
+  color: var(--md-sys-color-error);
+}
+
+.record-detail__note {
   white-space: pre-line;
 }
 
@@ -531,6 +580,7 @@
   background-color: var(--md-sys-color-surface-container-high);
   color: var(--md-sys-color-on-surface-variant);
   flex-shrink: 0;
+  padding: 6px;
 }
 
 .item-list__icon svg {
@@ -621,6 +671,17 @@
   gap: var(--md-space-1);
 }
 
+/* Icon picker inside its own modal: scrollable, left-aligned wrap. */
+.icon-picker--grid {
+  justify-content: center;
+  padding: var(--md-space-2);
+}
+
+.modal--scroll .icon-picker--grid {
+  max-height: min(55vh, 380px);
+  overflow-y: auto;
+}
+
 .icon-choice {
   display: inline-flex;
   align-items: center;
@@ -670,7 +731,23 @@
 .detail-head {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--md-space-3);
+}
+
+/* Header actions (edit + delete icons, or the delete confirm) sit at the
+ * far inline-end, vertically centered with the title. */
+.detail-head__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-space-1);
+  flex-shrink: 0;
+  margin-inline-start: auto;
+}
+
+.detail-head__actions .delete-confirm {
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .detail-head__info {
@@ -1042,13 +1119,23 @@
   margin: 0;
 }
 
-/* --- Vehicles page: full-width single-row cards --- */
-.vehicles-top {
-  display: flex;
+.vehicles-empty__icon {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  margin-bottom: var(--md-space-4);
+  width: 56px;
+  height: 56px;
+  border-radius: var(--md-shape-medium);
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
 }
 
+.vehicles-empty__icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+/* --- Vehicles page: full-width single-row cards --- */
 .vehicle-list {
   display: flex;
   flex-direction: column;
@@ -1359,17 +1446,18 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 52px;
   border-radius: var(--md-shape-medium);
-  background-color: var(--md-sys-color-primary-container);
-  color: var(--md-sys-color-on-primary-container);
   flex-shrink: 0;
+  padding: 8px;
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 .service-card__icon svg {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
 }
 
 .service-card__info {
@@ -1489,6 +1577,27 @@
   padding: 2px;
 }
 
+/* The type picker uses nearly the full viewport height so all service
+ * types fit with minimal scrolling; the grid takes the flexible space. */
+.modal--type-picker {
+  height: min(860px, 92dvh);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal--type-picker .type-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+  align-content: start;
+  padding: var(--md-space-2);
+}
+
+.modal--type-picker .form__actions {
+  flex-shrink: 0;
+}
+
 .type-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -1500,8 +1609,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--md-space-2);
-  padding: var(--md-space-3) var(--md-space-2);
+  gap: var(--md-space-3);
+  padding: var(--md-space-4) var(--md-space-3);
   border-radius: var(--md-shape-medium);
   border: 1px solid var(--md-sys-color-outline-variant);
   background-color: var(--md-sys-color-surface);
@@ -1520,16 +1629,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--md-shape-small);
+  width: 56px;
+  height: 56px;
+  border-radius: var(--md-shape-medium);
   background-color: var(--md-sys-color-surface-container-high);
   color: var(--md-sys-color-on-surface-variant);
+  padding: 8px;
 }
 
 .type-card__icon svg {
-  width: 20px;
-  height: 20px;
+  width: 26px;
+  height: 26px;
 }
 
 .type-card__name {
@@ -1558,10 +1668,6 @@
 .service-form__icon-toggle {
   width: 44px;
   height: 44px;
-}
-
-.service-form__icons {
-  margin-top: var(--md-space-2);
 }
 
 /* --- Card hover: pointer cursor but text is never underlined --- */
@@ -1601,5 +1707,79 @@
   /* Full-width mileage row: drop the desktop corner clearance. */
   .vehicle-row__mileage {
     margin-inline-end: 0;
+  }
+}
+
+/* --- Floating bottom action bar ---
+ * Fixed at the bottom center of the viewport: never scrolls with content,
+ * sits above page content and the mobile bottom nav, and stays below modal
+ * overlays / transient menus (z 40 / 45+). On desktop its horizontal
+ * position is re-centered onto the main content column by alignFabBar()
+ * (the sidebar would otherwise pull it off the content's center). Pages
+ * that carry a fab reserve bottom padding (.view-stack--fab) so the last
+ * card is never hidden. */
+.fab-bar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: calc(var(--md-space-5) + env(safe-area-inset-bottom, 0px));
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: var(--md-space-4);
+  pointer-events: none;
+}
+
+.fab-bar > * {
+  pointer-events: auto;
+}
+
+/* Floating actions are a bit larger/more prominent than inline buttons. */
+.fab-bar .btn {
+  min-height: 48px;
+  padding-inline: var(--md-space-5);
+  font-size: var(--md-typescale-label-large);
+}
+
+.fab-bar .btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.fab-bar > .btn {
+  box-shadow: var(--md-elevation-3);
+}
+
+/* Two actions grouped (e.g. ثبت سرویس جدید + افزودن به تقویم گوگل): the
+ * group keeps only a subtle border — no background, no own shadow. */
+.fab-bar__group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-space-1);
+  box-shadow: none;
+}
+
+/* Secondary (outlined) button — used by the Google Calendar link so it
+ * reads as an alternative action next to the primary filled one. */
+.btn--secondary {
+  color: var(--md-sys-color-primary);
+  border: 1px solid var(--md-sys-color-outline);
+  background-color: var(--md-sys-color-surface-container-low);
+  box-shadow: none;
+}
+
+.btn--secondary:hover {
+  background-color: color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
+}
+
+/* Pages with a floating bar reserve room so content ends above it. */
+.view-stack--fab {
+  padding-bottom: 112px;
+}
+
+@media (max-width: 899.98px) {
+  /* Float above the fixed bottom navigation bar + system safe area. */
+  .fab-bar {
+    bottom: calc(var(--md-nav-height) + var(--md-space-3) + env(safe-area-inset-bottom, 0px));
   }
 }

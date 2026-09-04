@@ -5,6 +5,7 @@ import { validateVehicle, type VehicleError } from "../domain/vehicle";
 import { t, type MessageKey } from "../i18n";
 import { store } from "../state/store";
 import { escHtml } from "../ui/escape";
+import { alignFabBar } from "../ui/fab";
 import { faNum, formatDate, toLatinDigits } from "../ui/format";
 import { applyIcons } from "../ui/icons";
 
@@ -18,8 +19,8 @@ import { applyIcons } from "../ui/icons";
  *   انتخاب به عنوان پیشفرض / حذف).
  * - The default vehicle gets a subtle primary outline; the Services page
  *   auto-selects it.
- * - Empty garage: a centered افزودن خودرو button only. With vehicles, the
- *   same button stays centered above the list.
+ * - The افزودن خودرو action lives in a floating bottom action bar so it is
+ *   always reachable without scrolling (empty garage included).
  * - Add/Edit modal (ویرایش → انصراف / ثبت تغییرات / حذف خودرو) and a
  *   dedicated delete-confirm modal. Deleting a vehicle permanently removes
  *   the vehicle AND all of its maintenance items / service / inspection
@@ -61,6 +62,7 @@ export function renderVehicle(container: HTMLElement): () => void {
     container.innerHTML = vehicleViewHtml();
     bind(container);
     applyIcons();
+    alignFabBar();
   };
   draw();
   return store.subscribe(draw);
@@ -71,24 +73,20 @@ export function renderVehicle(container: HTMLElement): () => void {
 function vehicleViewHtml(): string {
   const dataset = store.get();
   const vehicles = dataset.vehicles;
-  const topAction = vehicles.length > 0
-    ? `
-      <div class="vehicles-top">
-        <button type="button" class="btn btn--filled js-add-vehicle">
-          <span data-lucide="plus"></span>
-          ${t("vehicle.addVehicle")}
-        </button>
-      </div>`
-    : "";
   const body =
     vehicles.length === 0
       ? emptyStateHtml()
       : `<div class="vehicle-list">${vehicles.map((v) => vehicleRowHtml(v, dataset.settings.defaultVehicleId)).join("")}</div>`;
   return `
-    <div class="view-stack">
+    <div class="view-stack view-stack--fab">
       <h1 class="view-title">${t("view.vehicle.title")}</h1>
-      ${topAction}
       ${body}
+      <div class="fab-bar">
+        <button type="button" class="btn btn--filled js-add-vehicle">
+          <span data-lucide="plus"></span>
+          ${t("vehicle.addVehicle")}
+        </button>
+      </div>
       ${modalHtml()}
     </div>
   `;
@@ -97,10 +95,8 @@ function vehicleViewHtml(): string {
 function emptyStateHtml(): string {
   return `
     <section class="card vehicles-empty">
-      <button type="button" class="btn btn--filled js-add-vehicle">
-        <span data-lucide="plus"></span>
-        ${t("vehicle.addVehicle")}
-      </button>
+      <span class="vehicles-empty__icon" data-lucide="car-front"></span>
+      <p class="vehicles-empty__text">${t("vehicle.noVehicles")}</p>
     </section>
   `;
 }
@@ -551,4 +547,5 @@ function redraw(container: HTMLElement): void {
   container.innerHTML = vehicleViewHtml();
   bind(container);
   applyIcons();
+  alignFabBar();
 }

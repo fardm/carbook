@@ -154,6 +154,7 @@
 
 .nav__item:hover {
   color: var(--md-sys-color-on-surface);
+  text-decoration: none;
 }
 
 /* --- Bottom navigation (mobile only) --- */

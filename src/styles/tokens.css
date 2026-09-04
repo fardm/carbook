@@ -20,7 +20,7 @@
   /* Primary IS the brand orange #F2870D, verbatim, in both themes. */
   --md-sys-color-primary: #f2870d;
   --md-sys-color-on-primary: #000000;
-  --md-sys-color-primary-container: #ffdcc5;
+  --md-sys-color-primary-container: #f1e1d0;
   --md-sys-color-on-primary-container: #3c1d00;
 
   --md-sys-color-secondary: #765a3d;
@@ -134,7 +134,7 @@
   /* Dark brand: the same exact #F2870D as light — one orange everywhere. */
   --md-sys-color-primary: #f2870d;
   --md-sys-color-on-primary: #000000;
-  --md-sys-color-primary-container: #7a3b00;
+  --md-sys-color-primary-container: #2f3034;
   --md-sys-color-on-primary-container: #ffdcc5;
 
   --md-sys-color-secondary: #e7bd95;

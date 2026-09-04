@@ -30,6 +30,7 @@ import { store } from "../state/store";
 import { googleCalendarUrl } from "../ui/calendar";
 import { bindDateFields, dateFieldHtml } from "../ui/date-field";
 import { escHtml } from "../ui/escape";
+import { alignFabBar } from "../ui/fab";
 import { faNum, formatDate, toLatinDigits } from "../ui/format";
 import { applyIcons, CUSTOM_ICON_CHOICES, STATUS_ICONS } from "../ui/icons";
 import {
@@ -85,8 +86,12 @@ interface ServicesViewState {
   displayMode: DisplayMode;
   /** Typed form values keyed by input name — survives re-renders. */
   formValues: Record<string, string>;
-  /** Open record form on the detail page (null = closed). */
+  /** Open record form (add/edit service or inspection) on the detail page. */
   recordForm: RecordFormState | null;
+  /** Open record-details (cost/notes…) popover on the detail page. */
+  recordDetails: { kind: "service" | "inspection"; recordId: string } | null;
+  /** History record armed for permanent deletion (inline confirm). */
+  recordDeleteArmed: { kind: "service" | "inspection"; recordId: string } | null;
   /** Item armed for permanent deletion (inline confirm). */
   deleteArmedId: string | null;
 }
@@ -100,6 +105,8 @@ const state: ServicesViewState = {
   displayMode: "auto",
   formValues: {},
   recordForm: null,
+  recordDetails: null,
+  recordDeleteArmed: null,
   deleteArmedId: null,
 };
 
@@ -178,6 +185,7 @@ export function renderServices(container: HTMLElement): () => void {
     container.innerHTML = servicesViewHtml();
     bind(container);
     applyIcons();
+    alignFabBar();
   };
   registerGlobalKeys();
   draw();
@@ -189,15 +197,67 @@ export function renderServices(container: HTMLElement): () => void {
 function servicesViewHtml(): string {
   const itemId = maintenanceItemIdFromHash(window.location.hash);
   const detail = itemId ? itemDetailPageHtml(itemId) : servicesListHtml();
+  const fab = fabBarHtml(itemId);
   const overlay = state.pickerOpen
     ? typePickerModalHtml()
     : state.form
-      ? serviceFormModalHtml()
-      : "";
+      ? serviceFormModalHtml() + (state.iconPickerOpen ? iconPickerModalHtml() : "")
+      : state.recordForm
+        ? recordFormModalHtml()
+        : state.recordDetails
+          ? recordDetailsModalHtml()
+          : "";
   return `
-    <div class="view-stack">
+    <div class="view-stack view-stack--fab">
       ${detail}
+      ${fab}
       ${overlay}
+    </div>
+  `;
+}
+
+/**
+ * Floating bottom action bar. On the list page it is the single ثبت سرویس
+ * action (hidden when no vehicles exist — that state has its own CTA). On a
+ * service's detail page it groups the primary record action with the
+ * "افزودن به تقویم گوگل" link; legacy inactive items keep only the body
+ * reactivate flow.
+ */
+function fabBarHtml(itemId: string | null): string {
+  const dataset = store.get();
+  if (itemId) {
+    const item = dataset.maintenanceItems.find((c) => c.id === itemId);
+    if (!item || !item.active) return "";
+    const calc = calculateMaintenance(item, contextForVehicle(dataset, item.vehicleId));
+    const recordLabel = item.rule.inspectionBased
+      ? t("maintenance.record.inspectionTitle")
+      : t("services.addServiceNew");
+    const recordClass = item.rule.inspectionBased ? "js-record-inspection" : "js-record-service";
+    const recordButtonHtml = `
+      <button type="button" class="btn btn--filled ${recordClass}" data-id="${escHtml(item.id)}">
+        <span data-lucide="plus"></span>
+        ${recordLabel}
+      </button>`;
+    const calendarHref = calendarEventHref(item, calc);
+    const calendarLink = calendarHref
+      ? `
+      <a class="btn btn--secondary" href="${escHtml(calendarHref)}" target="_blank" rel="noopener noreferrer">
+        <span data-lucide="calendar-plus"></span>
+        ${t("maintenance.detail.addToCalendar")}
+      </a>`
+      : "";
+    const inner = calendarHref
+      ? `<div class="fab-bar__group">${recordButtonHtml}${calendarLink}</div>`
+      : recordButtonHtml;
+    return `<div class="fab-bar">${inner}</div>`;
+  }
+  if (dataset.vehicles.length === 0) return "";
+  return `
+    <div class="fab-bar">
+      <button type="button" class="btn btn--filled js-add-service">
+        <span data-lucide="plus"></span>
+        ${t("services.addServiceNew")}
+      </button>
     </div>
   `;
 }
@@ -266,16 +326,9 @@ function servicesToolbarHtml(dataset: ReturnType<typeof store.get>, selectedId: 
       </select>
     </div>
   `;
-  return `
-    <div class="services-toolbar">
-      ${select}
-      <button type="button" class="btn btn--filled js-add-service"
-        ${dataset.vehicles.length === 0 ? "disabled" : ""}>
-        <span data-lucide="plus"></span>
-        ${t("services.addService")}
-      </button>
-    </div>
-  `;
+  // The ثبت سرویس action lives in the floating bottom action bar (see
+  // fabBarHtml); the toolbar only carries the vehicle selector.
+  return `<div class="services-toolbar">${select}</div>`;
 }
 
 function servicesNoVehicleHtml(): string {
@@ -482,7 +535,7 @@ function typePickerModalHtml(): string {
   ).join("");
   return `
     <div class="modal-overlay">
-      <div class="modal modal--wide modal--scroll" role="dialog" aria-modal="true"
+      <div class="modal modal--wide modal--type-picker" role="dialog" aria-modal="true"
         aria-label="${t("services.pickTypeTitle")}">
         <div class="form__title">${t("services.pickTypeTitle")}</div>
         <p class="card__text">${t("services.pickTypeHint")}</p>
@@ -495,6 +548,31 @@ function typePickerModalHtml(): string {
         </div>
         <div class="form__actions">
           <button type="button" class="btn btn--text js-close-overlay">${t("common.cancel")}</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/** Icon-choices modal shown on top of the service form (never inline). */
+function iconPickerModalHtml(): string {
+  const grid = SERVICE_ICON_CHOICES.map(
+    (icon) => `
+      <button type="button" class="icon-choice js-form-icon-choice ${state.icon === icon ? "icon-choice--active" : ""}"
+        data-form-icon="${icon}" aria-pressed="${state.icon === icon}" aria-label="${icon}">
+        <span data-lucide="${icon}"></span>
+      </button>`,
+  ).join("");
+  return `
+    <div class="modal-overlay" data-overlay="icon-picker">
+      <div class="modal modal--wide modal--scroll" role="dialog" aria-modal="true"
+        aria-label="${t("services.iconLabel")}">
+        <div class="form__title">${t("services.iconLabel")}</div>
+        <div class="icon-picker icon-picker--grid">
+          ${grid}
+        </div>
+        <div class="form__actions">
+          <button type="button" class="btn btn--text js-close-icon-picker">${t("common.cancel")}</button>
         </div>
       </div>
     </div>
@@ -527,18 +605,6 @@ function serviceFormModalHtml(): string {
       </button>
     `,
   ).join("");
-
-  const iconPicker = state.iconPickerOpen
-    ? `<div class="icon-picker service-form__icons">
-        ${SERVICE_ICON_CHOICES.map(
-          (icon) => `
-          <button type="button" class="icon-choice js-form-icon-choice ${state.icon === icon ? "icon-choice--active" : ""}"
-            data-form-icon="${icon}" aria-pressed="${state.icon === icon}" aria-label="${icon}">
-            <span data-lucide="${icon}"></span>
-          </button>`,
-        ).join("")}
-      </div>`
-    : "";
 
   const replacementSection = editing
     ? ""
@@ -588,10 +654,10 @@ function serviceFormModalHtml(): string {
           <div class="field">
             <label class="field__label">${t("services.iconLabel")}</label>
             <button type="button" class="icon-btn service-form__icon-toggle js-icon-toggle"
-              aria-haspopup="grid" aria-expanded="${state.iconPickerOpen}" aria-label="${t("services.iconLabel")}">
+              aria-haspopup="dialog" aria-label="${t("services.iconLabel")}">
               <span data-lucide="${state.icon}"></span>
             </button>
-            ${iconPicker}
+            <p class="field__hint">${t("services.iconPickerHint")}</p>
           </div>
 
           ${replacementSection}
@@ -654,19 +720,11 @@ function itemDetailPageHtml(itemId: string): string {
   const backLink = `<a class="btn btn--text detail-back" href="${back}">${t("maintenance.detail.backToList")}</a>`;
 
   const overviewHtml = detailOverviewHtml(item, dataset);
-  const recordForm = state.recordForm && state.recordForm.itemId === item.id ? state.recordForm : null;
-  const recordFormHtmlValue = recordForm
-    ? recordForm.kind === "service"
-      ? recordServiceFormHtml()
-      : recordInspectionFormHtml()
-    : "";
-
-  const actionRow = detailActionRowHtml(item, inactive, overviewHtml.calc);
+  const actionRow = detailActionRowHtml(item, inactive);
 
   const services = dataset.serviceHistory.filter((r) => r.maintenanceItemId === itemId);
   const inspections = dataset.inspectionHistory.filter((r) => r.maintenanceItemId === itemId);
 
-  const vehicle = vehicleName(dataset, item.vehicleId);
   const headChip = inactive
     ? `<span class="status-chip status-chip--inactive">${t("maintenance.detail.inactiveBadge")}</span>`
     : `<span class="status-chip status-chip--${overviewHtml.calc.status}">
@@ -684,77 +742,56 @@ function itemDetailPageHtml(itemId: string): string {
             <span class="item-list__name">${escHtml(item.name)}</span>
             ${headChip}
           </div>
-          <div class="item-list__meta">
-            ${categoryName(item.category)}${vehicle ? ` — ${escHtml(vehicle)}` : ""}
-          </div>
         </div>
+        ${detailHeadActionsHtml(item)}
       </div>
-      <div class="detail-actions">
-        ${actionRow}
-      </div>
+      ${actionRow ? `<div class="detail-actions">${actionRow}</div>` : ""}
     </section>
-    ${recordFormHtmlValue}
     ${overviewHtml.html}
     ${detailHistoryHtml(item, services, inspections)}
   `;
 }
 
-/** Actions on the detail header. */
-function detailActionRowHtml(
-  item: MaintenanceItem,
-  inactive: boolean,
-  calc: ReturnType<typeof calculateMaintenance>,
-): string {
-  if (state.deleteArmedId === item.id) {
+/** Actions on the detail header, aligned opposite the title: an edit pencil
+ * and a delete (trash) icon. When deletion is armed the pair is replaced by
+ * an inline confirm so the destructive action stays next to where it began. */
+function detailHeadActionsHtml(item: MaintenanceItem): string {
+  const armed = state.deleteArmedId === item.id;
+  if (armed) {
     return `
-      <span class="detail-actions__confirm">${t("maintenance.detail.deleteConfirm")}</span>
-      ${deleteConfirmInline(item.id)}
+      <span class="detail-head__actions delete-confirm">
+        <span class="detail-actions__confirm">${t("maintenance.detail.deleteConfirm")}</span>
+        <button type="button" class="btn btn--filled btn--danger js-confirm-delete" data-id="${escHtml(item.id)}">
+          ${t("maintenance.detail.confirm")}
+        </button>
+        <button type="button" class="btn btn--text js-cancel-delete">${t("maintenance.detail.cancel")}</button>
+      </span>
     `;
   }
-  const buttons: string[] = [];
-  if (inactive) {
-    buttons.push(`
-      <button type="button" class="btn btn--filled js-reactivate-item" data-id="${escHtml(item.id)}">
-        ${t("maintenance.detail.reactivate")}
+  return `
+    <div class="detail-head__actions">
+      <button type="button" class="icon-btn js-edit-item" data-id="${escHtml(item.id)}"
+        aria-label="${t("maintenance.editItem")}" title="${t("maintenance.editItem")}">
+        <span data-lucide="pencil"></span>
       </button>
-    `);
-  } else if (item.rule.inspectionBased) {
-    buttons.push(`
-      <button type="button" class="btn btn--filled js-record-inspection" data-id="${escHtml(item.id)}">
-        ${t("maintenance.record.inspectionTitle")}
+      <button type="button" class="icon-btn icon-btn--danger js-arm-delete" data-id="${escHtml(item.id)}"
+        aria-label="${t("maintenance.detail.delete")}" title="${t("maintenance.detail.delete")}">
+        <span data-lucide="trash-2"></span>
       </button>
-    `);
-  } else {
-    buttons.push(`
-      <button type="button" class="btn btn--filled js-record-service" data-id="${escHtml(item.id)}">
-        ${t("maintenance.record.serviceTitle")}
-      </button>
-    `);
-  }
-  buttons.push(`
-    <button type="button" class="btn btn--text js-edit-item" data-id="${escHtml(item.id)}">
-      ${t("maintenance.editItem")}
+    </div>
+  `;
+}
+
+/** Body actions under the header — only the legacy inactive-item reactivate
+ * flow remains here; the primary record/calendar actions moved to the
+ * floating bottom action bar (fabBarHtml). */
+function detailActionRowHtml(item: MaintenanceItem, inactive: boolean): string {
+  if (!inactive) return "";
+  return `
+    <button type="button" class="btn btn--filled js-reactivate-item" data-id="${escHtml(item.id)}">
+      ${t("maintenance.detail.reactivate")}
     </button>
-  `);
-  const calendarHref = calendarEventHref(item, calc);
-  if (calendarHref && !inactive) {
-    buttons.push(`
-      <a class="btn btn--text" href="${escHtml(calendarHref)}" target="_blank" rel="noopener noreferrer">
-        <span data-lucide="calendar-plus"></span>
-        ${t("maintenance.detail.addToCalendar")}
-      </a>
-    `);
-  }
-  // Deactivation is no longer offered (only legacy inactive items keep the
-  // reactivate / delete lifecycle below).
-  if (inactive) {
-    buttons.push(`
-      <button type="button" class="btn btn--text js-arm-delete" data-id="${escHtml(item.id)}">
-        ${t("maintenance.detail.delete")}
-      </button>
-    `);
-  }
-  return buttons.join("");
+  `;
 }
 
 /** Google Calendar event link for a service (title + next computable date). */
@@ -818,14 +855,6 @@ function detailOverviewHtml(item: MaintenanceItem, dataset: ReturnType<typeof st
   } else {
     const last = lastServiceFor(dataset.serviceHistory, item.id);
     rows.push({ label: t("maintenance.detail.configuredInterval"), value: intervalValue });
-    rows.push({
-      label: t("maintenance.detail.lastService"),
-      value: last
-        ? `${formatDate(last.date)}${
-            last.odometer != null ? ` — ${faNum(last.odometer)} ${t("common.kmUnit")}` : ""
-          }`
-        : t("maintenance.detail.neverServiced"),
-    });
     if (last && (km != null || months != null)) {
       const parts: string[] = [];
       if (calc.nextDueOdometer != null) parts.push(`${faNum(calc.nextDueOdometer)} ${t("common.kmUnit")}`);
@@ -834,36 +863,6 @@ function detailOverviewHtml(item: MaintenanceItem, dataset: ReturnType<typeof st
         rows.push({ label: t("maintenance.detail.serviceAfter"), value: parts.join(" · ") });
       }
     }
-  }
-
-  const vehicle = item.vehicleId ? (dataset.vehicles.find((v) => v.id === item.vehicleId) ?? null) : null;
-  rows.push({
-    label: t("maintenance.detail.currentOdometer"),
-    value:
-      vehicle?.currentOdometer != null
-        ? `${faNum(vehicle.currentOdometer)} ${t("common.kmUnit")}`
-        : t("maintenance.detail.notRecorded"),
-  });
-
-  const avg = vehicle?.averageDailyDistance ?? null;
-  if (avg != null && avg > 0 && calc.estimatedKmDays != null) {
-    rows.push({
-      label: t("maintenance.detail.avgDaily"),
-      value: `${faNum(avg)} ${t("vehicle.averageDailyUnit")}`,
-    });
-    if (calc.estimatedDueDate) {
-      rows.push({
-        label: t("maintenance.detail.estimateNote"),
-        value: formatDate(calc.estimatedDueDate),
-      });
-    }
-  }
-  if (!rule.inspectionBased && km != null && months != null && calc.primaryCriterion) {
-    rows.push({
-      label: t("maintenance.detail.triggerLabel"),
-      value:
-        calc.primaryCriterion === "km" ? t("maintenance.detail.triggerKm") : t("maintenance.detail.triggerTime"),
-    });
   }
 
   const explainRows = rows
@@ -891,6 +890,72 @@ function detailOverviewHtml(item: MaintenanceItem, dataset: ReturnType<typeof st
   };
 }
 
+/** Row actions for a history record: edit / details / delete icons on the far
+ * left, replaced by an inline confirmation once armed for deletion. */
+function historyRowActionsHtml(
+  kind: "service" | "inspection",
+  record: { id: string; date: string; odometer: number | null },
+): string {
+  const armed =
+    state.recordDeleteArmed?.kind === kind && state.recordDeleteArmed.recordId === record.id;
+  if (armed) {
+    return `
+      <div class="delete-confirm">
+        <span class="detail-actions__confirm">${t("maintenance.detail.recordDeleteConfirm")}</span>
+        <button type="button" class="btn btn--filled btn--danger js-confirm-record-delete"
+          data-kind="${kind}" data-id="${escHtml(record.id)}">
+          ${t("maintenance.detail.confirm")}
+        </button>
+        <button type="button" class="btn btn--text js-cancel-record-delete">${t("maintenance.detail.cancel")}</button>
+      </div>
+    `;
+  }
+  return `
+    <div class="history__actions">
+      <button type="button" class="icon-btn js-edit-record" data-kind="${kind}" data-id="${escHtml(record.id)}"
+        aria-label="${t("maintenance.detail.editRecord")}" title="${t("maintenance.detail.editRecord")}">
+        <span data-lucide="pencil"></span>
+      </button>
+      <button type="button" class="icon-btn js-info-record" data-kind="${kind}" data-id="${escHtml(record.id)}"
+        aria-label="${t("maintenance.detail.recordInfo")}" title="${t("maintenance.detail.recordInfo")}">
+        <span data-lucide="info"></span>
+      </button>
+      <button type="button" class="icon-btn icon-btn--danger js-delete-record" data-kind="${kind}" data-id="${escHtml(record.id)}"
+        aria-label="${t("maintenance.detail.delete")}" title="${t("maintenance.detail.delete")}">
+        <span data-lucide="trash-2"></span>
+      </button>
+    </div>
+  `;
+}
+
+/** Single-row history entry: date first, mileage after, actions at the left. */
+function historyRecordRowHtml(
+  kind: "service" | "inspection",
+  record: { id: string; date: string; odometer: number | null },
+): string {
+  const armed =
+    state.recordDeleteArmed?.kind === kind && state.recordDeleteArmed.recordId === record.id;
+  return `
+    <li class="history__item${armed ? " history__item--confirm" : ""}">
+      ${
+        armed
+          ? ""
+          : `
+        <div class="history__main">
+          <span class="history__date">${formatDate(record.date)}</span>
+          ${
+            record.odometer != null
+              ? `<span class="history__km">${faNum(record.odometer)} ${t("common.kmUnit")}</span>`
+              : ""
+          }
+        </div>
+      `
+      }
+      ${historyRowActionsHtml(kind, record)}
+    </li>
+  `;
+}
+
 /** Service + inspection history sections. */
 function detailHistoryHtml(
   item: MaintenanceItem,
@@ -898,56 +963,11 @@ function detailHistoryHtml(
   inspections: InspectionRecord[],
 ): string {
   const serviceRows = sortHistoryNewestFirst(services)
-    .map(
-      (record) => `
-        <li class="history__item">
-          <div>
-            <div class="history__date">${formatDate(record.date)}</div>
-            ${
-              record.odometer != null
-                ? `<div class="history__km">${faNum(record.odometer)} ${t("common.kmUnit")}</div>`
-                : ""
-            }
-            ${record.cost != null ? `<div class="history__km">${t("maintenance.detail.costLabel")}: ${faNum(record.cost)}</div>` : ""}
-            ${record.notes ? `<div class="history__note">${escHtml(record.notes)}</div>` : ""}
-          </div>
-          <button type="button" class="btn btn--text js-edit-record" data-kind="service" data-id="${escHtml(record.id)}">
-            ${t("maintenance.detail.editRecord")}
-          </button>
-        </li>
-      `,
-    )
+    .map((record) => historyRecordRowHtml("service", record))
     .join("");
 
   const inspectionRows = sortHistoryNewestFirst(inspections)
-    .map(
-      (record) => `
-        <li class="history__item">
-          <div>
-            <div class="history__date">${formatDate(record.date)}</div>
-            ${
-              record.condition
-                ? `<div class="history__km">${t("maintenance.list.conditionLabel")}: ${t(`maintenance.condition.${record.condition}` as never)}</div>`
-                : ""
-            }
-            ${
-              record.odometer != null
-                ? `<div class="history__km">${faNum(record.odometer)} ${t("common.kmUnit")}</div>`
-                : ""
-            }
-            ${
-              record.measurement != null
-                ? `<div class="history__km">${t("maintenance.detail.measurementLabel")}: ${faNum(record.measurement)}</div>`
-                : ""
-            }
-            ${record.notes ? `<div class="history__note">${escHtml(record.notes)}</div>` : ""}
-          </div>
-          <button type="button" class="btn btn--text js-edit-record" data-kind="inspection" data-id="${escHtml(record.id)}">
-            ${t("maintenance.detail.editRecord")}
-          </button>
-        </li>
-      `,
-    )
+    .map((record) => historyRecordRowHtml("inspection", record))
     .join("");
 
   const showServices = !item.rule.inspectionBased || services.length > 0;
@@ -987,17 +1007,26 @@ function findInspectionRecord(recordId: string | null): InspectionRecord | null 
   return store.get().inspectionHistory.find((r) => r.id === recordId) ?? null;
 }
 
-function recordServiceFormHtml(): string {
+/** Record add/edit forms live in a modal overlay (never inline on the page). */
+function recordFormModalHtml(): string {
+  const form = state.recordForm;
+  if (!form) return "";
+  return form.kind === "service" ? recordServiceFormModalHtml() : recordInspectionFormModalHtml();
+}
+
+function recordServiceFormModalHtml(): string {
   const form = state.recordForm;
   const record = form?.kind === "service" ? findServiceRecord(form.recordId) : null;
   const isEdit = record != null;
   const itemId = form?.itemId ?? "";
   const defaultKm = defaultRecordOdometer(itemId);
+  const title = isEdit ? t("maintenance.record.serviceEditTitle") : t("maintenance.record.serviceTitle");
 
   return `
-    <section class="card">
+    <div class="modal-overlay">
+      <div class="modal" role="dialog" aria-modal="true" aria-label="${escHtml(title)}">
       <form id="record-form" class="form" novalidate>
-        <div class="form__title">${isEdit ? t("maintenance.record.serviceEditTitle") : t("maintenance.record.serviceTitle")}</div>
+        <div class="form__title">${escHtml(title)}</div>
         <div class="form__grid">
           <div class="field">
             <label class="field__label" for="record-date">${t("maintenance.record.dateLabel")}</label>
@@ -1034,16 +1063,18 @@ function recordServiceFormHtml(): string {
           <button type="submit" class="btn btn--filled">${t("maintenance.record.save")}</button>
         </div>
       </form>
-    </section>
+      </div>
+    </div>
   `;
 }
 
-function recordInspectionFormHtml(): string {
+function recordInspectionFormModalHtml(): string {
   const form = state.recordForm;
   const record = form?.kind === "inspection" ? findInspectionRecord(form.recordId) : null;
   const isEdit = record != null;
   const itemId = form?.itemId ?? "";
   const defaultKm = defaultRecordOdometer(itemId);
+  const title = isEdit ? t("maintenance.record.inspectionEditTitle") : t("maintenance.record.inspectionTitle");
   const conditionOptions = CONDITION_OPTIONS.map(
     (option) => `
       <option value="${option.value}" ${record?.condition === option.value ? "selected" : ""}>${t(option.key)}</option>
@@ -1051,9 +1082,10 @@ function recordInspectionFormHtml(): string {
   ).join("");
 
   return `
-    <section class="card">
+    <div class="modal-overlay">
+      <div class="modal" role="dialog" aria-modal="true" aria-label="${escHtml(title)}">
       <form id="record-form" class="form" novalidate>
-        <div class="form__title">${isEdit ? t("maintenance.record.inspectionEditTitle") : t("maintenance.record.inspectionTitle")}</div>
+        <div class="form__title">${escHtml(title)}</div>
         <div class="form__grid">
           <div class="field">
             <label class="field__label" for="record-date">${t("maintenance.record.dateLabel")}</label>
@@ -1099,7 +1131,79 @@ function recordInspectionFormHtml(): string {
           <button type="submit" class="btn btn--filled">${t("maintenance.record.save")}</button>
         </div>
       </form>
-    </section>
+      </div>
+    </div>
+  `;
+}
+
+/** Popover showing the full detail of one history record (cost, notes…). */
+function recordDetailsModalHtml(): string {
+  const details = state.recordDetails;
+  if (!details) return "";
+  const serviceRecord = details.kind === "service" ? findServiceRecord(details.recordId) : null;
+  const inspectionRecord = details.kind === "inspection" ? findInspectionRecord(details.recordId) : null;
+  const record = serviceRecord ?? inspectionRecord;
+  if (!record) return "";
+  const title = t(
+    details.kind === "service"
+      ? "maintenance.detail.recordInfoServiceTitle"
+      : "maintenance.detail.recordInfoInspectionTitle",
+  );
+
+  const rows: { label: string; value: string }[] = [];
+  rows.push({ label: t("maintenance.record.dateLabel"), value: formatDate(record.date) });
+  if (record.odometer != null) {
+    rows.push({
+      label: t("maintenance.record.odometerLabel"),
+      value: `${faNum(record.odometer)} ${t("common.kmUnit")}`,
+    });
+  }
+  if (details.kind === "service" && serviceRecord) {
+    if (serviceRecord.cost != null) {
+      rows.push({ label: t("maintenance.detail.costLabel"), value: faNum(serviceRecord.cost) });
+    }
+  } else if (inspectionRecord) {
+    if (inspectionRecord.condition) {
+      rows.push({
+        label: t("maintenance.record.conditionLabel"),
+        value: t(`maintenance.condition.${inspectionRecord.condition}` as never),
+      });
+    }
+    if (inspectionRecord.measurement != null) {
+      rows.push({
+        label: t("maintenance.detail.measurementLabel"),
+        value: faNum(inspectionRecord.measurement),
+      });
+    }
+  }
+  const notes = record.notes?.trim() ?? "";
+  const list = rows
+    .map(
+      (row) => `
+        <div class="info-list__row"><dt>${escHtml(row.label)}</dt><dd>${escHtml(row.value)}</dd></div>
+      `,
+    )
+    .join("");
+
+  return `
+    <div class="modal-overlay">
+      <div class="modal" role="dialog" aria-modal="true" aria-label="${escHtml(title)}">
+        <div class="form__title">${escHtml(title)}</div>
+        ${list ? `<dl class="info-list">${list}</dl>` : ""}
+        ${
+          notes
+            ? `
+        <div class="info-list__row">
+          <dt>${t("maintenance.record.notesLabel")}</dt>
+          <dd class="record-detail__note">${escHtml(notes)}</dd>
+        </div>`
+            : ""
+        }
+        <div class="form__actions">
+          <button type="button" class="btn btn--text js-close-overlay">${t("common.cancel")}</button>
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -1149,6 +1253,13 @@ function bindModalEvents(container: HTMLElement): void {
   container.querySelectorAll<HTMLElement>(".modal-overlay").forEach((overlay) => {
     overlay.addEventListener("click", (event) => {
       if (event.target !== overlay) return;
+      // The icon picker floats ABOVE the service form: clicking its backdrop
+      // (or Esc) only dismisses the picker, never the form underneath.
+      if (overlay.dataset.overlay === "icon-picker") {
+        state.iconPickerOpen = false;
+        redraw(container);
+        return;
+      }
       closeModals();
       redraw(container);
     });
@@ -1156,6 +1267,12 @@ function bindModalEvents(container: HTMLElement): void {
   container.querySelectorAll<HTMLButtonElement>(".js-close-overlay").forEach((button) => {
     button.addEventListener("click", () => {
       closeModals();
+      redraw(container);
+    });
+  });
+  container.querySelectorAll<HTMLButtonElement>(".js-close-icon-picker").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.iconPickerOpen = false;
       redraw(container);
     });
   });
@@ -1171,9 +1288,16 @@ function registerGlobalKeys(): void {
     const datePopoverOpen =
       document.querySelector<HTMLElement>("[data-df-popover]:not([hidden])") != null;
     if (datePopoverOpen) return;
-    if (!(state.pickerOpen || state.form)) return;
     const container = activeContainer;
     if (!container) return;
+    // Topmost modal first: the icon picker closes on its own Esc press; a
+    // second Esc then closes the form modal beneath it.
+    if (state.iconPickerOpen) {
+      state.iconPickerOpen = false;
+      redraw(container);
+      return;
+    }
+    if (!(state.pickerOpen || state.form || state.recordForm || state.recordDetails)) return;
     closeModals();
     redraw(container);
   });
@@ -1210,6 +1334,9 @@ function closeModals(): void {
   state.pickerOpen = false;
   state.form = null;
   state.iconPickerOpen = false;
+  state.recordForm = null;
+  state.recordDetails = null;
+  state.recordDeleteArmed = null;
   state.deleteArmedId = null;
 }
 
@@ -1220,6 +1347,8 @@ function bindDetailEvents(container: HTMLElement): void {
   container.querySelectorAll<HTMLButtonElement>(".js-record-service, .js-record-inspection").forEach((button) => {
     button.addEventListener("click", () => {
       const kind = button.classList.contains("js-record-inspection") ? "inspection" : "service";
+      state.recordDetails = null;
+      state.recordDeleteArmed = null;
       state.recordForm = { kind, recordId: null, itemId: button.dataset.id ?? currentItemId ?? "" };
       redraw(container);
     });
@@ -1227,13 +1356,44 @@ function bindDetailEvents(container: HTMLElement): void {
   container.querySelectorAll<HTMLButtonElement>(".js-cancel-record").forEach((button) => {
     button.addEventListener("click", () => {
       state.recordForm = null;
+      state.recordDeleteArmed = null;
       redraw(container);
     });
   });
   container.querySelectorAll<HTMLButtonElement>(".js-edit-record").forEach((button) => {
     button.addEventListener("click", () => {
       const kind = button.dataset.kind === "inspection" ? "inspection" : "service";
+      state.recordDetails = null;
+      state.recordDeleteArmed = null;
       state.recordForm = { kind, recordId: button.dataset.id ?? null, itemId: currentItemId ?? "" };
+      redraw(container);
+    });
+  });
+  container.querySelectorAll<HTMLButtonElement>(".js-info-record").forEach((button) => {
+    button.addEventListener("click", () => {
+      const kind = button.dataset.kind === "inspection" ? "inspection" : "service";
+      state.recordForm = null;
+      state.recordDeleteArmed = null;
+      state.recordDetails = { kind, recordId: button.dataset.id ?? "" };
+      redraw(container);
+    });
+  });
+  container.querySelectorAll<HTMLButtonElement>(".js-delete-record").forEach((button) => {
+    button.addEventListener("click", () => {
+      const kind = button.dataset.kind === "inspection" ? "inspection" : "service";
+      state.recordForm = null;
+      state.recordDeleteArmed = { kind, recordId: button.dataset.id ?? "" };
+      redraw(container);
+    });
+  });
+  container.querySelectorAll<HTMLButtonElement>(".js-confirm-record-delete").forEach((button) => {
+    button.addEventListener("click", () => {
+      deleteRecord(button.dataset.kind === "inspection" ? "inspection" : "service", button.dataset.id ?? "");
+    });
+  });
+  container.querySelectorAll<HTMLButtonElement>(".js-cancel-record-delete").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.recordDeleteArmed = null;
       redraw(container);
     });
   });
@@ -1273,6 +1433,19 @@ function bindDetailEvents(container: HTMLElement): void {
     button.addEventListener("click", () => {
       deleteItemPermanently(button.dataset.id ?? null);
     });
+  });
+}
+
+/** Removes one history record (service or inspection event). */
+function deleteRecord(kind: "service" | "inspection", recordId: string): void {
+  if (!recordId) return;
+  state.recordDeleteArmed = null;
+  store.update((draft) => {
+    if (kind === "service") {
+      draft.serviceHistory = draft.serviceHistory.filter((record) => record.id !== recordId);
+    } else {
+      draft.inspectionHistory = draft.inspectionHistory.filter((record) => record.id !== recordId);
+    }
   });
 }
 
@@ -1578,4 +1751,5 @@ function redraw(container: HTMLElement): void {
   container.innerHTML = servicesViewHtml();
   bind(container);
   applyIcons();
+  alignFabBar();
 }

@@ -99,6 +99,10 @@ export const fa = {
       confirm: "حذف کن",
       cancel: "انصراف",
       editRecord: "ویرایش",
+      recordInfo: "جزئیات",
+      recordInfoServiceTitle: "جزئیات سرویس",
+      recordInfoInspectionTitle: "جزئیات بازرسی",
+      recordDeleteConfirm: "این سابقه برای همیشه حذف شود؟",
     },
     record: {
       serviceTitle: "ثبت سرویس",
@@ -167,6 +171,7 @@ export const fa = {
   },
   services: {
     addService: "ثبت سرویس",
+    addServiceNew: "ثبت سرویس جدید",
     submit: "ثبت",
     noServices: "هنوز سرویسی برای این خودرو ثبت نشده است.",
     noVehicles: "برای ثبت سرویس، ابتدا یک خودرو اضافه کنید.",
@@ -178,6 +183,7 @@ export const fa = {
     titleLabel: "عنوان سرویس",
     titlePlaceholder: "مثلاً روغن موتور",
     iconLabel: "آیکون",
+    iconPickerHint: "برای انتخاب آیکون متفاوت کلیک کنید.",
     replacementTitle: "تعویض",
     replacementDate: "تاریخ تعویض",
     replacementKm: "کیلومتر تعویض",
