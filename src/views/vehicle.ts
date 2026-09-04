@@ -31,7 +31,7 @@ interface VehicleViewState {
   /** Open modal; null = none. */
   modal:
     | { kind: "add" }
-    | { kind: "edit"; vehicleId: string; confirmDelete: boolean }
+    | { kind: "edit"; vehicleId: string }
     | { kind: "delete"; vehicleId: string }
     | { kind: "mileage"; vehicleId: string }
     | null;
@@ -186,7 +186,7 @@ function modalHtml(): string {
     const vehicle = modal.kind === "edit"
       ? (store.get().vehicles.find((v) => v.id === modal.vehicleId) ?? null)
       : null;
-    return `<div class="modal-overlay">${vehicleFormModalHtml(vehicle, modal.kind === "edit" && modal.confirmDelete)}</div>`;
+    return `<div class="modal-overlay">${vehicleFormModalHtml(vehicle)}</div>`;
   }
   const vehicle = store.get().vehicles.find((v) => v.id === modal.vehicleId) ?? null;
   if (modal.kind === "delete") {
@@ -200,7 +200,7 @@ function formValue(field: string, fallback: string = ""): string {
   return state.formValues[field] ?? fallback;
 }
 
-function vehicleFormModalHtml(vehicle: Vehicle | null, confirmDelete: boolean): string {
+function vehicleFormModalHtml(vehicle: Vehicle | null): string {
   const editing = vehicle != null;
   const field = (name: string, get: () => string | null): string =>
     formValue(name, editing && vehicle ? get() ?? "" : "");
@@ -209,12 +209,11 @@ function vehicleFormModalHtml(vehicle: Vehicle | null, confirmDelete: boolean): 
     <div class="modal" role="dialog" aria-modal="true" aria-label="${editing ? t("vehicle.editTitle") : t("vehicle.setupTitle")}">
       <form id="vehicle-modal-form" class="form" novalidate>
         <div class="form__title">${editing ? t("vehicle.editTitle") : t("vehicle.setupTitle")}</div>
-        ${confirmDelete ? deleteConfirmBlock() : ""}
         <div class="field">
           <label class="field__label" for="vehicle-name">${t("vehicle.name")}</label>
           <input class="field__input" id="vehicle-name" name="name" type="text"
             value="${escHtml(field("name", () => vehicle?.name ?? null))}"
-            placeholder="${t("vehicle.namePlaceholder")}" ${confirmDelete ? "disabled" : ""} />
+            placeholder="${t("vehicle.namePlaceholder")}" />
           <p class="field__error" id="vehicle-error-name" hidden></p>
         </div>
         <div class="form__grid">
@@ -222,16 +221,14 @@ function vehicleFormModalHtml(vehicle: Vehicle | null, confirmDelete: boolean): 
             <label class="field__label" for="vehicle-year">${t("vehicle.year")}</label>
             <input class="field__input" id="vehicle-year" name="year" type="number"
               inputmode="numeric" min="1300" max="2100" step="1"
-              value="${escHtml(field("year", () => (vehicle?.year != null ? String(vehicle.year) : null)))}"
-              ${confirmDelete ? "disabled" : ""} />
+              value="${escHtml(field("year", () => (vehicle?.year != null ? String(vehicle.year) : null)))}" />
             <p class="field__error" id="vehicle-error-year" hidden></p>
           </div>
           <div class="field">
             <label class="field__label" for="vehicle-average">${t("vehicle.averageDaily")} (${t("vehicle.averageDailyUnit")})</label>
             <input class="field__input" id="vehicle-average" name="averageDaily" type="number"
               inputmode="decimal" min="0" step="any"
-              value="${escHtml(field("averageDaily", () => (vehicle?.averageDailyDistance != null ? String(vehicle.averageDailyDistance) : null)))}"
-              ${confirmDelete ? "disabled" : ""} />
+              value="${escHtml(field("averageDaily", () => (vehicle?.averageDailyDistance != null ? String(vehicle.averageDailyDistance) : null)))}" />
             <p class="field__hint">${t("vehicle.averageHint")}</p>
             <p class="field__error" id="vehicle-error-average" hidden></p>
           </div>
@@ -240,8 +237,7 @@ function vehicleFormModalHtml(vehicle: Vehicle | null, confirmDelete: boolean): 
           <label class="field__label" for="vehicle-mileage">${t("vehicle.mileageLabel")} (${t("common.kmUnit")})</label>
           <input class="field__input" id="vehicle-mileage" name="mileage" type="number"
             inputmode="numeric" min="0" step="1"
-            value="${escHtml(field("mileage", () => (vehicle?.currentOdometer != null ? String(vehicle.currentOdometer) : null)))}"
-            ${confirmDelete ? "disabled" : ""} />
+            value="${escHtml(field("mileage", () => (vehicle?.currentOdometer != null ? String(vehicle.currentOdometer) : null)))}" />
           <p class="field__hint">${t("vehicle.mileageHint")}</p>
           <p class="field__error" id="vehicle-error-mileage" hidden></p>
         </div>
@@ -255,23 +251,9 @@ function vehicleFormModalHtml(vehicle: Vehicle | null, confirmDelete: boolean): 
         </div>` : ""}
         <div class="form__actions vehicle-modal-actions">
           <button type="button" class="btn btn--text js-cancel-modal">${t("common.cancel")}</button>
-          ${editing ? `<button type="button" class="btn btn--text btn--danger-text js-delete-vehicle">${t("vehicle.deleteVehicle")}</button>` : ""}
-          ${!confirmDelete ? `<button type="submit" class="btn btn--filled">${editing ? t("vehicle.saveChanges") : t("vehicle.saveVehicle")}</button>` : ""}
+          <button type="submit" class="btn btn--filled">${editing ? t("vehicle.saveChanges") : t("vehicle.saveVehicle")}</button>
         </div>
       </form>
-    </div>
-  `;
-}
-
-function deleteConfirmBlock(): string {
-  return `
-    <div class="box box--danger" role="alert">
-      <span data-lucide="triangle-alert"></span>
-      <span>${t("vehicle.deleteConfirm")}</span>
-    </div>
-    <div class="form__actions">
-      <button type="button" class="btn btn--text js-cancel-delete-vehicle">${t("common.cancel")}</button>
-      <button type="button" class="btn btn--danger js-confirm-delete-vehicle">${t("vehicle.confirmDelete")}</button>
     </div>
   `;
 }
@@ -346,19 +328,9 @@ function bind(container: HTMLElement): void {
       redraw(container);
     });
   });
-  container.querySelector<HTMLButtonElement>(".js-delete-vehicle")?.addEventListener("click", () => {
-    if (state.modal?.kind !== "edit") return;
-    state.modal = { ...state.modal, confirmDelete: true };
-    redraw(container);
-  });
-  container.querySelector<HTMLButtonElement>(".js-cancel-delete-vehicle")?.addEventListener("click", () => {
-    if (state.modal?.kind !== "edit") return;
-    state.modal = { ...state.modal, confirmDelete: false };
-    redraw(container);
-  });
   container.querySelector<HTMLButtonElement>(".js-confirm-delete-vehicle")?.addEventListener("click", () => {
     const modal = state.modal;
-    if (modal?.kind !== "edit" && modal?.kind !== "delete") return;
+    if (modal?.kind !== "delete") return;
     deleteVehicle(modal.vehicleId);
     state.modal = null;
     state.formValues = {};
@@ -379,7 +351,7 @@ function bind(container: HTMLElement): void {
   });
   container.querySelectorAll<HTMLButtonElement>(".js-menu-edit").forEach((button) => {
     button.addEventListener("click", () => {
-      state.modal = { kind: "edit", vehicleId: button.dataset.id ?? "", confirmDelete: false };
+      state.modal = { kind: "edit", vehicleId: button.dataset.id ?? "" };
       state.menuVehicleId = null;
       state.formValues = {};
       redraw(container);

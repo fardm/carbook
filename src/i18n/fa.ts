@@ -28,12 +28,12 @@ export const fa = {
     nextMonth: "ماه بعد",
   },
   status: {
-    ok: "خوب",
-    upcoming: "در پیش",
+    ok: "سالم",
+    upcoming: "پیش‌رو",
     dueSoon: "به‌زودی",
-    due: "رسیده",
-    overdue: "گذشته",
-    inspectionRequired: "نیازمند بازرسی",
+    due: "زمان سرویس",
+    overdue: "نیاز به سرویس",
+    inspectionRequired: "نیاز به بررسی",
   },
   maintenance: {
     activeTitle: "نگهداری‌های فعال",
