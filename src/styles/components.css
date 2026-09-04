@@ -339,8 +339,10 @@
   white-space: pre-line;
 }
 
-/* History row actions (edit / details / delete) at the row's far left. */
+/* History row actions: the three-dot button at the row's far left with its
+ * dropdown popover anchored below it (menu items reuse .card-menu__item). */
 .history__actions {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: var(--md-space-1);
@@ -358,8 +360,18 @@
   height: 18px;
 }
 
-.history__item--confirm {
-  justify-content: flex-end;
+.history-menu {
+  position: absolute;
+  top: calc(100% + var(--md-space-1));
+  left: 0;
+  z-index: 46;
+  min-width: 200px;
+  padding: var(--md-space-1);
+  border-radius: var(--md-shape-medium);
+  background-color: var(--md-sys-color-surface-container-low);
+  box-shadow: var(--md-elevation-3);
+  display: flex;
+  flex-direction: column;
 }
 
 .icon-btn--danger {
@@ -743,11 +755,6 @@
   gap: var(--md-space-1);
   flex-shrink: 0;
   margin-inline-start: auto;
-}
-
-.detail-head__actions .delete-confirm {
-  flex-wrap: wrap;
-  justify-content: flex-end;
 }
 
 .detail-head__info {
@@ -1404,6 +1411,7 @@
   border-radius: var(--md-shape-large);
   background-color: var(--md-sys-color-surface-container-high);
   color: var(--md-sys-color-on-surface-variant);
+  padding: 8px;
 }
 
 .services-empty__icon svg {
@@ -1468,11 +1476,6 @@
 .service-card__name {
   font-weight: 600;
   font-size: var(--md-typescale-title-medium);
-}
-
-.service-card__meta {
-  font-size: var(--md-typescale-label-medium);
-  color: var(--md-sys-color-on-surface-variant);
 }
 
 .service-card__body {

@@ -90,9 +90,13 @@ interface ServicesViewState {
   recordForm: RecordFormState | null;
   /** Open record-details (cost/notes…) popover on the detail page. */
   recordDetails: { kind: "service" | "inspection"; recordId: string } | null;
-  /** History record armed for permanent deletion (inline confirm). */
-  recordDeleteArmed: { kind: "service" | "inspection"; recordId: string } | null;
-  /** Item armed for permanent deletion (inline confirm). */
+  /** Open three-dot menu on a history row (dropdown popover). */
+  recordMenu: { kind: "service" | "inspection"; recordId: string } | null;
+  /** History record pending deletion (dedicated confirm modal). */
+  recordDeleteConfirm: { kind: "service" | "inspection"; recordId: string } | null;
+  /** Item pending deletion (dedicated confirm modal, detail header). */
+  deleteConfirmId: string | null;
+  /** Item armed for permanent deletion (legacy inline confirm, list page). */
   deleteArmedId: string | null;
 }
 
@@ -106,7 +110,9 @@ const state: ServicesViewState = {
   formValues: {},
   recordForm: null,
   recordDetails: null,
-  recordDeleteArmed: null,
+  recordMenu: null,
+  recordDeleteConfirm: null,
+  deleteConfirmId: null,
   deleteArmedId: null,
 };
 
@@ -206,7 +212,11 @@ function servicesViewHtml(): string {
         ? recordFormModalHtml()
         : state.recordDetails
           ? recordDetailsModalHtml()
-          : "";
+          : state.recordDeleteConfirm
+            ? recordDeleteConfirmModalHtml()
+            : state.deleteConfirmId
+              ? deleteConfirmModalHtml()
+              : "";
   return `
     <div class="view-stack view-stack--fab">
       ${detail}
@@ -276,10 +286,6 @@ function resolveSelectedVehicleId(dataset: ReturnType<typeof store.get>): string
   return dataset.vehicles[0]?.id ?? null;
 }
 
-function vehicleName(dataset: ReturnType<typeof store.get>, vehicleId: string | null): string | null {
-  if (!vehicleId) return null;
-  return dataset.vehicles.find((v) => v.id === vehicleId)?.name ?? null;
-}
 
 /* --- Services list page --- */
 
@@ -399,7 +405,6 @@ function itemMetricLines(item: MaintenanceItem, dataset: ReturnType<typeof store
 
 function serviceCardHtml(item: MaintenanceItem, dataset: ReturnType<typeof store.get>): string {
   const lines = itemMetricLines(item, dataset);
-  const meta = categoryName(item.category);
   const last = lastServiceFor(dataset.serviceHistory, item.id);
   const lastLine = last
     ? `${t("services.lastServiceLabel")}: ${formatDate(last.date)}${
@@ -424,7 +429,6 @@ function serviceCardHtml(item: MaintenanceItem, dataset: ReturnType<typeof store
           <span class="service-card__icon" data-lucide="${item.icon}"></span>
           <div class="service-card__info">
             <div class="service-card__name">${escHtml(item.name)}</div>
-            <div class="service-card__meta">${meta}</div>
           </div>
           <span class="status-chip status-chip--${lines.calc.status}">
             <span data-lucide="${STATUS_ICONS[lines.calc.status]}"></span>
@@ -594,7 +598,6 @@ function serviceFormModalHtml(): string {
   const prefillName = editing ? item?.name ?? "" : entry?.name.fa ?? "";
   const title = t(editing ? "maintenance.editTitle" : "services.addService");
   const vehicleId = resolveSelectedVehicleId(dataset);
-  const vehicleLabel = vehicleName(dataset, vehicleId);
 
   const displayOptions = DISPLAY_OPTIONS.map(
     (option) => `
@@ -626,7 +629,6 @@ function serviceFormModalHtml(): string {
         <input class="field__input" id="service-odometer" name="serviceOdometer" type="number"
           inputmode="numeric" min="0" step="1" value="${escHtml(fieldValue("serviceOdometer"))}" />
         <p class="field__error" id="service-error-odometer" hidden></p>
-        <p class="field__hint">${t("maintenance.record.odometerHint")}</p>
       </div>
     </div>
   `;
@@ -636,11 +638,6 @@ function serviceFormModalHtml(): string {
       <div class="modal" role="dialog" aria-modal="true" aria-label="${escHtml(title)}">
         <form id="service-form" class="form" novalidate>
           <div class="form__title">${escHtml(title)}</div>
-          ${
-            vehicleLabel
-              ? `<p class="card__text">${t("services.vehicleLabel")}: <b>${escHtml(vehicleLabel)}</b></p>`
-              : ""
-          }
           <input type="hidden" name="vehicleId" value="${escHtml(vehicleId ?? "")}" />
 
           <div class="field">
@@ -753,28 +750,16 @@ function itemDetailPageHtml(itemId: string): string {
 }
 
 /** Actions on the detail header, aligned opposite the title: an edit pencil
- * and a delete (trash) icon. When deletion is armed the pair is replaced by
- * an inline confirm so the destructive action stays next to where it began. */
+ * and a delete (trash) icon. The trash opens a dedicated confirmation modal
+ * (deleteConfirmModalHtml) — nothing is injected into the page. */
 function detailHeadActionsHtml(item: MaintenanceItem): string {
-  const armed = state.deleteArmedId === item.id;
-  if (armed) {
-    return `
-      <span class="detail-head__actions delete-confirm">
-        <span class="detail-actions__confirm">${t("maintenance.detail.deleteConfirm")}</span>
-        <button type="button" class="btn btn--filled btn--danger js-confirm-delete" data-id="${escHtml(item.id)}">
-          ${t("maintenance.detail.confirm")}
-        </button>
-        <button type="button" class="btn btn--text js-cancel-delete">${t("maintenance.detail.cancel")}</button>
-      </span>
-    `;
-  }
   return `
     <div class="detail-head__actions">
       <button type="button" class="icon-btn js-edit-item" data-id="${escHtml(item.id)}"
         aria-label="${t("maintenance.editItem")}" title="${t("maintenance.editItem")}">
         <span data-lucide="pencil"></span>
       </button>
-      <button type="button" class="icon-btn icon-btn--danger js-arm-delete" data-id="${escHtml(item.id)}"
+      <button type="button" class="icon-btn icon-btn--danger js-delete-item" data-id="${escHtml(item.id)}"
         aria-label="${t("maintenance.detail.delete")}" title="${t("maintenance.detail.delete")}">
         <span data-lucide="trash-2"></span>
       </button>
@@ -890,39 +875,47 @@ function detailOverviewHtml(item: MaintenanceItem, dataset: ReturnType<typeof st
   };
 }
 
-/** Row actions for a history record: edit / details / delete icons on the far
- * left, replaced by an inline confirmation once armed for deletion. */
+/** Row actions for a history record: a single three-dot button opening a
+ * dropdown popover with the ویرایش / جزئیات / حذف text actions (nothing is
+ * injected into the row itself). */
 function historyRowActionsHtml(
   kind: "service" | "inspection",
   record: { id: string; date: string; odometer: number | null },
 ): string {
-  const armed =
-    state.recordDeleteArmed?.kind === kind && state.recordDeleteArmed.recordId === record.id;
-  if (armed) {
-    return `
-      <div class="delete-confirm">
-        <span class="detail-actions__confirm">${t("maintenance.detail.recordDeleteConfirm")}</span>
-        <button type="button" class="btn btn--filled btn--danger js-confirm-record-delete"
-          data-kind="${kind}" data-id="${escHtml(record.id)}">
-          ${t("maintenance.detail.confirm")}
-        </button>
-        <button type="button" class="btn btn--text js-cancel-record-delete">${t("maintenance.detail.cancel")}</button>
-      </div>
-    `;
-  }
+  const menuOpen =
+    state.recordMenu?.kind === kind && state.recordMenu.recordId === record.id;
   return `
     <div class="history__actions">
-      <button type="button" class="icon-btn js-edit-record" data-kind="${kind}" data-id="${escHtml(record.id)}"
-        aria-label="${t("maintenance.detail.editRecord")}" title="${t("maintenance.detail.editRecord")}">
+      <button type="button" class="icon-btn js-record-menu-toggle" data-kind="${kind}" data-id="${escHtml(record.id)}"
+        aria-haspopup="menu" aria-expanded="${menuOpen}"
+        aria-label="${t("maintenance.detail.recordMenu")}" title="${t("maintenance.detail.recordMenu")}">
+        <span data-lucide="more-horizontal"></span>
+      </button>
+      ${menuOpen ? recordMenuHtml(kind, record.id) : ""}
+    </div>
+  `;
+}
+
+/** Dropdown popover + full-screen click-away backdrop for a record's menu. */
+function recordMenuHtml(kind: "service" | "inspection", recordId: string): string {
+  return `
+    <div class="card-menu__backdrop js-record-menu-backdrop"></div>
+    <div class="history-menu" role="menu" aria-label="${t("maintenance.detail.recordMenu")}">
+      <button type="button" class="card-menu__item js-record-menu-edit" role="menuitem"
+        data-kind="${kind}" data-id="${escHtml(recordId)}">
         <span data-lucide="pencil"></span>
+        ${t("maintenance.detail.editRecord")}
       </button>
-      <button type="button" class="icon-btn js-info-record" data-kind="${kind}" data-id="${escHtml(record.id)}"
-        aria-label="${t("maintenance.detail.recordInfo")}" title="${t("maintenance.detail.recordInfo")}">
+      <button type="button" class="card-menu__item js-record-menu-info" role="menuitem"
+        data-kind="${kind}" data-id="${escHtml(recordId)}">
         <span data-lucide="info"></span>
+        ${t("maintenance.detail.recordInfo")}
       </button>
-      <button type="button" class="icon-btn icon-btn--danger js-delete-record" data-kind="${kind}" data-id="${escHtml(record.id)}"
-        aria-label="${t("maintenance.detail.delete")}" title="${t("maintenance.detail.delete")}">
+      <div class="card-menu__divider" role="separator"></div>
+      <button type="button" class="card-menu__item card-menu__item--danger js-record-menu-delete" role="menuitem"
+        data-kind="${kind}" data-id="${escHtml(recordId)}">
         <span data-lucide="trash-2"></span>
+        ${t("maintenance.detail.delete")}
       </button>
     </div>
   `;
@@ -933,24 +926,16 @@ function historyRecordRowHtml(
   kind: "service" | "inspection",
   record: { id: string; date: string; odometer: number | null },
 ): string {
-  const armed =
-    state.recordDeleteArmed?.kind === kind && state.recordDeleteArmed.recordId === record.id;
   return `
-    <li class="history__item${armed ? " history__item--confirm" : ""}">
-      ${
-        armed
-          ? ""
-          : `
-        <div class="history__main">
-          <span class="history__date">${formatDate(record.date)}</span>
-          ${
-            record.odometer != null
-              ? `<span class="history__km">${faNum(record.odometer)} ${t("common.kmUnit")}</span>`
-              : ""
-          }
-        </div>
-      `
-      }
+    <li class="history__item">
+      <div class="history__main">
+        <span class="history__date">${formatDate(record.date)}</span>
+        ${
+          record.odometer != null
+            ? `<span class="history__km">${faNum(record.odometer)} ${t("common.kmUnit")}</span>`
+            : ""
+        }
+      </div>
       ${historyRowActionsHtml(kind, record)}
     </li>
   `;
@@ -1043,7 +1028,6 @@ function recordServiceFormModalHtml(): string {
             <input class="field__input" id="record-odometer" name="odometer" type="number"
               inputmode="numeric" min="0" step="1" value="${record?.odometer ?? defaultKm ?? ""}" />
             <p class="field__error" id="record-error-odometer" hidden></p>
-            <p class="field__hint">${t("maintenance.record.odometerHint")}</p>
           </div>
         </div>
         <div class="field">
@@ -1102,7 +1086,6 @@ function recordInspectionFormModalHtml(): string {
             <input class="field__input" id="record-odometer" name="odometer" type="number"
               inputmode="numeric" min="0" step="1" value="${record?.odometer ?? defaultKm ?? ""}" />
             <p class="field__error" id="record-error-odometer" hidden></p>
-            <p class="field__hint">${t("maintenance.record.odometerHint")}</p>
           </div>
         </div>
         <div class="form__grid">
@@ -1207,6 +1190,59 @@ function recordDetailsModalHtml(): string {
   `;
 }
 
+/** Dedicated confirmation modal for deleting a service (detail header trash). */
+function deleteConfirmModalHtml(): string {
+  const itemId = state.deleteConfirmId;
+  if (!itemId) return "";
+  const item = store.get().maintenanceItems.find((candidate) => candidate.id === itemId);
+  if (!item) return "";
+  return `
+    <div class="modal-overlay">
+      <div class="modal" role="alertdialog" aria-modal="true" aria-label="${t("maintenance.detail.deleteServiceTitle")}">
+        <div class="form">
+          <div class="form__title">${t("maintenance.detail.deleteServiceTitle")}</div>
+          <div class="box box--danger" role="alert">
+            <span data-lucide="triangle-alert"></span>
+            <span>${t("maintenance.detail.deleteConfirm")} «${escHtml(item.name)}»</span>
+          </div>
+          <div class="form__actions">
+            <button type="button" class="btn btn--text js-close-overlay">${t("common.cancel")}</button>
+            <button type="button" class="btn btn--danger js-confirm-delete" data-id="${escHtml(item.id)}">
+              ${t("maintenance.detail.confirm")}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/** Dedicated confirmation modal for deleting a history record. */
+function recordDeleteConfirmModalHtml(): string {
+  const confirm = state.recordDeleteConfirm;
+  if (!confirm) return "";
+  return `
+    <div class="modal-overlay">
+      <div class="modal" role="alertdialog" aria-modal="true" aria-label="${t("maintenance.detail.recordDeleteTitle")}">
+        <div class="form">
+          <div class="form__title">${t("maintenance.detail.recordDeleteTitle")}</div>
+          <div class="box box--danger" role="alert">
+            <span data-lucide="triangle-alert"></span>
+            <span>${t("maintenance.detail.recordDeleteConfirm")}</span>
+          </div>
+          <div class="form__actions">
+            <button type="button" class="btn btn--text js-close-overlay">${t("common.cancel")}</button>
+            <button type="button" class="btn btn--danger js-confirm-record-delete"
+              data-kind="${confirm.kind}" data-id="${escHtml(confirm.recordId)}">
+              ${t("maintenance.detail.confirm")}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 /* --- Events --- */
 
 function bind(container: HTMLElement): void {
@@ -1297,7 +1333,24 @@ function registerGlobalKeys(): void {
       redraw(container);
       return;
     }
-    if (!(state.pickerOpen || state.form || state.recordForm || state.recordDetails)) return;
+    // Transient dropdown menus close on their own Esc press.
+    if (state.recordMenu) {
+      state.recordMenu = null;
+      redraw(container);
+      return;
+    }
+    if (
+      !(
+        state.pickerOpen ||
+        state.form ||
+        state.recordForm ||
+        state.recordDetails ||
+        state.recordDeleteConfirm ||
+        state.deleteConfirmId
+      )
+    ) {
+      return;
+    }
     closeModals();
     redraw(container);
   });
@@ -1336,7 +1389,9 @@ function closeModals(): void {
   state.iconPickerOpen = false;
   state.recordForm = null;
   state.recordDetails = null;
-  state.recordDeleteArmed = null;
+  state.recordMenu = null;
+  state.recordDeleteConfirm = null;
+  state.deleteConfirmId = null;
   state.deleteArmedId = null;
 }
 
@@ -1348,7 +1403,8 @@ function bindDetailEvents(container: HTMLElement): void {
     button.addEventListener("click", () => {
       const kind = button.classList.contains("js-record-inspection") ? "inspection" : "service";
       state.recordDetails = null;
-      state.recordDeleteArmed = null;
+      state.recordMenu = null;
+      state.recordDeleteConfirm = null;
       state.recordForm = { kind, recordId: null, itemId: button.dataset.id ?? currentItemId ?? "" };
       redraw(container);
     });
@@ -1356,45 +1412,57 @@ function bindDetailEvents(container: HTMLElement): void {
   container.querySelectorAll<HTMLButtonElement>(".js-cancel-record").forEach((button) => {
     button.addEventListener("click", () => {
       state.recordForm = null;
-      state.recordDeleteArmed = null;
+      state.recordDeleteConfirm = null;
       redraw(container);
     });
   });
-  container.querySelectorAll<HTMLButtonElement>(".js-edit-record").forEach((button) => {
+  /* Three-dot menu on history rows: toggle + click-away backdrop + items. */
+  container.querySelectorAll<HTMLButtonElement>(".js-record-menu-toggle").forEach((button) => {
     button.addEventListener("click", () => {
       const kind = button.dataset.kind === "inspection" ? "inspection" : "service";
+      const id = button.dataset.id ?? "";
+      state.recordMenu =
+        state.recordMenu?.kind === kind && state.recordMenu.recordId === id ? null : { kind, recordId: id };
+      redraw(container);
+    });
+  });
+  container.querySelector<HTMLElement>(".js-record-menu-backdrop")?.addEventListener("click", () => {
+    state.recordMenu = null;
+    redraw(container);
+  });
+  container.querySelectorAll<HTMLButtonElement>(".js-record-menu-edit").forEach((button) => {
+    button.addEventListener("click", () => {
+      const kind = button.dataset.kind === "inspection" ? "inspection" : "service";
+      state.recordMenu = null;
       state.recordDetails = null;
-      state.recordDeleteArmed = null;
+      state.recordDeleteConfirm = null;
       state.recordForm = { kind, recordId: button.dataset.id ?? null, itemId: currentItemId ?? "" };
       redraw(container);
     });
   });
-  container.querySelectorAll<HTMLButtonElement>(".js-info-record").forEach((button) => {
+  container.querySelectorAll<HTMLButtonElement>(".js-record-menu-info").forEach((button) => {
     button.addEventListener("click", () => {
       const kind = button.dataset.kind === "inspection" ? "inspection" : "service";
+      state.recordMenu = null;
       state.recordForm = null;
-      state.recordDeleteArmed = null;
+      state.recordDeleteConfirm = null;
       state.recordDetails = { kind, recordId: button.dataset.id ?? "" };
       redraw(container);
     });
   });
-  container.querySelectorAll<HTMLButtonElement>(".js-delete-record").forEach((button) => {
+  container.querySelectorAll<HTMLButtonElement>(".js-record-menu-delete").forEach((button) => {
     button.addEventListener("click", () => {
       const kind = button.dataset.kind === "inspection" ? "inspection" : "service";
+      state.recordMenu = null;
       state.recordForm = null;
-      state.recordDeleteArmed = { kind, recordId: button.dataset.id ?? "" };
+      state.recordDetails = null;
+      state.recordDeleteConfirm = { kind, recordId: button.dataset.id ?? "" };
       redraw(container);
     });
   });
   container.querySelectorAll<HTMLButtonElement>(".js-confirm-record-delete").forEach((button) => {
     button.addEventListener("click", () => {
       deleteRecord(button.dataset.kind === "inspection" ? "inspection" : "service", button.dataset.id ?? "");
-    });
-  });
-  container.querySelectorAll<HTMLButtonElement>(".js-cancel-record-delete").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.recordDeleteArmed = null;
-      redraw(container);
     });
   });
   container.querySelectorAll<HTMLButtonElement>(".js-edit-item").forEach((button) => {
@@ -1429,6 +1497,12 @@ function bindDetailEvents(container: HTMLElement): void {
       redraw(container);
     });
   });
+  container.querySelectorAll<HTMLButtonElement>(".js-delete-item").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.deleteConfirmId = button.dataset.id ?? null;
+      redraw(container);
+    });
+  });
   container.querySelectorAll<HTMLButtonElement>(".js-confirm-delete").forEach((button) => {
     button.addEventListener("click", () => {
       deleteItemPermanently(button.dataset.id ?? null);
@@ -1439,7 +1513,8 @@ function bindDetailEvents(container: HTMLElement): void {
 /** Removes one history record (service or inspection event). */
 function deleteRecord(kind: "service" | "inspection", recordId: string): void {
   if (!recordId) return;
-  state.recordDeleteArmed = null;
+  state.recordDeleteConfirm = null;
+  state.recordMenu = null;
   store.update((draft) => {
     if (kind === "service") {
       draft.serviceHistory = draft.serviceHistory.filter((record) => record.id !== recordId);
@@ -1452,6 +1527,7 @@ function deleteRecord(kind: "service" | "inspection", recordId: string): void {
 /** Removes the item AND its history records. Leaves the detail page if open. */
 function deleteItemPermanently(itemId: string | null): void {
   if (!itemId) return;
+  state.deleteConfirmId = null;
   state.deleteArmedId = null;
   state.recordForm = null;
   store.update((draft) => {

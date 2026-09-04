@@ -103,6 +103,9 @@ export const fa = {
       recordInfoServiceTitle: "جزئیات سرویس",
       recordInfoInspectionTitle: "جزئیات بازرسی",
       recordDeleteConfirm: "این سابقه برای همیشه حذف شود؟",
+      recordDeleteTitle: "حذف سابقه",
+      recordMenu: "عملیات سابقه",
+      deleteServiceTitle: "حذف سرویس",
     },
     record: {
       serviceTitle: "ثبت سرویس",
@@ -111,7 +114,6 @@ export const fa = {
       inspectionEditTitle: "ویرایش بازرسی",
       dateLabel: "تاریخ",
       odometerLabel: "کیلومتر (اختیاری)",
-      odometerHint: "خالی بگذارید اگر نمی‌دانید.",
       costLabel: "هزینه (اختیاری)",
       costHint: "مثلاً ۵۰۰٬۰۰۰",
       notesLabel: "یادداشت (اختیاری)",
