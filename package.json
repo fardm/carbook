@@ -9,8 +9,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "gen:icons": "node scripts/gen-icons.mjs"
+    "test": "vitest run"
   },
   "dependencies": {
     "lucide": "^1.40.0"

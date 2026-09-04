@@ -13,10 +13,16 @@ import "./styles/components.css";
 function renderNav(): void {
   const nav = document.getElementById("app-nav");
   if (!nav) return;
-  // Items live in an inner .nav__list so the mobile bottom bar and the
-  // desktop sidebar can size/lay them out independently of the shell (the
-  // desktop <nav> keeps height: 100dvh while .nav__list is content-sized).
+  // Desktop-only brand header (logo + app name at the top of the sidebar;
+  // hidden on mobile where the .app-bar header shows it instead). Items
+  // live in an inner .nav__list so the mobile bottom bar and the desktop
+  // sidebar can size/lay them out independently of the shell (the desktop
+  // <nav> keeps height: 100dvh while .nav__list is content-sized).
   nav.innerHTML = `
+    <div class="nav__brand">
+      <img class="app-bar__icon" src="./favicon.svg" alt="" width="24" height="24" />
+      <span class="nav__brand-title" id="nav-brand-title"></span>
+    </div>
     <div class="nav__list">
       ${routes
         .map(
@@ -31,6 +37,14 @@ function renderNav(): void {
     </div>
   `;
   applyIcons();
+}
+
+/** Fills both the mobile header title and the desktop sidebar brand. */
+function setAppTitles(): void {
+  const appTitle = document.getElementById("app-title");
+  if (appTitle) appTitle.textContent = t("app.title");
+  const brandTitle = document.getElementById("nav-brand-title");
+  if (brandTitle) brandTitle.textContent = t("app.title");
 }
 
 function setActiveNav(routeId: RouteId): void {
@@ -57,10 +71,9 @@ function render(): void {
 }
 
 function boot(): void {
-  const title = document.getElementById("app-title");
-  if (title) title.textContent = t("app.title");
   registerThemeSync();
   renderNav();
+  setAppTitles();
   render();
   window.addEventListener("hashchange", render);
   registerServiceWorker();

@@ -44,9 +44,16 @@
   color: var(--md-sys-color-on-surface);
 }
 
+/* Header logo — the favicon artwork (favicon.svg). Width/height mirror
+ * the 24px lucide icon it replaced; border-radius rounds the square image
+ * like the app icon does. */
 .app-bar__icon {
-  display: inline-flex;
-  color: var(--md-sys-color-primary);
+  display: block;
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  object-fit: contain;
+  flex: none;
 }
 
 .app-bar__actions {
@@ -75,6 +82,12 @@
   display: flex;
   align-items: stretch;
   background-color: var(--md-sys-color-surface-container);
+}
+
+/* Brand header shown inside the DESKTOP sidebar (logo + app name). On
+ * mobile it is hidden — the .app-bar header shows the branding there. */
+.nav__brand {
+  display: none;
 }
 
 .nav__list {
@@ -155,9 +168,15 @@
     display: grid;
     grid-template-columns: auto 1fr;
     grid-template-rows: auto 1fr;
+    /* The app-bar (mobile header) is hidden on desktop; the sidebar brand
+     * lives inside the nav, so only nav + content areas exist here. */
     grid-template-areas:
-      "nav bar"
+      "nav content"
       "nav content";
+  }
+
+  .app-bar {
+    display: none; /* branding moved into the sidebar (.nav__brand) */
   }
 
   .nav {
@@ -172,6 +191,24 @@
     border-top: none;
     border-inline-end: 1px solid var(--md-sys-color-outline-variant);
     padding-bottom: var(--md-space-4);
+  }
+
+  .nav__brand {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: var(--md-space-2);
+    font-size: var(--md-typescale-title-medium);
+    font-weight: 600;
+    color: var(--md-sys-color-on-surface);
+    padding: var(--md-space-1) var(--md-space-3) var(--md-space-4);
+    margin-bottom: var(--md-space-4);
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  }
+
+  .nav__brand .app-bar__icon {
+    /* Image logo: keep it from shrinking inside the flex brand row. */
+    flex: none;
   }
 
   .nav__list {
@@ -215,10 +252,6 @@
 
   .nav__item:hover:not([aria-current="page"]) {
     background-color: var(--md-sys-color-surface-container-high);
-  }
-
-  .app-bar {
-    grid-area: bar;
   }
 
   .app-content {

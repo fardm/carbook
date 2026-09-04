@@ -2,7 +2,7 @@
  * Service worker — offline app shell (§44).
  *
  * Strategy: CACHE-FIRST for every same-origin GET, with the full shell
- * (index.html, hashed JS/CSS, fonts, icons, manifest) precached at install.
+ * (index.html, hashed JS/CSS, fonts, favicon.svg) precached at install.
  * The FIRST visit still works normally (a service worker cannot control the
  * page that registers it); install fetches the shell + its assets so the
  * SECOND load onward is fully offline-capable.

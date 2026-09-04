@@ -1367,6 +1367,54 @@ Post-Phase-13 UI adjustments (user-requested, layout):
     height 72px) — layout verified live at 440px as visually
     identical (5 equal items, indicator bar, active/hover states).
     Desktop ≥900px still needs a real-browser visual check.
+61d. **Desktop branding moved into the sidebar (no separate top bar)**: on
+    desktop the `.app-bar` (mobile header) is `display: none`, and the
+    sidebar gets a `.nav__brand` block at its top — the same orange
+    car-front icon + app name (reusing `.app-bar__icon` and
+    `title-medium/600` type, so typography/colors are identical to the
+    mobile header), with a divider (`border-bottom`) and spacing before
+    the nav items. Structure inside `.nav` is now brand → `.nav__list`
+    → items; `.nav` still fills 100dvh and `justify-content:
+    flex-start`, so the brand sits at the very top and the content-sized
+    list follows directly beneath it. `renderNav()` in main.ts injects
+    the brand block; `setAppTitles()` fills both the mobile header title
+    and the sidebar brand title from the same `app.title` key. The
+    desktop grid dropped the “bar” row (`grid-template-areas:
+    "nav content" / "nav content"`).    Mobile: header + bottom nav are
+    pixel-unchanged (brand block is `display: none` below 900px) —
+    verified live at 440 px.
+61e. **Favicon asset consolidation: `favicon.svg` is now the ONLY icon
+    asset** (user request). `index.html` points its `rel=icon` at
+    `/favicon.svg`; the apple-touch-icon link, the web app manifest link,
+    and `public/manifest.webmanifest` were REMOVED (its icon list
+    referenced the deleted PNGs, and SVG-only manifests are not valid
+    installable-PWA icons). Deleted files: `public/icon.svg`,
+    `public/icon-{180,192,512}.png`, and `scripts/gen-icons.mjs` (+ the
+    `gen:icons` npm script). `public/favicon.svg` (a detailed car-roundel
+    design in the brand orange `#ef8216`/`#f2870d` family) is served by
+    Vite and copied to `dist/`. The service worker still precaches the
+    shell — index.html, hashed JS/CSS, fonts, and now favicon.svg — and
+    needs NO new PNGs (its comment was updated). Trade-off (accepted per
+    the explicit request): without 192/512 PNG icons + manifest the app
+    is no longer installable as a PWA under Chromium's criteria, and iOS
+    loses its apple-touch-icon; the app itself (offline SW + local data)
+    is unaffected.    PROCESS.md historical Phase 11 records still describe
+    the manifest/icons as they existed then — they are history, not live
+    state.
+61f. **Header logo icon = the favicon artwork** (user request): the lucide
+    `car-front` inline SVG in the two header brand spots (mobile `.app-bar`
+    in index.html and the desktop `.nav__brand` rendered by main.ts) is
+    replaced by `<img class="app-bar__icon" src="./favicon.svg" alt=""
+    width=24 height=24>`. `.app-bar__icon` is now an IMAGE style — `display:
+    block`, explicit 24×24, `border-radius: 5px`, `flex: none` (the
+    `color: var(--md-sys-color-primary)` tint that only applied to the
+    monochrome lucide glyph was removed; the favicon carries its own
+    colors). The brand rows keep their existing flex alignment/gap, so
+    size/positioning are unchanged. The dashboard vehicle card and nav
+    route icons still use `car-front` via lucide (different components,
+    untouched). Verified live at 440 px: 24px favicon image renders in the
+    mobile header; typecheck/tests/build clean, `./favicon.svg` in the
+    built index.html.
 
 ---
 
