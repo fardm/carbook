@@ -603,6 +603,11 @@ function serviceFormModalHtml(): string {
   // The icon field belongs to custom services only (دلخواه); catalog-based
   // services keep their predefined icon (§37).
   const isCustom = form.mode === "edit" ? (item?.catalogId == null) : form.catalogId == null;
+  // Current odometer of the selected vehicle, offered as a quick-fill for
+  // «کیلومتر آخرین تعویض»; disabled when no mileage is on record.
+  const currentKm = vehicleId
+    ? (dataset.vehicles.find((v) => v.id === vehicleId)?.currentOdometer ?? null)
+    : null;
 
   const displayOptions = DISPLAY_OPTIONS.map(
     (option) => `
@@ -635,6 +640,11 @@ function serviceFormModalHtml(): string {
       <label class="field__label" for="service-odometer">${t("services.replacementKm")} (${t("common.kmUnit")})</label>
       <input class="field__input" id="service-odometer" name="serviceOdometer" type="number"
         inputmode="numeric" min="0" step="1" value="${escHtml(fieldValue("serviceOdometer"))}" />
+      <button type="button" class="btn btn--text field-action js-use-current-km"
+        ${currentKm == null ? "disabled" : ""}>
+        <span data-lucide="gauge"></span>
+        <span>${t("services.useCurrentKm")}</span>
+      </button>
       <p class="field__error" id="service-error-odometer" hidden></p>
     </div>
   `;
@@ -1641,6 +1651,22 @@ function bindFormEvents(container: HTMLElement): void {
     button.addEventListener("click", () => {
       state.displayMode = (button.dataset.display as DisplayMode) ?? "auto";
       redraw(container);
+    });
+  });
+  /* «استفاده از کیلومتر فعلی»: quick-fills the last-replacement odometer
+   * with the vehicle's registered mileage. Only a UI convenience — the
+   * value flows through the same input/capture path as manual typing. */
+  container.querySelectorAll<HTMLButtonElement>(".js-use-current-km").forEach((button) => {
+    button.addEventListener("click", () => {
+      const dataset = store.get();
+      const vehicleId = resolveSelectedVehicleId(dataset);
+      const km = vehicleId ? (dataset.vehicles.find((v) => v.id === vehicleId)?.currentOdometer ?? null) : null;
+      if (km == null) return;
+      const input = container.querySelector<HTMLInputElement>("#service-odometer");
+      if (!input) return;
+      input.value = String(km);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
     });
   });
 

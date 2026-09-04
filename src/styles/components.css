@@ -2115,6 +2115,36 @@ textarea.field__input {
   padding-top: var(--md-space-1);
 }
 
+/* Small secondary action under a field (e.g. «استفاده از کیلومتر فعلی»):
+ * compact, quiet, never competes with the input itself. */
+.field-action {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-space-1);
+  margin-block-start: var(--md-space-1);
+  padding: var(--md-space-1) var(--md-space-2);
+  border-radius: var(--md-shape-full);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-typescale-label-medium);
+  font-weight: 600;
+}
+
+.field-action svg {
+  width: 14px;
+  height: 14px;
+}
+
+.field-action:hover:not(:disabled) {
+  color: var(--md-sys-color-primary);
+  background-color: color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
+}
+
+.field-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* --- Card hover: pointer cursor but text is never underlined --- */
 .btn,
 .btn:hover,

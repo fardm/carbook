@@ -184,6 +184,7 @@ export const fa = {
     iconPickerHint: "برای انتخاب آیکون متفاوت کلیک کنید.",
     replacementDate: "تاریخ آخرین تعویض",
     replacementKm: "کیلومتر آخرین تعویض",
+    useCurrentKm: "استفاده از کیلومتر فعلی",
     lifeKm: "عمر قطعه",
     calculationMode: "نحوه محاسبه سلامت قطعه",
     healthModeKmHint:
