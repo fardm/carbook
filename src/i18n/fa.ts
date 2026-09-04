@@ -11,12 +11,13 @@ export const fa = {
   },
   nav: {
     vehicle: "خودروها",
-    maintenance: "سرویس ها",
+    maintenance: "سرویس‌ها",
     settings: "تنظیمات",
   },
   common: {
     save: "ذخیره",
     cancel: "انصراف",
+    close: "بستن",
     edit: "ویرایش",
     kmUnit: "کیلومتر",
   },
@@ -105,7 +106,7 @@ export const fa = {
       deleteServiceTitle: "حذف سرویس",
     },
     record: {
-      serviceTitle: "ثبت سرویس",
+      serviceTitle: "ثبت تعویض",
       serviceEditTitle: "ویرایش سرویس",
       inspectionTitle: "ثبت بازرسی",
       inspectionEditTitle: "ویرایش بازرسی",
@@ -156,10 +157,8 @@ export const fa = {
       errorInvalidOdometer: "کیلومتر باید عددی صحیح و غیرمنفی باشد.",
     },
     display: {
-      auto: "خودکار",
       km: "کیلومتر",
       time: "زمان",
-      both: "هر دو",
     },
     condition: {
       good: "خوب",
@@ -187,11 +186,13 @@ export const fa = {
     replacementDate: "تاریخ تعویض",
     replacementKm: "کیلومتر تعویض",
     lifeTitle: "عمر قطعه",
-    lifeMonths: "مدت زمان (ماه)",
     lifeKm: "کیلومتر",
-    calculationMode: "نحوه محاسبه عمر قطعه",
-    calculationModeHint:
-      "باقی‌مانده عمر به‌صورت خودکار از آخرین تعویض محاسبه می‌شود؛ «خودکار» یعنی هر معیاری زودتر برسد ملاک است.",
+    calculationMode: "نحوه محاسبه سلامت قطعه",
+    healthModeKmHint:
+      "سلامت قطعه بر اساس کیلومتر باقی‌مانده تا کیلومتر پیشنهادی تعویض محاسبه می‌شود.",
+    healthModeTimeHint:
+      "با استفاده از میانگین پیمایش روزانه، زمان تقریبی رسیدن به کیلومتر پیشنهادی تعویض محاسبه و بر اساس آن سلامت قطعه تعیین می‌شود.",
+    menuLabel: "عملیات سرویس",
     editService: "ویرایش",
   },
   settings: {
@@ -286,8 +287,9 @@ export const fa = {
     mileageFor: "خودرو",
     mileageLabel: "کیلومتر فعلی",
     mileageHint: "کیلومتر فعلی خودرو را وارد کنید.",
-    services: "سرویس ها",
+    services: "سرویس‌ها",
     makeDefault: "انتخاب به عنوان پیشفرض",
+    makeDefaultHint: "نمایش این خودرو به‌عنوان پیش‌فرض در صفحه سرویس‌ها",
     removeDefault: "برداشتن از پیشفرض",
     defaultBadge: "پیشفرض",
     menuLabel: "عملیات خودرو",
@@ -306,7 +308,7 @@ export const fa = {
   },
   view: {
     maintenance: {
-      title: "سرویس ها",
+      title: "سرویس‌ها",
     },
     vehicle: {
       title: "خودروها",

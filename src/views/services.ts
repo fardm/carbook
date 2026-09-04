@@ -59,7 +59,7 @@ import {
  *   plus a دلخواه card). Picking a type opens the service form.
  * - The form saves a service bound to the selected vehicle: title (auto from
  *   the type, editable), icon, replacement (تاریخ تعویض / کیلومتر تعویض),
- *   part life (مدت زمان / کیلومتر) and the calculation mode
+ *   the kilometer-based part lifetime (عمر قطعه) and the calculation mode
  *   (خودکار / کیلومتر / زمان / هردو → DisplayMode).
  * - Active services render as cards with a donut of the remaining part life;
  *   clicking a card opens the per-service detail page (status overview,
@@ -96,10 +96,14 @@ interface ServicesViewState {
   recordMenu: { kind: "service" | "inspection"; recordId: string } | null;
   /** History record pending deletion (dedicated confirm modal). */
   recordDeleteConfirm: { kind: "service" | "inspection"; recordId: string } | null;
-  /** Item pending deletion (dedicated confirm modal, detail header). */
+  /** Item pending deletion (dedicated confirm modal). */
   deleteConfirmId: string | null;
   /** Item armed for permanent deletion (legacy inline confirm, list page). */
   deleteArmedId: string | null;
+  /** Service card whose three-dot menu is open (list + detail). */
+  serviceMenuId: string | null;
+  /** Service History section on the detail page is expanded. */
+  historyOpen: boolean;
 }
 
 const state: ServicesViewState = {
@@ -108,7 +112,7 @@ const state: ServicesViewState = {
   form: null,
   iconPickerOpen: false,
   icon: "wrench",
-  displayMode: "auto",
+  displayMode: "km",
   formValues: {},
   recordForm: null,
   recordDetails: null,
@@ -116,6 +120,8 @@ const state: ServicesViewState = {
   recordDeleteConfirm: null,
   deleteConfirmId: null,
   deleteArmedId: null,
+  serviceMenuId: null,
+  historyOpen: false,
 };
 
 /** Typed form-field value that survives re-renders (decision 31). */
@@ -130,12 +136,18 @@ function captureFormValue(event: Event): void {
   state.formValues[target.name] = target.value;
 }
 
-const DISPLAY_OPTIONS: readonly { value: DisplayMode; key: MessageKey }[] = [
-  { value: "auto", key: "maintenance.display.auto" },
-  { value: "km", key: "maintenance.display.km" },
-  { value: "time", key: "maintenance.display.time" },
-  { value: "both", key: "maintenance.display.both" },
+/** Health-calculation choices in the service form: only کیلومتر / زمان are
+ * offered now (خودکار/هردو were removed). Each carries its own explanation. */
+const DISPLAY_OPTIONS: readonly { value: DisplayMode; key: MessageKey; hintKey: MessageKey }[] = [
+  { value: "km", key: "maintenance.display.km", hintKey: "services.healthModeKmHint" },
+  { value: "time", key: "maintenance.display.time", hintKey: "services.healthModeTimeHint" },
 ];
+
+/** Maps a stored/legacy display mode onto the two remaining health modes
+ * (legacy auto/both behave like کیلومتر for mileage-only parts). */
+function healthMode(value: DisplayMode): DisplayMode {
+  return value === "km" || value === "time" ? value : "km";
+}
 
 const CONDITION_OPTIONS: readonly { value: InspectionCondition; key: MessageKey }[] = [
   { value: "good", key: "maintenance.condition.good" },
@@ -445,6 +457,7 @@ function serviceCardHtml(item: MaintenanceItem, dataset: ReturnType<typeof store
           </div>
         </div>
       </a>
+      ${serviceItemMenuHtml(item.id)}
     </article>
   `;
 }
@@ -582,17 +595,20 @@ function serviceFormModalHtml(): string {
   const entry = !editing && form.catalogId ? catalogEntry(form.catalogId) : null;
 
   const prefillKm = editing ? item?.rule.intervalKm ?? null : entry?.suggestedKm ?? null;
-  const prefillMonths = editing ? item?.rule.intervalMonths ?? null : entry?.suggestedMonths ?? null;
   const prefillName = editing ? item?.name ?? "" : entry?.name.fa ?? "";
   const title = t(editing ? "maintenance.editTitle" : "services.addService");
   const vehicleId = resolveSelectedVehicleId(dataset);
 
   const displayOptions = DISPLAY_OPTIONS.map(
     (option) => `
-      <button type="button" class="segmented__option js-display-option
-        ${state.displayMode === option.value ? "segmented__option--active" : ""}"
+      <button type="button" class="health-option js-display-option
+        ${state.displayMode === option.value ? "health-option--active" : ""}"
         data-display="${option.value}" role="radio" aria-checked="${state.displayMode === option.value}">
-        ${t(option.key)}
+        <span class="health-option__indicator" aria-hidden="true"></span>
+        <span class="health-option__text">
+          <span class="health-option__title">${t(option.key)}</span>
+          <span class="health-option__hint">${t(option.hintKey)}</span>
+        </span>
       </button>
     `,
   ).join("");
@@ -648,30 +664,20 @@ function serviceFormModalHtml(): string {
           ${replacementSection}
 
           <h3 class="form__section">${t("services.lifeTitle")}</h3>
-          <div class="form__grid">
-            <div class="field">
-              <label class="field__label" for="service-months">${t("services.lifeMonths")}</label>
-              <input class="field__input" id="service-months" name="intervalMonths" type="number"
-                inputmode="numeric" min="1" step="1"
-                value="${escHtml(fieldValue("intervalMonths", prefillMonths != null ? String(prefillMonths) : ""))}" />
-              <p class="field__error" id="service-error-months" hidden></p>
-            </div>
-            <div class="field">
-              <label class="field__label" for="service-km">${t("services.lifeKm")} (${t("common.kmUnit")})</label>
-              <input class="field__input" id="service-km" name="intervalKm" type="number"
-                inputmode="numeric" min="1" step="1"
-                value="${escHtml(fieldValue("intervalKm", prefillKm != null ? String(prefillKm) : ""))}" />
-              <p class="field__error" id="service-error-km" hidden></p>
-            </div>
+          <div class="field">
+            <label class="field__label" for="service-km">${t("services.lifeKm")}</label>
+            <input class="field__input" id="service-km" name="intervalKm" type="number"
+              inputmode="numeric" min="1" step="1"
+              value="${escHtml(fieldValue("intervalKm", prefillKm != null ? String(prefillKm) : ""))}" />
+            <p class="field__error" id="service-error-km" hidden></p>
           </div>
           <p class="field__error" id="service-error-rule" hidden></p>
 
           <div class="field">
-            <label class="field__label">${t("services.calculationMode")}</label>
-            <div class="segmented" role="radiogroup" aria-label="${t("services.calculationMode")}">
+            <span class="field__label" id="service-health-mode-label">${t("services.calculationMode")}</span>
+            <div class="health-options" role="radiogroup" aria-labelledby="service-health-mode-label">
               ${displayOptions}
             </div>
-            <p class="field__hint">${t("services.calculationModeHint")}</p>
           </div>
 
           <div class="form__actions">
@@ -688,6 +694,10 @@ function serviceFormModalHtml(): string {
 
 /* --- Detail page (§32–§36): status/calculations + history + record forms --- */
 
+/** The detail item whose page is currently rendered — used to reset the
+ * history section to its collapsed default when switching items. */
+let renderedDetailItemId: string | null = null;
+
 function itemDetailPageHtml(itemId: string): string {
   const dataset = store.get();
   const item = dataset.maintenanceItems.find((candidate) => candidate.id === itemId);
@@ -700,52 +710,63 @@ function itemDetailPageHtml(itemId: string): string {
       <section class="card"><p class="empty-note">${t("maintenance.detail.notFound")}</p></section>
     `;
   }
+  if (renderedDetailItemId !== item.id) {
+    renderedDetailItemId = item.id;
+    state.historyOpen = false;
+  }
 
   const inactive = !item.active;
   const backLink = `<a class="btn btn--text detail-back" href="${back}">${t("maintenance.detail.backToList")}</a>`;
 
-  const overviewHtml = detailOverviewHtml(item, dataset);
-  const actionRow = detailActionRowHtml(item, inactive);
-
   const services = dataset.serviceHistory.filter((r) => r.maintenanceItemId === itemId);
   const inspections = dataset.inspectionHistory.filter((r) => r.maintenanceItemId === itemId);
 
-  const lifetimeRow = detailLifetimeRowHtml(item);
-
   return `
     ${backLink}
-    <section class="card">
-      <div class="detail-head">
-        <span class="item-list__icon" data-lucide="${item.icon}"></span>
-        <div class="detail-head__info">
-          <div class="detail-head__title">
-            <span class="item-list__name">${escHtml(item.name)}</span>
+    <section class="card service-detail-card">
+      ${serviceItemMenuHtml(item.id)}
+      <div class="service-detail-card__sections">
+        <section class="service-detail__section">
+          <div class="service-info">
+            <span class="service-info__icon" data-lucide="${item.icon}"></span>
+            <div class="service-info__main">
+              <div class="service-info__name">${escHtml(item.name)}</div>
+              ${detailLifetimeRowHtml(item)}
+            </div>
           </div>
-          ${lifetimeRow}
-        </div>
-        ${detailHeadActionsHtml(item)}
+          ${inactive ? `<div class="service-detail__actions">${detailActionRowHtml(item, inactive)}</div>` : ""}
+        </section>
+        ${detailOverviewSectionHtml(item, dataset)}
+        ${detailHistorySectionHtml(item, services, inspections)}
       </div>
-      ${actionRow ? `<div class="detail-actions">${actionRow}</div>` : ""}
     </section>
-    ${overviewHtml}
-    ${detailHistoryHtml(item, services, inspections)}
   `;
 }
 
-/** Actions on the detail header, aligned opposite the title: an edit pencil
- * and a delete (trash) icon. The trash opens a dedicated confirmation modal
- * (deleteConfirmModalHtml) — nothing is injected into the page. */
-function detailHeadActionsHtml(item: MaintenanceItem): string {
+/** Dropdown three-dot menu (ویرایش / حذف) pinned to the top corner of a
+ * service card — the detail page's main card and every list-page card. */
+function serviceItemMenuHtml(itemId: string): string {
+  const open = state.serviceMenuId === itemId;
   return `
-    <div class="detail-head__actions">
-      <button type="button" class="icon-btn js-edit-item" data-id="${escHtml(item.id)}"
-        aria-label="${t("maintenance.editItem")}" title="${t("maintenance.editItem")}">
-        <span data-lucide="pencil"></span>
+    <div class="card-menu service-card-menu">
+      <button type="button" class="icon-btn js-service-menu-toggle" data-id="${escHtml(itemId)}"
+        aria-haspopup="menu" aria-expanded="${open}"
+        aria-label="${t("services.menuLabel")}" title="${t("services.menuLabel")}">
+        <span data-lucide="more-vertical"></span>
       </button>
-      <button type="button" class="icon-btn icon-btn--danger js-delete-item" data-id="${escHtml(item.id)}"
-        aria-label="${t("maintenance.detail.delete")}" title="${t("maintenance.detail.delete")}">
-        <span data-lucide="trash-2"></span>
-      </button>
+      ${open ? `
+        <div class="card-menu__backdrop js-service-menu-backdrop"></div>
+        <div class="card-menu__popover" role="menu" aria-label="${t("services.menuLabel")}">
+          <button type="button" class="card-menu__item js-service-menu-edit" role="menuitem" data-id="${escHtml(itemId)}">
+            <span data-lucide="pencil"></span>
+            ${t("maintenance.editItem")}
+          </button>
+          <div class="card-menu__divider" role="separator"></div>
+          <button type="button" class="card-menu__item card-menu__item--danger js-service-menu-delete" role="menuitem" data-id="${escHtml(itemId)}">
+            <span data-lucide="trash-2"></span>
+            ${t("maintenance.detail.delete")}
+          </button>
+        </div>` : ""}
     </div>
   `;
 }
@@ -790,90 +811,82 @@ function calendarEventHref(
   });
 }
 
-/** Lifetime row directly below the service title: the part lifetime the user
- * configured, in kilometers and in time (e.g. ۵٬۰۰۰ کیلومتر · ۶ ماه). */
+/** Lifetime row under the service name: the configured part lifetime — in
+ * kilometers only (time-based part lifetime was removed). */
 function detailLifetimeRowHtml(item: MaintenanceItem): string {
-  const { intervalKm, intervalMonths } = item.rule;
-  const parts: string[] = [];
-  if (intervalKm != null) {
-    parts.push(`
-      <span class="detail-head__lifetime-item">
+  const { intervalKm } = item.rule;
+  if (intervalKm == null) return "";
+  return `
+    <div class="service-info__lifetime">
+      <span class="service-info__lifetime-item">
         <span data-lucide="gauge"></span>
         ${faNum(intervalKm)} ${t("common.kmUnit")}
-      </span>`);
-  }
-  if (intervalMonths != null) {
-    parts.push(`
-      <span class="detail-head__lifetime-item">
-        <span data-lucide="calendar"></span>
-        ${faNum(intervalMonths)} ${t("maintenance.monthsUnit")}
-      </span>`);
-  }
-  return parts.length > 0 ? `<div class="detail-head__lifetime">${parts.join("")}</div>` : "";
+      </span>
+    </div>
+  `;
 }
 
 /**
- * Status section: exactly three items — سلامتی (health donut), تاریخ
- * پیشنهادی تعویض (date + remaining time), and کیلومتر پیشنهادی تعویض
- * (mileage + remaining km). All values come from the engine, which combines
- * the user's configured lifetime with the vehicle's current odometer/date.
+ * Status section inside the unified detail card: row 1 is the small health
+ * donut (percentage inside), then the recommended replacement date with the
+ * remaining days as a same-row badge, then the recommended replacement
+ * mileage with the remaining km as a same-row badge.
  */
-function detailOverviewHtml(item: MaintenanceItem, dataset: ReturnType<typeof store.get>): string {
+function detailOverviewSectionHtml(item: MaintenanceItem, dataset: ReturnType<typeof store.get>): string {
   const calc = calculateMaintenance(item, contextForVehicle(dataset, item.vehicleId));
   const percent = calc.remainingPercent;
 
   const healthBlock =
     percent != null
       ? `
-      <div class="health">
-        <div class="health__donut">${donutHtml(percent, calc.status, item.name)}</div>
-        <div class="health__label">${t("maintenance.detail.health")}</div>
+      <div class="status-health">
+        ${donutHtml(percent, calc.status, item.name)}
+        <span class="status-health__label">${t("maintenance.detail.health")}</span>
       </div>`
       : "";
 
   const recommendedDate = calc.estimatedDueDate ?? calc.nextDueDate;
   const dateValue = recommendedDate ? formatDate(recommendedDate) : t("maintenance.detail.notRecorded");
-  let dateMeta = "";
+  let dateBadge = "";
   if (recommendedDate) {
     const days = diffDays(recommendedDate, todayIso());
-    dateMeta =
+    dateBadge =
       days >= 0
         ? `${faNum(days)} ${t("maintenance.detail.remainingDays")}`
         : `${faNum(-days)} ${t("maintenance.detail.pastDays")}`;
   }
 
   const dueKm = calc.nextDueOdometer;
-  const kmValue = dueKm != null ? faNum(dueKm) : t("maintenance.detail.notRecorded");
-  let kmMeta = "";
+  const kmValue =
+    dueKm != null ? `${faNum(dueKm)} ${t("common.kmUnit")}` : t("maintenance.detail.notRecorded");
+  let kmBadge = "";
   if (calc.remainingKm != null) {
-    kmMeta =
+    kmBadge =
       calc.remainingKm >= 0
-        ? `${faNum(calc.remainingKm)} ${t("maintenance.detail.remainingKm")}`
-        : `${faNum(-calc.remainingKm)} ${t("maintenance.detail.pastKm")}`;
+        ? `${faNum(calc.remainingKm)} ${t("common.kmUnit")} ${t("maintenance.detail.remainingKm")}`
+        : `${faNum(-calc.remainingKm)} ${t("common.kmUnit")} ${t("maintenance.detail.pastKm")}`;
   }
 
   return `
-    <section class="card">
-      <h2 class="card__title">${t("maintenance.detail.overviewTitle")}</h2>
-      <div class="health-grid">
-        ${healthBlock}
-        <dl class="info-list health-list">
-          <div class="info-list__row">
-            <dt>${t("maintenance.detail.recommendedDate")}</dt>
-            <dd>
-              ${escHtml(dateValue)}
-              ${dateMeta ? `<span class="info-list__meta">${escHtml(dateMeta)}</span>` : ""}
-            </dd>
-          </div>
-          <div class="info-list__row">
-            <dt>${t("maintenance.detail.recommendedKm")}</dt>
-            <dd>
-              ${escHtml(kmValue)}
-              ${kmMeta ? `<span class="info-list__meta">${escHtml(kmMeta)}</span>` : ""}
-            </dd>
-          </div>
-        </dl>
-      </div>
+    <section class="service-detail__section">
+      <h2 class="service-detail__section-title">${t("maintenance.detail.overviewTitle")}</h2>
+      ${healthBlock}
+      <dl class="status-rows">
+        <div class="status-row">
+          <dt>${t("maintenance.detail.recommendedDate")}</dt>
+          <dd>
+            <span class="status-row__value">${escHtml(dateValue)}</span>
+            ${dateBadge ? `<span class="status-row__badge">${escHtml(dateBadge)}</span>` : ""}
+          </dd>
+        </div>
+        <div class="status-row">
+          <dt>${t("maintenance.detail.recommendedKm")}</dt>
+          <dd>
+            <span class="status-row__value">${escHtml(kmValue)}</span>
+            ${kmBadge ? `<span class="status-row__badge">${escHtml(kmBadge)}</span>` : ""}
+          </dd>
+        </div>
+      </dl>
     </section>
   `;
 }
@@ -944,8 +957,12 @@ function historyRecordRowHtml(
   `;
 }
 
-/** Service + inspection history sections. */
-function detailHistoryHtml(
+/** History content inside the unified card's third section — collapsible:
+ * the section header toggles the panel (collapsed by default, per item).
+ * The item's own history comes first (سوابق سرویس for replacement items /
+ * سوابق بازرسی for inspection-based items), with the other kind listed
+ * beneath it whenever such records exist. */
+function detailHistorySectionHtml(
   item: MaintenanceItem,
   services: ServiceRecord[],
   inspections: InspectionRecord[],
@@ -953,25 +970,43 @@ function detailHistoryHtml(
   const serviceRows = sortHistoryNewestFirst(services)
     .map((record) => historyRecordRowHtml("service", record))
     .join("");
-
   const inspectionRows = sortHistoryNewestFirst(inspections)
     .map((record) => historyRecordRowHtml("inspection", record))
     .join("");
 
-  const showServices = !item.rule.inspectionBased || services.length > 0;
-  const showInspections = item.rule.inspectionBased || inspections.length > 0;
+  const inspectionBased = item.rule.inspectionBased;
+  const title = t(
+    inspectionBased
+      ? "maintenance.detail.inspectionHistoryTitle"
+      : "maintenance.detail.serviceHistoryTitle",
+  );
+  const serviceBlock = serviceRows ? `<ul class="history__list">${serviceRows}</ul>` : "";
+  const inspectionBlock = inspectionRows ? `<ul class="history__list">${inspectionRows}</ul>` : "";
+
+  let content = "";
+  if (state.historyOpen) {
+    if (inspectionBased) {
+      content = `
+      ${inspectionBlock || `<p class="history__empty">${t("maintenance.detail.noInspectionHistory")}</p>`}
+      ${serviceBlock ? `<h3 class="service-detail__subtitle">${t("maintenance.detail.serviceHistoryTitle")}</h3>${serviceBlock}` : ""}`;
+    } else {
+      content = `
+      ${serviceBlock || `<p class="history__empty">${t("maintenance.detail.noServiceHistory")}</p>`}
+      ${inspectionBlock ? `<h3 class="service-detail__subtitle">${t("maintenance.detail.inspectionHistoryTitle")}</h3>${inspectionBlock}` : ""}`;
+    }
+  }
 
   return `
-    ${showServices ? `
-      <section class="card history">
-        <h2 class="card__title">${t("maintenance.detail.serviceHistoryTitle")}</h2>
-        ${serviceRows ? `<ul class="history__list">${serviceRows}</ul>` : `<p class="history__empty">${t("maintenance.detail.noServiceHistory")}</p>`}
-      </section>` : ""}
-    ${showInspections ? `
-      <section class="card history">
-        <h2 class="card__title">${t("maintenance.detail.inspectionHistoryTitle")}</h2>
-        ${inspectionRows ? `<ul class="history__list">${inspectionRows}</ul>` : `<p class="history__empty">${t("maintenance.detail.noInspectionHistory")}</p>`}
-      </section>` : ""}
+    <section class="service-detail__section">
+      <h2 class="service-detail__section-title">
+        <button type="button" class="collapse-head js-history-toggle" aria-expanded="${state.historyOpen}"
+          aria-controls="service-detail-history-panel">
+          <span>${title}</span>
+          <span class="collapse-head__chevron" data-lucide="chevron-down"></span>
+        </button>
+      </h2>
+      <div id="service-detail-history-panel" class="service-detail__history-panel">${content}</div>
+    </section>
   `;
 }
 
@@ -1178,7 +1213,13 @@ function recordDetailsModalHtml(): string {
   return `
     <div class="modal-overlay">
       <div class="modal" role="dialog" aria-modal="true" aria-label="${escHtml(title)}">
-        <div class="form__title">${escHtml(title)}</div>
+        <div class="modal__head">
+          <div class="form__title">${escHtml(title)}</div>
+          <button type="button" class="icon-btn js-close-overlay"
+            aria-label="${t("common.close")}" title="${t("common.close")}">
+            <span data-lucide="x"></span>
+          </button>
+        </div>
         ${list ? `<dl class="info-list">${list}</dl>` : ""}
         ${
           notes
@@ -1189,9 +1230,6 @@ function recordDetailsModalHtml(): string {
         </div>`
             : ""
         }
-        <div class="form__actions">
-          <button type="button" class="btn btn--text js-close-overlay">${t("common.cancel")}</button>
-        </div>
       </div>
     </div>
   `;
@@ -1346,6 +1384,11 @@ function registerGlobalKeys(): void {
       redraw(container);
       return;
     }
+    if (state.serviceMenuId) {
+      state.serviceMenuId = null;
+      redraw(container);
+      return;
+    }
     if (
       !(
         state.pickerOpen ||
@@ -1378,7 +1421,7 @@ function openServiceForm(catalogId: string | null): void {
   state.formValues = {};
   const entry = catalogId ? catalogEntry(catalogId) : null;
   state.icon = entry?.icon ?? "wrench";
-  state.displayMode = entry?.displayMode ?? "auto";
+  state.displayMode = healthMode(entry?.displayMode ?? "km");
 }
 
 function openEditServiceForm(item: MaintenanceItem): void {
@@ -1387,7 +1430,7 @@ function openEditServiceForm(item: MaintenanceItem): void {
   state.iconPickerOpen = false;
   state.formValues = {};
   state.icon = item.icon;
-  state.displayMode = item.rule.displayMode;
+  state.displayMode = healthMode(item.rule.displayMode);
 }
 
 function closeModals(): void {
@@ -1400,11 +1443,51 @@ function closeModals(): void {
   state.recordDeleteConfirm = null;
   state.deleteConfirmId = null;
   state.deleteArmedId = null;
+  state.serviceMenuId = null;
 }
 
 /** Events on the detail page. */
 function bindDetailEvents(container: HTMLElement): void {
   const currentItemId = maintenanceItemIdFromHash(window.location.hash);
+
+  /* Service History section on the detail page: expand/collapse. */
+  container.querySelectorAll<HTMLButtonElement>(".js-history-toggle").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.historyOpen = !state.historyOpen;
+      redraw(container);
+    });
+  });
+
+  /* Three-dot menu on service cards (list page + detail page): toggle +
+   * click-away backdrop + ویرایش/حذف items. */
+  container.querySelectorAll<HTMLButtonElement>(".js-service-menu-toggle").forEach((button) => {
+    button.addEventListener("click", () => {
+      const id = button.dataset.id ?? null;
+      state.recordMenu = null;
+      state.serviceMenuId = state.serviceMenuId === id ? null : id;
+      redraw(container);
+    });
+  });
+  container.querySelector<HTMLElement>(".js-service-menu-backdrop")?.addEventListener("click", () => {
+    state.serviceMenuId = null;
+    redraw(container);
+  });
+  container.querySelectorAll<HTMLButtonElement>(".js-service-menu-edit").forEach((button) => {
+    button.addEventListener("click", () => {
+      const item = store.get().maintenanceItems.find((candidate) => candidate.id === button.dataset.id);
+      if (!item) return;
+      state.serviceMenuId = null;
+      openEditServiceForm(item);
+      redraw(container);
+    });
+  });
+  container.querySelectorAll<HTMLButtonElement>(".js-service-menu-delete").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.serviceMenuId = null;
+      state.deleteConfirmId = button.dataset.id ?? null;
+      redraw(container);
+    });
+  });
 
   container.querySelectorAll<HTMLButtonElement>(".js-record-service, .js-record-inspection").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1412,6 +1495,7 @@ function bindDetailEvents(container: HTMLElement): void {
       state.recordDetails = null;
       state.recordMenu = null;
       state.recordDeleteConfirm = null;
+      state.serviceMenuId = null;
       state.recordForm = { kind, recordId: null, itemId: button.dataset.id ?? currentItemId ?? "" };
       redraw(container);
     });
@@ -1430,6 +1514,7 @@ function bindDetailEvents(container: HTMLElement): void {
       const id = button.dataset.id ?? "";
       state.recordMenu =
         state.recordMenu?.kind === kind && state.recordMenu.recordId === id ? null : { kind, recordId: id };
+      state.serviceMenuId = null;
       redraw(container);
     });
   });
@@ -1472,14 +1557,6 @@ function bindDetailEvents(container: HTMLElement): void {
       deleteRecord(button.dataset.kind === "inspection" ? "inspection" : "service", button.dataset.id ?? "");
     });
   });
-  container.querySelectorAll<HTMLButtonElement>(".js-edit-item").forEach((button) => {
-    button.addEventListener("click", () => {
-      const item = store.get().maintenanceItems.find((candidate) => candidate.id === button.dataset.id);
-      if (!item) return;
-      openEditServiceForm(item);
-      redraw(container);
-    });
-  });
   container.querySelectorAll<HTMLButtonElement>(".js-reactivate-item").forEach((button) => {
     button.addEventListener("click", () => {
       const itemId = button.dataset.id;
@@ -1501,12 +1578,6 @@ function bindDetailEvents(container: HTMLElement): void {
   container.querySelectorAll<HTMLButtonElement>(".js-cancel-delete").forEach((button) => {
     button.addEventListener("click", () => {
       state.deleteArmedId = null;
-      redraw(container);
-    });
-  });
-  container.querySelectorAll<HTMLButtonElement>(".js-delete-item").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.deleteConfirmId = button.dataset.id ?? null;
       redraw(container);
     });
   });
@@ -1595,9 +1666,9 @@ function submitServiceForm(container: HTMLElement, form: HTMLFormElement): void 
   const data = new FormData(form);
   const name = String(data.get("name") ?? "").trim();
   const kmRaw = String(data.get("intervalKm") ?? "").trim();
-  const monthsRaw = String(data.get("intervalMonths") ?? "").trim();
   const intervalKm = kmRaw === "" ? null : Number(toLatinDigits(kmRaw));
-  const intervalMonths = monthsRaw === "" ? null : Number(toLatinDigits(monthsRaw));
+  // Time-based part lifetime was removed — parts are tracked by mileage only.
+  const intervalMonths = null;
   const editing = serviceForm.mode === "edit";
 
   if (editing) {

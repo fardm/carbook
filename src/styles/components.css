@@ -734,135 +734,250 @@
   accent-color: var(--md-sys-color-primary);
 }
 
-/* --- Item detail page (§32–§36) --- */
+/* --- Service detail page: one unified card with three sections --- */
 .detail-back {
   align-self: flex-start;
   margin-inline-start: calc(-1 * var(--md-space-2));
 }
 
-.detail-head {
+/* The unified detail card hosts the three-dot menu pinned to its top corner. */
+.service-detail-card {
+  position: relative;
+}
+
+.service-detail-card .service-card-menu {
+  top: var(--md-space-2);
+  left: var(--md-space-2);
+}
+
+.service-detail-card__sections {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--md-space-3);
 }
 
-/* Header actions (edit + delete icons, or the delete confirm) sit at the
- * far inline-end, vertically centered with the title. */
-.detail-head__actions {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--md-space-1);
-  flex-shrink: 0;
-  margin-inline-start: auto;
+/* One section of the unified card: a very subtle neutral panel, slightly
+ * lighter than the card (light: lowest container; dark: one step above the
+ * card), gently rounded, without borders/shadow — the tint is soft enough
+ * that the three parts still read as ONE cohesive card while staying
+ * distinguishable from each other. */
+.service-detail__section {
+  background-color: var(--md-sys-color-surface-container-lowest);
+  border-radius: var(--md-shape-small);
+  padding: var(--md-space-4);
 }
 
-.detail-head__info {
-  flex: 1;
-  min-width: 0;
+:root[data-theme="dark"] .service-detail__section {
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+.service-detail__section-title {
+  font-size: var(--md-typescale-title-medium);
+  font-weight: 600;
+  margin: 0 0 var(--md-space-3);
+}
+
+/* Collapsible section header (Service History): the whole heading is the
+ * hit target, with a chevron on the far side that flips when expanded. */
+.service-detail__section-title .collapse-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--md-space-2);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.collapse-head__chevron {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--md-sys-color-on-surface-variant);
+  transition: transform var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+.collapse-head[aria-expanded="true"] .collapse-head__chevron {
+  transform: rotate(180deg);
+}
+
+/* Secondary block heading inside a section (e.g. inspection history rows). */
+.service-detail__subtitle {
+  font-size: var(--md-typescale-label-large);
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface-variant);
+  margin: var(--md-space-4) 0 var(--md-space-1);
+}
+
+/* History panel: rows separated by a minimal border (no dividers), each
+ * item framed with a hairline so entries read as one list, not cards. */
+.service-detail__history-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--md-space-1);
+  gap: var(--md-space-3);
 }
 
-.detail-head__title {
+.service-detail__history-panel .history__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-2);
+  margin-top: 0;
+}
+
+.service-detail__history-panel .history__item {
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-shape-small);
+  padding: var(--md-space-2) var(--md-space-3);
+}
+
+.service-detail__history-panel .service-detail__subtitle {
+  margin-bottom: 0;
+}
+
+/* Service Information section: icon + name + lifetime. */
+.service-info {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: var(--md-space-2);
+  gap: var(--md-space-3);
+}
+
+.service-info__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--md-shape-medium);
+  flex-shrink: 0;
+  padding: 8px;
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.service-info__icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.service-info__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.service-info__name {
   font-size: var(--md-typescale-title-large);
   font-weight: 600;
 }
 
-/* Part-lifetime row directly below the service title. */
-.detail-head__lifetime {
+/* Kilometer-only part lifetime under the service name. */
+.service-info__lifetime {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--md-space-2) var(--md-space-4);
+  gap: var(--md-space-2);
   margin-top: var(--md-space-1);
   color: var(--md-sys-color-on-surface-variant);
   font-size: var(--md-typescale-body-medium);
 }
 
-.detail-head__lifetime-item {
+.service-info__lifetime-item {
   display: inline-flex;
   align-items: center;
   gap: var(--md-space-1);
 }
 
-.detail-head__lifetime-item svg {
+.service-info__lifetime-item svg {
   width: 16px;
   height: 16px;
 }
 
-/* Status section: health donut + recommended replacement date/km. */
-.health-grid {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--md-space-5);
-  margin-top: var(--md-space-2);
+/* Inactive-item reactivate action inside the Service Information section. */
+.service-detail__actions {
+  margin-top: var(--md-space-3);
 }
 
-.health {
+/* Status section: small health donut on its own row, then the recommended
+ * replacement date / mileage rows carrying same-row remaining badges. */
+.status-health {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--md-space-1);
-  flex-shrink: 0;
-}
-
-.health__label {
-  font-size: var(--md-typescale-label-medium);
-  font-weight: 600;
-  color: var(--md-sys-color-on-surface-variant);
-}
-
-.health__donut .donut {
-  width: 128px;
-  height: 128px;
-}
-
-.health-list {
-  flex: 1;
-  min-width: 220px;
-}
-
-.info-list__meta {
-  display: block;
-  margin-top: 2px;
-  color: var(--md-sys-color-on-surface-variant);
-  font-size: var(--md-typescale-body-small);
-}
-
-.detail-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
   gap: var(--md-space-2);
-  margin-top: var(--md-space-4);
-  padding-top: var(--md-space-3);
-  border-top: 1px solid var(--md-sys-color-outline-variant);
+  margin-bottom: var(--md-space-3);
 }
 
-.detail-actions__confirm {
-  color: var(--md-sys-color-error);
+.status-health .donut {
+  width: 96px;
+  height: 96px;
+}
+
+.status-health__label {
   font-size: var(--md-typescale-label-medium);
   font-weight: 600;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.status-rows {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Each status row: the label sits above, and the main value + its remaining
+ * badge share the line beneath it — so they always stay on the same row. */
+.status-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-1);
+  padding: var(--md-space-3) 0;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.status-row:last-child {
+  border-bottom: none;
+}
+
+.status-row dt {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-typescale-label-medium);
+  font-weight: 600;
+}
+
+.status-row dd {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: var(--md-space-2);
+}
+
+.status-row__value {
+  font-weight: 600;
+}
+
+/* Same-row secondary "remaining" label: small, neutral, subtle background. */
+.status-row__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--md-space-2);
+  border-radius: var(--md-shape-full);
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-typescale-label-small);
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .delete-confirm {
   display: inline-flex;
   align-items: center;
   gap: var(--md-space-1);
-}
-
-.detail-metrics {
-  display: flex;
-  flex-direction: column;
-  gap: var(--md-space-1);
-  margin-top: var(--md-space-2);
 }
 
 /* --- Placeholder view (Phase 1 scaffolding) --- */
@@ -1424,6 +1539,19 @@
   margin-bottom: var(--md-space-4);
 }
 
+/* Modal header row: title on the reading side, close (×) on the other. */
+.modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--md-space-3);
+  margin-bottom: var(--md-space-4);
+}
+
+.modal__head .form__title {
+  margin-bottom: 0;
+}
+
 .vehicle-modal-actions {
   justify-content: space-between;
 }
@@ -1494,6 +1622,7 @@
 
 /* --- Service card --- */
 .service-card {
+  position: relative;
   padding: 0;
 }
 
@@ -1505,11 +1634,13 @@
   cursor: pointer;
 }
 
-
+/* The three-dot menu is pinned to the card's top-left corner; the head row
+ * clears it so the status chip never hides beneath the menu button. */
 .service-card__head {
   display: flex;
   align-items: center;
   gap: var(--md-space-3);
+  padding-inline-end: var(--md-space-6);
 }
 
 .service-card__icon {
@@ -1744,6 +1875,84 @@
 .service-form__icon-toggle {
   width: 44px;
   height: 44px;
+}
+
+/* Health-calculation choices in the service form: full-width radio rows,
+ * each carrying its own short explanation under the option label. */
+.health-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-2);
+}
+
+.health-option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--md-space-3);
+  width: 100%;
+  padding: var(--md-space-3);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-shape-medium);
+  background-color: var(--md-sys-color-surface-container-lowest);
+  color: var(--md-sys-color-on-surface);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--md-motion-duration-short) var(--md-motion-easing),
+    border-color var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+.health-option:hover {
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+.health-option--active {
+  border-color: var(--md-sys-color-primary);
+}
+
+.health-option__indicator {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  flex-shrink: 0;
+  border: 2px solid var(--md-sys-color-on-surface-variant);
+  border-radius: 50%;
+}
+
+.health-option--active .health-option__indicator {
+  border-color: var(--md-sys-color-primary);
+}
+
+.health-option--active .health-option__indicator::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background-color: var(--md-sys-color-primary);
+}
+
+.health-option__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.health-option__title {
+  font-weight: 600;
+}
+
+.health-option__hint {
+  font-size: var(--md-typescale-label-medium);
+  color: var(--md-sys-color-on-surface-variant);
+  line-height: 1.6;
+}
+
+/* Add-vehicle «انتخاب به عنوان پیشفرض» toggle row (label + helper text). */
+.vehicle-default-field {
+  padding-top: var(--md-space-1);
+  border-top: 1px solid var(--md-sys-color-outline-variant);
 }
 
 /* --- Card hover: pointer cursor but text is never underlined --- */

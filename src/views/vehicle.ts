@@ -245,6 +245,14 @@ function vehicleFormModalHtml(vehicle: Vehicle | null, confirmDelete: boolean): 
           <p class="field__hint">${t("vehicle.mileageHint")}</p>
           <p class="field__error" id="vehicle-error-mileage" hidden></p>
         </div>
+        ${!editing ? `
+        <div class="field vehicle-default-field">
+          <label class="checkbox-field">
+            <input type="checkbox" name="makeDefault" value="1" />
+            <span>${t("vehicle.makeDefault")}</span>
+          </label>
+          <p class="field__hint">${t("vehicle.makeDefaultHint")}</p>
+        </div>` : ""}
         <div class="form__actions vehicle-modal-actions">
           <button type="button" class="btn btn--text js-cancel-modal">${t("common.cancel")}</button>
           ${editing ? `<button type="button" class="btn btn--text btn--danger-text js-delete-vehicle">${t("vehicle.deleteVehicle")}</button>` : ""}
@@ -482,12 +490,16 @@ function submitVehicleForm(container: HTMLElement, form: HTMLFormElement): void 
     return;
   }
 
-  // Add — brand-new vehicle with the entered initial mileage.
+  // Add — brand-new vehicle with the entered initial mileage. The optional
+  // «انتخاب به عنوان پیشفرض» toggle promotes the new car to the default used
+  // by the Services page (off by default).
+  const makeDefault = data.get("makeDefault") === "1";
+  const vehicleId = createId();
   state.modal = null;
   state.formValues = {};
   store.update((draft) => {
     draft.vehicles.push({
-      id: createId(),
+      id: vehicleId,
       name,
       make: "",
       model: "",
@@ -499,6 +511,9 @@ function submitVehicleForm(container: HTMLElement, form: HTMLFormElement): void 
       createdAt: now,
       updatedAt: now,
     });
+    if (makeDefault) {
+      draft.settings.defaultVehicleId = vehicleId;
+    }
   });
 }
 
