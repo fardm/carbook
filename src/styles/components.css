@@ -826,17 +826,72 @@ textarea.field__input {
   color: var(--md-sys-color-on-primary-container);
 }
 
-.checkbox-field {
-  flex-direction: row;
+/* Toggle switch (role=switch on a visually hidden checkbox): minimal track
+ * + thumb, thumb slides to the far side when checked. */
+.toggle-row {
+  display: flex;
   align-items: center;
-  gap: var(--md-space-2);
+  justify-content: space-between;
+  gap: var(--md-space-3);
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-row__label {
+  font-size: var(--md-typescale-body-medium);
+  font-weight: 500;
+  color: var(--md-sys-color-on-surface);
+}
+
+.toggle {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  opacity: 0;
   cursor: pointer;
 }
 
-.checkbox-field input {
+.toggle__track {
+  width: 44px;
+  height: 24px;
+  border-radius: var(--md-shape-full);
+  background-color: color-mix(in srgb, var(--md-sys-color-on-surface-variant) 38%, transparent);
+  transition:
+    background-color var(--md-motion-duration-short) var(--md-motion-easing),
+    box-shadow var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+.toggle__thumb {
+  position: absolute;
+  top: 2px;
+  inset-inline-start: 2px;
   width: 20px;
   height: 20px;
-  accent-color: var(--md-sys-color-primary);
+  border-radius: 50%;
+  background-color: var(--md-sys-color-surface-container-lowest);
+  box-shadow: var(--md-elevation-1);
+  transition: inset-inline-start var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+.toggle input:checked + .toggle__track {
+  background-color: var(--md-sys-color-primary);
+}
+
+.toggle input:checked + .toggle__track .toggle__thumb {
+  inset-inline-start: calc(100% - 22px);
+}
+
+.toggle input:focus-visible + .toggle__track {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-sys-color-primary) 26%, transparent);
 }
 
 /* --- Service detail page: one unified card with three sections --- */
@@ -2058,7 +2113,6 @@ textarea.field__input {
 /* Add-vehicle «انتخاب به عنوان پیشفرض» toggle row (label + helper text). */
 .vehicle-default-field {
   padding-top: var(--md-space-1);
-  border-top: 1px solid var(--md-sys-color-outline-variant);
 }
 
 /* --- Card hover: pointer cursor but text is never underlined --- */

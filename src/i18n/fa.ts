@@ -112,7 +112,7 @@ export const fa = {
       inspectionEditTitle: "ویرایش بازرسی",
       dateLabel: "تاریخ",
       odometerLabel: "کیلومتر",
-      costLabel: "هزینه (اختیاری)",
+      costLabel: "هزینه",
       costHint: "مثلاً ۵۰۰٬۰۰۰",
       notesLabel: "یادداشت (اختیاری)",
       notesPlaceholder: "مثلاً روغن ۱۰W-40 استفاده شد",

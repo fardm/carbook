@@ -1056,28 +1056,27 @@ function recordServiceFormModalHtml(): string {
       <div class="modal" role="dialog" aria-modal="true" aria-label="${escHtml(title)}">
       <form id="record-form" class="form" novalidate>
         <div class="form__title">${escHtml(title)}</div>
-        <div class="form__grid">
-          <div class="field">
-            <label class="field__label" for="record-date">${t("maintenance.record.dateLabel")}</label>
-            ${dateFieldHtml({
-              fieldId: "record-date",
-              name: "date",
-              value: record?.date ?? todayIso(),
-              label: t("maintenance.record.dateLabel"),
-            })}
-            <p class="field__error" id="record-error-date" hidden></p>
-          </div>
-          <div class="field">
-            <label class="field__label" for="record-odometer">${t("maintenance.record.odometerLabel")} (${t("common.kmUnit")})</label>
-            <input class="field__input" id="record-odometer" name="odometer" type="number"
-              inputmode="numeric" min="0" step="1" value="${record?.odometer ?? defaultKm ?? ""}" />
-            <p class="field__error" id="record-error-odometer" hidden></p>
-          </div>
+        <div class="field">
+          <label class="field__label" for="record-date">${t("maintenance.record.dateLabel")}</label>
+          ${dateFieldHtml({
+            fieldId: "record-date",
+            name: "date",
+            value: record?.date ?? todayIso(),
+            label: t("maintenance.record.dateLabel"),
+          })}
+          <p class="field__error" id="record-error-date" hidden></p>
         </div>
         <div class="field">
-          <label class="field__label" for="record-cost">${t("maintenance.record.costLabel")} · ${currency}</label>
+          <label class="field__label" for="record-odometer">${t("maintenance.record.odometerLabel")}</label>
+          <input class="field__input" id="record-odometer" name="odometer" type="number"
+            inputmode="numeric" min="0" step="1" value="${record?.odometer ?? defaultKm ?? ""}" />
+          <p class="field__error" id="record-error-odometer" hidden></p>
+        </div>
+        <div class="field">
+          <label class="field__label" for="record-cost">${t("maintenance.record.costLabel")}</label>
           <input class="field__input" id="record-cost" name="cost" type="number"
-            inputmode="decimal" min="0" step="any" value="${record?.cost ?? ""}" />
+            inputmode="decimal" min="0" step="any" value="${record?.cost ?? ""}"
+            placeholder="${faNum(0)} ${currency}" />
           <p class="field__hint">${t("maintenance.record.costHint")} ${currency}</p>
           <p class="field__error" id="record-error-cost" hidden></p>
         </div>
@@ -1126,7 +1125,7 @@ function recordInspectionFormModalHtml(): string {
             <p class="field__error" id="record-error-date" hidden></p>
           </div>
           <div class="field">
-            <label class="field__label" for="record-odometer">${t("maintenance.record.odometerLabel")} (${t("common.kmUnit")})</label>
+            <label class="field__label" for="record-odometer">${t("maintenance.record.odometerLabel")}</label>
             <input class="field__input" id="record-odometer" name="odometer" type="number"
               inputmode="numeric" min="0" step="1" value="${record?.odometer ?? defaultKm ?? ""}" />
             <p class="field__error" id="record-error-odometer" hidden></p>

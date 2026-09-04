@@ -218,25 +218,23 @@ function vehicleFormModalHtml(vehicle: Vehicle | null): string {
             placeholder="${t("vehicle.namePlaceholder")}" />
           <p class="field__error" id="vehicle-error-name" hidden></p>
         </div>
-        <div class="form__grid">
-          <div class="field">
-            <label class="field__label" for="vehicle-year">${t("vehicle.year")}</label>
-            <input class="field__input" id="vehicle-year" name="year" type="number"
-              inputmode="numeric" min="1300" max="2100" step="1"
-              value="${escHtml(field("year", () => (vehicle?.year != null ? String(vehicle.year) : null)))}" />
-            <p class="field__error" id="vehicle-error-year" hidden></p>
-          </div>
-          <div class="field">
-            <label class="field__label" for="vehicle-average">${t("vehicle.averageDaily")} (${t("vehicle.averageDailyUnit")})</label>
-            <input class="field__input" id="vehicle-average" name="averageDaily" type="number"
-              inputmode="decimal" min="0" step="any"
-              value="${escHtml(field("averageDaily", () => (vehicle?.averageDailyDistance != null ? String(vehicle.averageDailyDistance) : null)))}" />
-            <p class="field__hint">${t("vehicle.averageHint")}</p>
-            <p class="field__error" id="vehicle-error-average" hidden></p>
-          </div>
+        <div class="field">
+          <label class="field__label" for="vehicle-year">${t("vehicle.year")}</label>
+          <input class="field__input" id="vehicle-year" name="year" type="number"
+            inputmode="numeric" min="1300" max="2100" step="1"
+            value="${escHtml(field("year", () => (vehicle?.year != null ? String(vehicle.year) : null)))}" />
+          <p class="field__error" id="vehicle-error-year" hidden></p>
         </div>
         <div class="field">
-          <label class="field__label" for="vehicle-mileage">${t("vehicle.mileageLabel")} (${t("common.kmUnit")})</label>
+          <label class="field__label" for="vehicle-average">${t("vehicle.averageDaily")}</label>
+          <input class="field__input" id="vehicle-average" name="averageDaily" type="number"
+            inputmode="decimal" min="0" step="any"
+            value="${escHtml(field("averageDaily", () => (vehicle?.averageDailyDistance != null ? String(vehicle.averageDailyDistance) : null)))}" />
+          <p class="field__hint">${t("vehicle.averageHint")}</p>
+          <p class="field__error" id="vehicle-error-average" hidden></p>
+        </div>
+        <div class="field">
+          <label class="field__label" for="vehicle-mileage">${t("vehicle.mileageLabel")}</label>
           <input class="field__input" id="vehicle-mileage" name="mileage" type="number"
             inputmode="numeric" min="0" step="1"
             value="${escHtml(field("mileage", () => (vehicle?.currentOdometer != null ? String(vehicle.currentOdometer) : null)))}" />
@@ -245,9 +243,12 @@ function vehicleFormModalHtml(vehicle: Vehicle | null): string {
         </div>
         ${!editing ? `
         <div class="field vehicle-default-field">
-          <label class="checkbox-field">
-            <input type="checkbox" name="makeDefault" value="1" />
-            <span>${t("vehicle.makeDefault")}</span>
+          <label class="toggle-row">
+            <span class="toggle-row__label">${t("vehicle.makeDefault")}</span>
+            <span class="toggle">
+              <input type="checkbox" name="makeDefault" value="1" role="switch" aria-label="${t("vehicle.makeDefault")}" />
+              <span class="toggle__track" aria-hidden="true"><span class="toggle__thumb"></span></span>
+            </span>
           </label>
           <p class="field__hint">${t("vehicle.makeDefaultHint")}</p>
         </div>` : ""}
