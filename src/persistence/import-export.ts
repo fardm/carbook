@@ -50,6 +50,7 @@ const DISPLAY_MODES = ["auto", "km", "time", "both"] as const;
 const TRIGGERS = ["any"] as const;
 const INSPECTION_CONDITIONS = ["good", "watch", "replaceSoon", "replaceNow"] as const;
 const THEME_PREFERENCES = ["system", "light", "dark"] as const;
+const CALENDAR_PREFERENCES = ["jalali", "gregorian"] as const;
 
 const TOP_LEVEL_FIELDS = [
   "exportedAt",
@@ -332,6 +333,9 @@ function validateSettings(raw: unknown, issues: ImportIssue[]): void {
   );
   checkField(issues, raw, "theme", "settings.theme", { type: "string", nonEmpty: true }, (v) =>
     (THEME_PREFERENCES as readonly string[]).includes(v),
+  );
+  checkField(issues, raw, "calendar", "settings.calendar", { type: "string", nonEmpty: true }, (v) =>
+    (CALENDAR_PREFERENCES as readonly string[]).includes(v),
   );
   if (
     isNumber(thresholds.dueSoonPercent) &&

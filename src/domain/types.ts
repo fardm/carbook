@@ -126,10 +126,17 @@ export interface StatusThresholds {
 /** UI colour theme preference (Phase 12 polish, §45–§46). */
 export type ThemePreference = "system" | "light" | "dark";
 
+/** Global date/calendar system (Settings). "jalali" = Solar Hijri (شمسی),
+ * the default; "gregorian" = میلادی. The preference only changes how dates
+ * are displayed and entered — stored dates are always Gregorian ISO. */
+export type CalendarPreference = "jalali" | "gregorian";
+
 export interface Settings {
   statusThresholds: StatusThresholds;
   /** "system" follows the OS `prefers-color-scheme`; light/dark override it. */
   theme: ThemePreference;
+  /** Calendar used for date display + date input throughout the app. */
+  calendar: CalendarPreference;
 }
 
 /** Versioned application dataset (§39). The single persisted structure. */

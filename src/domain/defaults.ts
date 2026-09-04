@@ -1,7 +1,7 @@
 import type { Dataset, Settings } from "./types";
 
 /** Current schema version. Bump when the dataset shape changes (§40). */
-export const CURRENT_VERSION = 2;
+export const CURRENT_VERSION = 3;
 
 export function defaultSettings(): Settings {
   return {
@@ -10,6 +10,8 @@ export function defaultSettings(): Settings {
       duePercent: 5,
     },
     theme: "system",
+    // Default calendar: Solar Hijri (شمسی) per product requirements.
+    calendar: "jalali",
   };
 }
 

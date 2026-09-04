@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   Battery,
+  Calendar,
   CalendarPlus,
   CarFront,
   Circle,
@@ -49,6 +50,7 @@ import {
 export const iconRegistry = {
   ArrowLeftRight,
   Battery,
+  Calendar,
   CalendarPlus,
   CarFront,
   Circle,

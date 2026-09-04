@@ -119,6 +119,7 @@ describe("loadFromString — defensive loading", () => {
     expect(migrated.maintenanceItems).toEqual([]);
     expect(migrated.settings.statusThresholds).toEqual({ dueSoonPercent: 30, duePercent: 5 });
     expect(migrated.settings.theme).toBe("system");
+    expect(migrated.settings.calendar).toBe("jalali");
   });
 
   it("migrates v1 settings by adding the theme default (Phase 12)", () => {
@@ -135,7 +136,25 @@ describe("loadFromString — defensive loading", () => {
     const migrated = loadFromString(raw);
     expect(migrated.version).toBe(CURRENT_VERSION);
     expect(migrated.settings.theme).toBe("system");
+    expect(migrated.settings.calendar).toBe("jalali");
     expect(migrated.settings.statusThresholds).toEqual({ dueSoonPercent: 20, duePercent: 5 });
+  });
+
+  it("migrates v2 settings by adding the calendar default (calendar phase)", () => {
+    const raw = JSON.stringify({
+      version: 2,
+      exportedAt: null,
+      vehicle: null,
+      odometerHistory: [],
+      maintenanceItems: [],
+      serviceHistory: [],
+      inspectionHistory: [],
+      settings: { statusThresholds: { dueSoonPercent: 20, duePercent: 5 }, theme: "dark" },
+    });
+    const migrated = loadFromString(raw);
+    expect(migrated.version).toBe(CURRENT_VERSION);
+    expect(migrated.settings.theme).toBe("dark");
+    expect(migrated.settings.calendar).toBe("jalali"); // Solar Hijri default
   });
 
   it("repairs partially-shaped current-version data", () => {

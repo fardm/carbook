@@ -128,6 +128,15 @@ const migrations: Record<number, (raw: Record<string, unknown>) => Record<string
     }
     return raw;
   },
+  // v2 → v3 (Calendar system): the Settings gained a global date/calendar
+  // preference. Default = Solar Hijri (شمسی). Stored dates are untouched.
+  2: (raw) => {
+    const settings = raw.settings;
+    if (isRecord(settings) && !("calendar" in settings)) {
+      settings.calendar = "jalali";
+    }
+    return raw;
+  },
 };
 
 /** Ensures the migrated object has the exact Dataset shape (§40 step 5). */
@@ -154,6 +163,7 @@ function normalize(raw: Record<string, unknown>): Dataset {
 }
 
 const THEME_PREFERENCES = ["system", "light", "dark"];
+const CALENDAR_PREFERENCES = ["jalali", "gregorian"];
 
 function normalizeSettings(raw: unknown, fallback: Settings): Settings {
   if (!isRecord(raw)) return fallback;
@@ -173,6 +183,10 @@ function normalizeSettings(raw: unknown, fallback: Settings): Settings {
       typeof raw.theme === "string" && THEME_PREFERENCES.includes(raw.theme)
         ? (raw.theme as Settings["theme"])
         : fallback.theme,
+    calendar:
+      typeof raw.calendar === "string" && CALENDAR_PREFERENCES.includes(raw.calendar)
+        ? (raw.calendar as Settings["calendar"])
+        : fallback.calendar,
   };
 }
 

@@ -10,6 +10,7 @@ import type { FuelType, OdometerReading, Vehicle } from "../domain/types";
 import { validateVehicle, type VehicleError } from "../domain/vehicle";
 import { t, type MessageKey } from "../i18n";
 import { store } from "../state/store";
+import { bindDateFields, dateFieldHtml } from "../ui/date-field";
 import { escHtml } from "../ui/escape";
 import { faNum, formatDate, toLatinDigits } from "../ui/format";
 
@@ -232,8 +233,12 @@ function odometerFormHtml(): string {
         <div class="form__grid">
           <div class="field">
             <label class="field__label" for="odometer-date">${t("vehicle.dateLabel")}</label>
-            <input class="field__input" id="odometer-date" name="date" type="date"
-              value="${reading ? reading.date : todayIso()}" />
+            ${dateFieldHtml({
+              fieldId: "odometer-date",
+              name: "date",
+              value: reading ? reading.date : todayIso(),
+              label: t("vehicle.dateLabel"),
+            })}
             <p class="field__error" id="odometer-error-date" hidden></p>
           </div>
           <div class="field">
@@ -254,6 +259,7 @@ function odometerFormHtml(): string {
 }
 
 function bind(container: HTMLElement): void {
+  bindDateFields(container);
   container.querySelector<HTMLButtonElement>(".js-edit-vehicle")?.addEventListener("click", () => {
     state.editing = true;
     redraw(container);

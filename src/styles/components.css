@@ -896,3 +896,136 @@
   margin-top: var(--md-space-3);
   width: fit-content;
 }
+
+/* --- Calendar-aware date field + popover picker (calendar phase) --- */
+.date-field {
+  position: relative;
+}
+
+.date-field__button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--md-space-2);
+  cursor: pointer;
+  text-align: start;
+}
+
+.date-field__value {
+  flex: 1;
+  min-width: 0;
+}
+
+.date-field__value--empty {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.date-field__icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.date-field__popover {
+  position: absolute;
+  inset-block-start: calc(100% + var(--md-space-2));
+  inset-inline-start: 0;
+  z-index: 30;
+  width: min(280px, calc(100vw - var(--md-space-6)));
+  padding: var(--md-space-3);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-shape-medium);
+  background-color: var(--md-sys-color-surface-container-low);
+  box-shadow: var(--md-elevation-3);
+}
+
+.date-field__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--md-space-2);
+  margin-bottom: var(--md-space-2);
+}
+
+.date-field__heading {
+  font-size: var(--md-typescale-title-medium);
+  font-weight: 600;
+}
+
+.date-field__nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--md-shape-full);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-typescale-title-large);
+  line-height: 1;
+  transition: background-color var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+.date-field__nav-btn:hover {
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+.date-field__weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: var(--md-space-1);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-typescale-label-small);
+  font-weight: 600;
+}
+
+.date-field__weekdays span {
+  text-align: center;
+}
+
+.date-field__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.date-field__day {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  border-radius: var(--md-shape-extra-small);
+  font-size: var(--md-typescale-label-medium);
+  color: var(--md-sys-color-on-surface);
+  transition: background-color var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+.date-field__day:hover {
+  background-color: var(--md-sys-color-surface-container-highest);
+}
+
+.date-field__day--empty {
+  pointer-events: none;
+}
+
+.date-field__day--today {
+  box-shadow: inset 0 0 0 1px var(--md-sys-color-primary);
+}
+
+.date-field__day--selected {
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  font-weight: 700;
+}
+
+.date-field__foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--md-space-2);
+}
+
+.date-field__foot .btn {
+  min-height: 32px;
+  padding: 0 var(--md-space-3);
+  font-size: var(--md-typescale-label-medium);
+}

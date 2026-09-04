@@ -1,3 +1,4 @@
+import { isValidIso } from "./calendar/dates";
 import type { OdometerReading } from "./types";
 
 /** A jump larger than this (km) triggers a "large increase" warning (§47). */
@@ -88,7 +89,7 @@ export function validateOdometerEntry(
   return { errors, warnings };
 }
 
-/** Strict "yyyy-mm-dd" check that also rejects out-of-range calendar values. */
+/** Strict "yyyy-mm-dd" check (centralized in domain/calendar/dates). */
 export function isIsoDate(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value));
+  return isValidIso(value);
 }

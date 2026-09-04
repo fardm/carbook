@@ -35,6 +35,7 @@ import type {
 import { t, type MessageKey } from "../i18n";
 import { store } from "../state/store";
 import { googleCalendarUrl } from "../ui/calendar";
+import { bindDateFields, dateFieldHtml } from "../ui/date-field";
 import { escHtml } from "../ui/escape";
 import { faNum, formatDate, toLatinDigits } from "../ui/format";
 import { applyIcons, CUSTOM_ICON_CHOICES, STATUS_ICONS } from "../ui/icons";
@@ -855,7 +856,12 @@ function recordServiceFormHtml(): string {
         <div class="form__grid">
           <div class="field">
             <label class="field__label" for="record-date">${t("maintenance.record.dateLabel")}</label>
-            <input class="field__input" id="record-date" name="date" type="date" value="${record?.date ?? todayIso()}" />
+            ${dateFieldHtml({
+              fieldId: "record-date",
+              name: "date",
+              value: record?.date ?? todayIso(),
+              label: t("maintenance.record.dateLabel"),
+            })}
             <p class="field__error" id="record-error-date" hidden></p>
           </div>
           <div class="field">
@@ -905,7 +911,12 @@ function recordInspectionFormHtml(): string {
         <div class="form__grid">
           <div class="field">
             <label class="field__label" for="record-date">${t("maintenance.record.dateLabel")}</label>
-            <input class="field__input" id="record-date" name="date" type="date" value="${record?.date ?? todayIso()}" />
+            ${dateFieldHtml({
+              fieldId: "record-date",
+              name: "date",
+              value: record?.date ?? todayIso(),
+              label: t("maintenance.record.dateLabel"),
+            })}
             <p class="field__error" id="record-error-date" hidden></p>
           </div>
           <div class="field">
@@ -1142,8 +1153,12 @@ function serviceInitialHtml(): string {
       <div class="form__grid">
         <div class="field">
           <label class="field__label" for="item-service-date">${t("maintenance.form.lastServiceDate")}</label>
-          <input class="field__input" id="item-service-date" name="lastServiceDate" type="date"
-            value="${escHtml(fieldValue("lastServiceDate"))}" />
+          ${dateFieldHtml({
+            fieldId: "item-service-date",
+            name: "lastServiceDate",
+            value: fieldValue("lastServiceDate"),
+            label: t("maintenance.form.lastServiceDate"),
+          })}
           <p class="field__error" id="item-error-service-date" hidden></p>
         </div>
         <div class="field">
@@ -1171,8 +1186,12 @@ function inspectionInitialHtml(): string {
       <div class="form__grid">
         <div class="field">
           <label class="field__label" for="item-inspection-date">${t("maintenance.form.lastInspectionDate")}</label>
-          <input class="field__input" id="item-inspection-date" name="lastInspectionDate" type="date"
-            value="${escHtml(fieldValue("lastInspectionDate"))}" />
+          ${dateFieldHtml({
+            fieldId: "item-inspection-date",
+            name: "lastInspectionDate",
+            value: fieldValue("lastInspectionDate"),
+            label: t("maintenance.form.lastInspectionDate"),
+          })}
           <p class="field__error" id="item-error-inspection-date" hidden></p>
         </div>
         <div class="field">
@@ -1191,6 +1210,7 @@ function inspectionInitialHtml(): string {
 /* --- Events --- */
 
 function bind(container: HTMLElement): void {
+  bindDateFields(container);
   bindListEvents(container);
   bindDetailEvents(container);
   bindFormEvents(container);

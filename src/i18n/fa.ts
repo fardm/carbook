@@ -22,6 +22,12 @@ export const fa = {
     edit: "ویرایش",
     kmUnit: "کیلومتر",
   },
+  dateField: {
+    empty: "انتخاب تاریخ",
+    today: "امروز",
+    prevMonth: "ماه قبل",
+    nextMonth: "ماه بعد",
+  },
   placeholder: {
     badge: "در دست ساخت",
     notImplemented: "این بخش در فاز بعدی پیاده‌سازی می‌شود.",
@@ -188,6 +194,11 @@ export const fa = {
     themeSystem: "سیستم",
     themeLight: "روشن",
     themeDark: "تیره",
+    calendarTitle: "تقویم",
+    calendarHint:
+      "نحوهٔ نمایش و انتخاب تاریخ‌ها را انتخاب کنید. داده‌ها همیشه به‌صورت یکسان ذخیره می‌شوند و با تغییر تقویم فقط نمایش تغییر می‌کند.",
+    calendarJalali: "شمسی",
+    calendarGregorian: "میلادی",
     restoreTitle: "بازیابی از پشتیبان",
     restoreIntro: "یک فایل پشتیبان JSON انتخاب کنید؛ ابتدا پیش‌نمایش داده و سپس تأیید شما لازم است.",
     chooseFile: "انتخاب فایل پشتیبان",

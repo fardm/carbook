@@ -1,4 +1,4 @@
-import type { Dataset, ThemePreference } from "../domain/types";
+import type { CalendarPreference, Dataset, ThemePreference } from "../domain/types";
 import { t, type MessageKey } from "../i18n";
 import {
   backupFilename,
@@ -43,6 +43,13 @@ const THEME_KEYS: Record<ThemePreference, MessageKey> = {
 
 const THEME_OPTIONS: ThemePreference[] = ["system", "light", "dark"];
 
+const CALENDAR_KEYS: Record<CalendarPreference, MessageKey> = {
+  jalali: "settings.calendarJalali",
+  gregorian: "settings.calendarGregorian",
+};
+
+const CALENDAR_OPTIONS: CalendarPreference[] = ["jalali", "gregorian"];
+
 const ISSUE_KEYS: Record<ImportIssueKind, MessageKey> = {
   notJson: "settings.issue.notJson",
   notObject: "settings.issue.notObject",
@@ -72,10 +79,35 @@ function settingsViewHtml(): string {
   return `
     <div class="view-stack">
       <h1 class="view-title">${t("view.settings.title")}</h1>
+      ${calendarCardHtml(dataset)}
       ${appearanceCardHtml(dataset)}
       ${backupCardHtml(dataset)}
       ${restoreCardHtml()}
     </div>
+  `;
+}
+
+/* --- Calendar (date system) card --- */
+
+function calendarCardHtml(dataset: Dataset): string {
+  const current = dataset.settings.calendar;
+  const options = CALENDAR_OPTIONS.map(
+    (value) => `
+      <button type="button" class="segmented__option js-calendar-option
+        ${current === value ? "segmented__option--active" : ""}"
+        data-calendar-value="${value}" role="radio" aria-checked="${current === value}">
+        ${t(CALENDAR_KEYS[value])}
+      </button>
+    `,
+  ).join("");
+  return `
+    <section class="card">
+      <h2 class="card__title">${t("settings.calendarTitle")}</h2>
+      <p class="card__text">${t("settings.calendarHint")}</p>
+      <div class="settings-theme segmented" role="radiogroup" aria-label="${t("settings.calendarTitle")}">
+        ${options}
+      </div>
+    </section>
   `;
 }
 
@@ -210,6 +242,14 @@ function previewHtml(pending: { fileName: string; dataset: Dataset }): string {
 /* --- Events --- */
 
 function bind(container: HTMLElement): void {
+  container.querySelectorAll<HTMLButtonElement>(".js-calendar-option").forEach((button) => {
+    button.addEventListener("click", () => {
+      const calendar = (button.dataset.calendarValue as CalendarPreference) ?? "jalali";
+      store.update((draft) => {
+        draft.settings.calendar = calendar;
+      });
+    });
+  });
   container.querySelectorAll<HTMLButtonElement>(".js-theme-option").forEach((button) => {
     button.addEventListener("click", () => {
       const theme = (button.dataset.themeValue as ThemePreference) ?? "system";
