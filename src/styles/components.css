@@ -514,10 +514,7 @@
   min-width: 0;
   color: inherit;
   text-decoration: none;
-}
-
-.item-list__main:hover .item-list__name {
-  color: var(--md-sys-color-primary);
+  cursor: pointer;
 }
 
 .item-list__row:last-child {
@@ -1359,7 +1356,9 @@
   padding: var(--md-space-4);
   color: inherit;
   text-decoration: none;
+  cursor: pointer;
 }
+
 
 .service-card__head {
   display: flex;
@@ -1574,4 +1573,12 @@
 
 .service-form__icons {
   margin-top: var(--md-space-2);
+}
+
+/* --- Card hover: pointer cursor but text is never underlined --- */
+.btn,
+.btn:hover,
+.card a,
+.card a:hover {
+  text-decoration: none;
 }

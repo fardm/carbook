@@ -174,10 +174,12 @@ const SERVICE_ICON_CHOICES: readonly string[] = [
 
 export function renderServices(container: HTMLElement): () => void {
   const draw = (): void => {
+    activeContainer = container;
     container.innerHTML = servicesViewHtml();
     bind(container);
     applyIcons();
   };
+  registerGlobalKeys();
   draw();
   return store.subscribe(draw);
 }
@@ -743,13 +745,9 @@ function detailActionRowHtml(
       </a>
     `);
   }
-  if (!inactive) {
-    buttons.push(`
-      <button type="button" class="btn btn--text js-deactivate-item" data-id="${escHtml(item.id)}">
-        ${t("maintenance.deactivate")}
-      </button>
-    `);
-  } else {
+  // Deactivation is no longer offered (only legacy inactive items keep the
+  // reactivate / delete lifecycle below).
+  if (inactive) {
     buttons.push(`
       <button type="button" class="btn btn--text js-arm-delete" data-id="${escHtml(item.id)}">
         ${t("maintenance.detail.delete")}
@@ -1139,17 +1137,49 @@ function bindListEvents(container: HTMLElement): void {
   });
 }
 
-/** Events shared by the modals. */
+/** The container rendered last; used by the global Escape handler. */
+let activeContainer: HTMLElement | null = null;
+
+/**
+ * Events shared by the modals: انصراف / clicking outside must CLOSE the
+ * modal AND re-render (state-only changes would leave stale UI behind —
+ * decision 27 pattern).
+ */
 function bindModalEvents(container: HTMLElement): void {
   container.querySelectorAll<HTMLElement>(".modal-overlay").forEach((overlay) => {
     overlay.addEventListener("click", (event) => {
-      if (event.target === overlay) closeModals();
+      if (event.target !== overlay) return;
+      closeModals();
+      redraw(container);
     });
   });
   container.querySelectorAll<HTMLButtonElement>(".js-close-overlay").forEach((button) => {
-    button.addEventListener("click", closeModals);
+    button.addEventListener("click", () => {
+      closeModals();
+      redraw(container);
+    });
   });
 }
+
+/** Pressing Esc closes an open modal (unless a date popover is open — that
+ * popover owns the key first). Registered once per module load. */
+function registerGlobalKeys(): void {
+  if (globalKeysBound) return;
+  globalKeysBound = true;
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    const datePopoverOpen =
+      document.querySelector<HTMLElement>("[data-df-popover]:not([hidden])") != null;
+    if (datePopoverOpen) return;
+    if (!(state.pickerOpen || state.form)) return;
+    const container = activeContainer;
+    if (!container) return;
+    closeModals();
+    redraw(container);
+  });
+}
+
+let globalKeysBound = false;
 
 function openTypePicker(): void {
   state.pickerOpen = true;
@@ -1215,14 +1245,13 @@ function bindDetailEvents(container: HTMLElement): void {
       redraw(container);
     });
   });
-  container.querySelectorAll<HTMLButtonElement>(".js-deactivate-item, .js-reactivate-item").forEach((button) => {
+  container.querySelectorAll<HTMLButtonElement>(".js-reactivate-item").forEach((button) => {
     button.addEventListener("click", () => {
       const itemId = button.dataset.id;
-      const active = button.classList.contains("js-reactivate-item");
       store.update((draft) => {
         const item = draft.maintenanceItems.find((candidate) => candidate.id === itemId);
         if (item) {
-          item.active = active;
+          item.active = true;
           item.updatedAt = new Date().toISOString();
         }
       });
