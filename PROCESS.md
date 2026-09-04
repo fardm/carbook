@@ -1279,6 +1279,47 @@ Phase 13:
     found manually. The SW `CACHE` bump to v2 (this phase) is the
     routine deploy step of decision 54 — no new behavior.
 
+Post-Phase-13 visual restyle (user-requested, outside the phase plan):
+60. **The visual identity is now ORANGE + warm neutral grays** (user
+    request; replaces the teal/green M3 seed of decision 1's palette). All
+    colors still flow through the same role tokens in `tokens.css` — no
+    component CSS or layout changed. Light neutrals are warm grays
+    `#f6f5f3` surface → `#ffffff` lowest; dark is built around the
+    requested `#151619` with `#1c1d20` cards and `#212226` containers.
+    Semantic status colors stay distinct: ok=green, upcoming=blue,
+    due-soon=amber, due=burnt orange (light `#9a4f00` / dark `#e6a07c`),
+    overdue=red; warnings/errors keep their amber/red and the vivid brand
+    orange `#F2870D` is never used for them (decision 60b keeps this).
+    Outline-variant borders were rebalanced (`#8c8984` light / `#6b6761`
+    dark, ≥3:1 against surfaces) because the new grays are darker/lighter
+    than the old tinted ones. Chrome/meta colors and the app/favicon art
+    (icon.svg + `gen-icons.mjs` BG, PWA PNGs regenerated with
+    `npm run gen:icons`) were matched to the brand. Contrast was verified
+    numerically for every role pairing and visually in both themes;
+    typecheck/tests/build all green.
+
+60b. **The primary/brand color is EXACTLY `#F2870D` in both themes** (user
+    follow-up request — explicitly overriding decision 60's WCAG-driven
+    darker primary). `--md-sys-color-primary` and
+    `--md-sys-color-inverse-primary` are `#f2870d` verbatim in light AND
+    dark (no darkening, no per-theme variant); `on-primary` is white in
+    both themes, so filled buttons are white-on-`#F2870D`. Chrome/meta
+    (`theme.ts` light `#f2870d`, index.html meta, manifest `theme_color`)
+    and the icon art (SVG + generator + PNGs) match. Status/due, warning,
+    and error colors were NOT changed. Do not silently darken the brand —
+    decision 60b takes precedence.
+
+60c. **Foreground on the primary is now BLACK `#000000`** (user follow-up
+    request): `--md-sys-color-on-primary` is `#000000` in both themes, so
+    text/icons on `#F2870D` backgrounds (the `.btn--filled` buttons — ثبت
+    خودرو, افزودن, ذخیره, etc.) render black-on-orange. The primary color
+    itself stays exactly `#f2870d` and all other colors are unchanged.
+    Black-on-`#F2870D` measures ~7.0:1 (WCAG AA/AAA pass) — this also
+    resolves the 2.55:1 white-on-orange concern noted in decision 60b.
+    Note: `#F2870D` as TEXT on the light `#f6f5f3` surface remains
+    2.34:1 (links, text buttons, active nav label) — inherently low for
+    the exact brand hue and not part of this request.
+
 ---
 
 ## Known Issues / Limitations

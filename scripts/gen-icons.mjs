@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 
 /* --- Art constants (mirrors public/icon.svg) --- */
 
-const BG = { r: 0x0f, g: 0x6b, b: 0x58 }; // #0f6b58 — brand primary
+const BG = { r: 0xf2, g: 0x87, b: 0x0d }; // #F2870D — brand orange
 const WHITE = { r: 0xff, g: 0xff, b: 0xff };
 const STROKE = 1.8; // stroke width on the 24×24 grid
 const VIEW = 24;

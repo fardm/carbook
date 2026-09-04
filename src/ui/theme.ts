@@ -17,8 +17,8 @@ import { store } from "../state/store";
 export type ResolvedTheme = "light" | "dark";
 
 export const THEME_COLORS: Record<ResolvedTheme, string> = {
-  light: "#0f3d33", // app-bar / theme-color light (matches meta default)
-  dark: "#0e1513", // dark surface (tokens.css)
+  light: "#f2870d", // brand orange for browser chrome (light; tokens.css primary)
+  dark: "#151619", // dark surface (tokens.css)
 };
 
 /** Pure resolution: light/dark win; system follows the OS query. */
