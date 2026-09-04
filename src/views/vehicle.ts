@@ -6,6 +6,7 @@ import { t, type MessageKey } from "../i18n";
 import { store } from "../state/store";
 import { escHtml } from "../ui/escape";
 import { alignFabBar } from "../ui/fab";
+import { bindFloatingFields } from "../ui/floating-field";
 import { faNum, formatDate, toLatinDigits } from "../ui/format";
 import { applyIcons } from "../ui/icons";
 
@@ -62,6 +63,7 @@ export function renderVehicle(container: HTMLElement): () => void {
     container.innerHTML = vehicleViewHtml();
     bind(container);
     applyIcons();
+    bindFloatingFields(container);
     alignFabBar();
   };
   draw();
@@ -534,5 +536,6 @@ function redraw(container: HTMLElement): void {
   container.innerHTML = vehicleViewHtml();
   bind(container);
   applyIcons();
+  bindFloatingFields(container);
   alignFabBar();
 }

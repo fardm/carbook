@@ -144,7 +144,11 @@
   text-align: end;
 }
 
-/* --- Forms (Material-ish text fields) --- */
+/* --- Forms: one consistent floating-label design system across vehicle,
+ * service, replacement, and inspection forms. Text/number inputs float
+ * their label on focus/value (src/ui/floating-field.ts syncs the state);
+ * selects, date triggers and textareas always show the label floated,
+ * because they always display a value or an empty-state hint. */
 .form {
   display: flex;
   flex-direction: column;
@@ -159,7 +163,7 @@
 .form__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--md-space-3);
+  gap: var(--md-space-4) var(--md-space-3);
 }
 
 @media (max-width: 480px) {
@@ -172,50 +176,151 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--md-space-2);
+  margin-top: var(--md-space-1);
 }
 
 .field {
   display: flex;
   flex-direction: column;
   gap: var(--md-space-1);
+  min-width: 0;
+}
+
+/* A wrapper that carries a text control anchors the absolutely positioned
+ * floating label; everything else keeps the simple stacked layout. */
+.field:has(.field__input) {
+  position: relative;
 }
 
 .field__label {
-  font-size: var(--md-typescale-label-medium);
+  font-size: var(--md-typescale-label-large);
   font-weight: 600;
   color: var(--md-sys-color-on-surface-variant);
 }
 
+/* --- Floating label: rests centered inside the control, floats up small. */
+.field:has(.field__input) .field__label {
+  position: absolute;
+  inset-inline-start: 14px;
+  top: 32px; /* lines up with where typed values sit (14px top padding) */
+  max-width: calc(100% - 28px);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--md-typescale-body-large);
+  font-weight: 500;
+  pointer-events: none;
+  transform: translateY(-50%);
+  transform-origin: right center; /* matches RTL reading side */
+  transition:
+    top var(--md-motion-duration-short) var(--md-motion-easing),
+    color var(--md-motion-duration-short) var(--md-motion-easing),
+    transform var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+/* Text & number inputs float when focused or filled (JS adds the classes).
+ * Selects, date triggers and textareas stay floated permanently. */
+.field:has(input.field__input).is-filled .field__label,
+.field:has(input.field__input).is-focused .field__label,
+.field:has(select.field__input) .field__label,
+.field:has(textarea.field__input) .field__label,
+.field:has(.date-field) .field__label {
+  top: 4px;
+  transform: translateY(0) scale(0.78);
+}
+
+/* Focused fields tint their label with the brand color. */
+.field:has(.field__input):focus-within .field__label {
+  color: var(--md-sys-color-primary);
+}
+
 .field__input {
-  min-height: 48px;
   width: 100%;
+  min-height: 56px;
   padding: 0 var(--md-space-3);
-  border: 1px solid var(--md-sys-color-outline);
-  border-radius: var(--md-shape-extra-small);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-shape-medium);
   background-color: var(--md-sys-color-surface-container-lowest);
   color: var(--md-sys-color-on-surface);
   font-size: var(--md-typescale-body-large);
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    border-color var(--md-motion-duration-short) var(--md-motion-easing),
+    box-shadow var(--md-motion-duration-short) var(--md-motion-easing),
+    background-color var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+/* Real placeholders act as focus-time hints; the resting label takes their
+ * place while the field is empty, so nothing ever overlaps. */
+.field__input::placeholder {
+  color: var(--md-sys-color-on-surface-variant);
+  opacity: 0;
+  transition: opacity var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+.field__input:focus::placeholder {
+  opacity: 0.85;
+}
+
+.field:has(.field__input):hover .field__input:not(:focus) {
+  border-color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Soft ring instead of a hard outline; still a clear keyboard/mouse cue. */
+.field:has(.field__input):focus-within .field__input {
+  border-color: var(--md-sys-color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-sys-color-primary) 16%, transparent);
 }
 
 .field__input:focus-visible {
-  outline: 2px solid var(--md-sys-color-primary);
-  outline-offset: 0;
-  border-color: transparent;
+  outline: none;
+}
+
+/* Number spinners are hidden: the fields are touch-first and the calendar
+ * date picker / segmented controls handle stepping elsewhere. */
+.field__input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.field__input[type="number"]::-webkit-outer-spin-button,
+.field__input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Single-line controls reserve top space so typed values never collide
+ * with the floated label; the value text sits in the lower half. */
+input.field__input,
+select.field__input {
+  padding: 14px var(--md-space-3) 0;
+}
+
+/* Multiline notes: floated label sits on top, text starts beneath it. */
+textarea.field__input {
+  min-height: 104px;
+  padding: 26px var(--md-space-3) var(--md-space-2);
+  line-height: 1.7;
+  resize: vertical;
 }
 
 .field__error {
   color: var(--md-sys-color-error);
   font-size: var(--md-typescale-label-small);
+  line-height: 1.6;
 }
 
 .field__warn {
   color: var(--md-status-due-soon);
   font-size: var(--md-typescale-label-small);
+  line-height: 1.6;
 }
 
 .field__hint {
   color: var(--md-sys-color-on-surface-variant);
   font-size: var(--md-typescale-label-small);
+  line-height: 1.6;
 }
 
 /* --- Vehicle summary (dashboard) --- */

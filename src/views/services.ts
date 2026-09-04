@@ -34,6 +34,7 @@ import { currencyLabel } from "../ui/currency";
 import { escHtml } from "../ui/escape";
 import { alignFabBar } from "../ui/fab";
 import { faNum, formatDate, toLatinDigits } from "../ui/format";
+import { bindFloatingFields } from "../ui/floating-field";
 import { applyIcons, CUSTOM_ICON_CHOICES, STATUS_ICONS } from "../ui/icons";
 import {
   compareByUrgency,
@@ -205,6 +206,7 @@ export function renderServices(container: HTMLElement): () => void {
     container.innerHTML = servicesViewHtml();
     bind(container);
     applyIcons();
+    bindFloatingFields(container);
     alignFabBar();
   };
   registerGlobalKeys();
@@ -598,6 +600,9 @@ function serviceFormModalHtml(): string {
   const prefillName = editing ? item?.name ?? "" : entry?.name.fa ?? "";
   const title = t(editing ? "maintenance.editTitle" : "services.addService");
   const vehicleId = resolveSelectedVehicleId(dataset);
+  // The icon field belongs to custom services only (دلخواه); catalog-based
+  // services keep their predefined icon (§37).
+  const isCustom = form.mode === "edit" ? (item?.catalogId == null) : form.catalogId == null;
 
   const displayOptions = DISPLAY_OPTIONS.map(
     (option) => `
@@ -616,24 +621,21 @@ function serviceFormModalHtml(): string {
   const replacementSection = editing
     ? ""
     : `
-    <h3 class="form__section">${t("services.replacementTitle")}</h3>
-    <div class="form__grid">
-      <div class="field">
-        <label class="field__label" for="service-date">${t("services.replacementDate")}</label>
-        ${dateFieldHtml({
-          fieldId: "service-date",
-          name: "serviceDate",
-          value: fieldValue("serviceDate", todayIso()),
-          label: t("services.replacementDate"),
-        })}
-        <p class="field__error" id="service-error-date" hidden></p>
-      </div>
-      <div class="field">
-        <label class="field__label" for="service-odometer">${t("services.replacementKm")} (${t("common.kmUnit")})</label>
-        <input class="field__input" id="service-odometer" name="serviceOdometer" type="number"
-          inputmode="numeric" min="0" step="1" value="${escHtml(fieldValue("serviceOdometer"))}" />
-        <p class="field__error" id="service-error-odometer" hidden></p>
-      </div>
+    <div class="field">
+      <label class="field__label" for="service-date">${t("services.replacementDate")}</label>
+      ${dateFieldHtml({
+        fieldId: "service-date",
+        name: "serviceDate",
+        value: fieldValue("serviceDate", todayIso()),
+        label: t("services.replacementDate"),
+      })}
+      <p class="field__error" id="service-error-date" hidden></p>
+    </div>
+    <div class="field">
+      <label class="field__label" for="service-odometer">${t("services.replacementKm")} (${t("common.kmUnit")})</label>
+      <input class="field__input" id="service-odometer" name="serviceOdometer" type="number"
+        inputmode="numeric" min="0" step="1" value="${escHtml(fieldValue("serviceOdometer"))}" />
+      <p class="field__error" id="service-error-odometer" hidden></p>
     </div>
   `;
 
@@ -652,6 +654,7 @@ function serviceFormModalHtml(): string {
             <p class="field__error" id="service-error-name" hidden></p>
           </div>
 
+          ${isCustom ? `
           <div class="field">
             <label class="field__label">${t("services.iconLabel")}</label>
             <button type="button" class="icon-btn service-form__icon-toggle js-icon-toggle"
@@ -659,11 +662,10 @@ function serviceFormModalHtml(): string {
               <span data-lucide="${state.icon}"></span>
             </button>
             <p class="field__hint">${t("services.iconPickerHint")}</p>
-          </div>
+          </div>` : ""}
 
           ${replacementSection}
 
-          <h3 class="form__section">${t("services.lifeTitle")}</h3>
           <div class="field">
             <label class="field__label" for="service-km">${t("services.lifeKm")}</label>
             <input class="field__input" id="service-km" name="intervalKm" type="number"
@@ -1908,5 +1910,6 @@ function redraw(container: HTMLElement): void {
   container.innerHTML = servicesViewHtml();
   bind(container);
   applyIcons();
+  bindFloatingFields(container);
   alignFabBar();
 }

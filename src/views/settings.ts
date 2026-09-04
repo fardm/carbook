@@ -11,6 +11,7 @@ import {
 import { store } from "../state/store";
 import { escHtml } from "../ui/escape";
 import { faNum, formatDateTime } from "../ui/format";
+import { bindFloatingFields } from "../ui/floating-field";
 import { applyIcons } from "../ui/icons";
 
 /**
@@ -77,6 +78,7 @@ export function renderSettings(container: HTMLElement): () => void {
     container.innerHTML = settingsViewHtml();
     bind(container);
     applyIcons();
+    bindFloatingFields(container);
   };
   draw();
   return store.subscribe(draw);
@@ -366,6 +368,7 @@ function redraw(container: HTMLElement): void {
   container.innerHTML = settingsViewHtml();
   bind(container);
   applyIcons();
+  bindFloatingFields(container);
 }
 
 function downloadBlob(content: string, filename: string, mime: string): void {
