@@ -27,6 +27,7 @@ function populatedDataset(): Dataset {
       fuelType: "gasoline",
       averageDailyDistance: 40,
       currentOdometer: 103900,
+      odometerUpdatedAt: "2026-09-04T10:00:00.000Z",
       createdAt: "2026-09-04T10:00:00.000Z",
       updatedAt: "2026-09-04T10:00:00.000Z",
     },
@@ -128,6 +129,7 @@ describe("loadFromString — defensive loading", () => {
     expect(migrated.version).toBe(CURRENT_VERSION);
     expect(migrated.vehicles[0].id).toBe("v1");
     expect(migrated.vehicles[0].name).toBe("پژو");
+    expect(migrated.vehicles[0].odometerUpdatedAt).toBeNull();
     // Missing arrays are repaired; settings merge with defaults + theme + calendar.
     expect(migrated.maintenanceItems).toEqual([]);
     expect(migrated.serviceHistory).toEqual([]);
@@ -204,6 +206,8 @@ describe("loadFromString — defensive loading", () => {
     expect(migrated.vehicles[0].id).toBe("v1");
     expect(migrated.vehicles[0].name).toBe("پژو ۲۰۷");
     expect(migrated.vehicles[0].currentOdometer).toBe(104500);
+    // The mileage timestamp is added (null) by the v5→v6 migration.
+    expect(migrated.vehicles[0].odometerUpdatedAt).toBeNull();
     // Every item/record is linked to the vehicle (nothing shared, nothing dropped).
     expect(migrated.maintenanceItems[0].vehicleId).toBe("v1");
     expect(migrated.serviceHistory[0].vehicleId).toBe("v1");

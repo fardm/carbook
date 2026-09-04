@@ -253,7 +253,7 @@ describe("calculateMaintenance — edge cases (§47)", () => {
     const item = makeItem({ rule: { ...makeItem().rule, intervalKm: 10000 } });
     const dataset = defaultDataset();
     dataset.vehicles = [
-      { id: "v1", name: "", make: "", model: "", year: null, fuelType: null, averageDailyDistance: 40, currentOdometer: 104000, createdAt: "", updatedAt: "" },
+      { id: "v1", name: "", make: "", model: "", year: null, fuelType: null, averageDailyDistance: 40, currentOdometer: 104000, odometerUpdatedAt: null, createdAt: "", updatedAt: "" },
     ];
     dataset.serviceHistory = [service("2026-01-10", 100000)];
     const ctx = contextForVehicle(dataset, item.vehicleId);

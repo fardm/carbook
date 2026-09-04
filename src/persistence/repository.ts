@@ -179,6 +179,19 @@ const migrations: Record<number, (raw: Record<string, unknown>) => Record<string
     }
     return raw;
   },
+  // v5 → v6 (Mileage timestamp): each Vehicle records `odometerUpdatedAt` so
+  // the vehicles page can show when the mileage was last updated. A single
+  // timestamp — the odometer history/log stays removed.
+  5: (raw) => {
+    if (Array.isArray(raw.vehicles)) {
+      raw.vehicles = raw.vehicles.map((vehicle) =>
+        isRecord(vehicle) && vehicle.odometerUpdatedAt === undefined
+          ? { ...vehicle, odometerUpdatedAt: null }
+          : vehicle,
+      );
+    }
+    return raw;
+  },
 };
 
 /** Sorts odometer readings for the v3→v4 migration by (date, createdAt). */
@@ -199,7 +212,7 @@ function normalize(raw: Record<string, unknown>): Dataset {
     version: CURRENT_VERSION,
     exportedAt: typeof raw.exportedAt === "string" ? raw.exportedAt : null,
     vehicles: Array.isArray(raw.vehicles)
-      ? (raw.vehicles as Dataset["vehicles"])
+      ? (withOdometerStamp(raw.vehicles) as Dataset["vehicles"])
       : [],
     maintenanceItems: withVehicleId(Array.isArray(raw.maintenanceItems) ? raw.maintenanceItems : []) as Dataset["maintenanceItems"],
     serviceHistory: withVehicleId(Array.isArray(raw.serviceHistory) ? raw.serviceHistory : []) as Dataset["serviceHistory"],
@@ -213,6 +226,14 @@ function withVehicleId(rows: unknown[]): unknown[] {
   return rows.map((row) => {
     if (!isRecord(row)) return row;
     return row.vehicleId === undefined ? { ...row, vehicleId: null } : row;
+  });
+}
+
+/** Defensive repair: every vehicle carries an `odometerUpdatedAt` (null). */
+function withOdometerStamp(rows: unknown[]): unknown[] {
+  return rows.map((row) => {
+    if (!isRecord(row)) return row;
+    return row.odometerUpdatedAt === undefined ? { ...row, odometerUpdatedAt: null } : row;
   });
 }
 

@@ -29,6 +29,9 @@ export interface Vehicle {
   averageDailyDistance: number | null;
   /** Current odometer in km; null until the user records one. */
   currentOdometer: number | null;
+  /** ISO datetime of the last mileage update (بروزرسانی کیلومتر); null until
+   * the user records one. A single timestamp — NOT an update history/log. */
+  odometerUpdatedAt: string | null;
   createdAt: string; // ISO datetime
   updatedAt: string; // ISO datetime
 }

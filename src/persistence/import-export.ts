@@ -206,6 +206,14 @@ function validateVehicles(
       { type: "number", allowNull: true },
       (v) => Number.isInteger(v) && v >= 0,
     );
+    checkField(
+      issues,
+      row,
+      "odometerUpdatedAt",
+      `${path}.odometerUpdatedAt`,
+      { type: "string", allowNull: true },
+      (v) => Number.isFinite(Date.parse(v)),
+    );
     checkField(issues, row, "createdAt", `${path}.createdAt`, { type: "string", nonEmpty: true });
     checkField(issues, row, "updatedAt", `${path}.updatedAt`, { type: "string", nonEmpty: true });
   });

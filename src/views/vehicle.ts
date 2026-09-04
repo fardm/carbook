@@ -5,22 +5,25 @@ import { validateVehicle, type VehicleError } from "../domain/vehicle";
 import { t, type MessageKey } from "../i18n";
 import { store } from "../state/store";
 import { escHtml } from "../ui/escape";
-import { faNum, toLatinDigits } from "../ui/format";
+import { faNum, formatDate, toLatinDigits } from "../ui/format";
 import { applyIcons } from "../ui/icons";
 
 /**
- * Vehicle view — multi-vehicle garage ("خودروها", the first/default page).
+ * Vehicle view — the multi-vehicle garage ("خودروها", the default page).
  *
- * - Empty state: an افزودن خودرو button only.
- * - Vehicle cards: name + current mileage with بروزرسانی کیلومتر and
- *   سرویس ها actions, plus a three-dot menu (ویرایش / حذف /
- *   انتخاب به عنوان پیشفرض). No delete button directly on the card.
- * - Add/Edit modal (ویرایش → انصراف / ثبت تغییرات / حذف خودرو).
- * - Dedicated delete-confirm modal (from the card menu).
- * - Mileage modal: only a mileage field — odometer history is gone.
- * - Deleting a vehicle permanently removes the vehicle AND all of its
- *   maintenance items / service / inspection history (cascade delete) and
- *   clears the default-vehicle preference when it pointed at this car.
+ * - Each vehicle is a full-width single-row card: icon + name on the start
+ *   (right) side, the current mileage column on the end (left) side with a
+ *   "last mileage update" date underneath and a بروزرسانی کیلومتر action,
+ *   and a three-dot menu opening a proper dropdown (ویرایش /
+ *   انتخاب به عنوان پیشفرض / حذف).
+ * - The default vehicle gets a subtle primary outline; the Services page
+ *   auto-selects it.
+ * - Empty garage: a centered افزودن خودرو button only. With vehicles, the
+ *   same button stays centered above the list.
+ * - Add/Edit modal (ویرایش → انصراف / ثبت تغییرات / حذف خودرو) and a
+ *   dedicated delete-confirm modal. Deleting a vehicle permanently removes
+ *   the vehicle AND all of its maintenance items / service / inspection
+ *   history (cascade delete) and clears the default preference.
  */
 
 interface VehicleViewState {
@@ -78,19 +81,23 @@ export function renderVehicle(container: HTMLElement): () => void {
 function vehicleViewHtml(): string {
   const dataset = store.get();
   const vehicles = dataset.vehicles;
-  const heading = `
-    <div class="view-head">
-      <h1 class="view-title">${t("view.vehicle.title")}</h1>
-      ${vehicles.length > 0 ? `<button type="button" class="btn btn--filled js-add-vehicle">${t("vehicle.addVehicle")}</button>` : ""}
-    </div>
-  `;
+  const topAction = vehicles.length > 0
+    ? `
+      <div class="vehicles-top">
+        <button type="button" class="btn btn--filled js-add-vehicle">
+          <span data-lucide="plus"></span>
+          ${t("vehicle.addVehicle")}
+        </button>
+      </div>`
+    : "";
   const body =
     vehicles.length === 0
       ? emptyStateHtml()
-      : `<div class="vehicles-grid">${vehicles.map((v) => vehicleCardHtml(v, dataset.settings.defaultVehicleId)).join("")}</div>`;
+      : `<div class="vehicle-list">${vehicles.map((v) => vehicleRowHtml(v, dataset.settings.defaultVehicleId)).join("")}</div>`;
   return `
     <div class="view-stack">
-      ${heading}
+      <h1 class="view-title">${t("view.vehicle.title")}</h1>
+      ${topAction}
       ${body}
       ${modalHtml()}
     </div>
@@ -100,7 +107,6 @@ function vehicleViewHtml(): string {
 function emptyStateHtml(): string {
   return `
     <section class="card vehicles-empty">
-      <p class="vehicles-empty__text">${t("vehicle.noVehicles")}</p>
       <button type="button" class="btn btn--filled js-add-vehicle">
         <span data-lucide="plus"></span>
         ${t("vehicle.addVehicle")}
@@ -109,72 +115,78 @@ function emptyStateHtml(): string {
   `;
 }
 
-function vehicleCardHtml(vehicle: Vehicle, defaultVehicleId: string | null): string {
-  const meta = [vehicle.make, vehicle.model, vehicle.year != null ? String(vehicle.year) : ""]
+/** The short metadata line under the name: make — model — production year. */
+function vehicleMeta(vehicle: Vehicle): string {
+  return [vehicle.make, vehicle.model, vehicle.year != null ? String(vehicle.year) : ""]
     .filter((part) => part !== "")
     .join(" — ");
+}
+
+function vehicleRowHtml(vehicle: Vehicle, defaultVehicleId: string | null): string {
+  const meta = vehicleMeta(vehicle);
   const isDefault = vehicle.id === defaultVehicleId;
+  const mileage = vehicle.currentOdometer;
+  const updatedAt = vehicle.odometerUpdatedAt;
   const menuOpen = state.menuVehicleId === vehicle.id;
 
-  // The three-dot menu: a fixed backdrop (closes on outside click) plus an
-  // anchored popover with ویرایش / حذف / انتخاب به عنوان پیشفرض.
-  const menu = `
-    <div class="card-menu">
-      <button type="button" class="icon-btn js-menu-toggle" data-id="${escHtml(vehicle.id)}"
-        aria-haspopup="menu" aria-expanded="${menuOpen}" aria-label="${t("vehicle.menuLabel")}">
-        <span data-lucide="more-vertical"></span>
-      </button>
-      ${menuOpen
-        ? `
-        <div class="card-menu__backdrop js-menu-backdrop"></div>
-        <div class="card-menu__popover" role="menu" aria-label="${t("vehicle.menuLabel")}">
-          <button type="button" class="card-menu__item js-menu-edit" role="menuitem" data-id="${escHtml(vehicle.id)}">
-            <span data-lucide="pencil"></span>
-            ${t("vehicle.edit")}
-          </button>
-          <button type="button" class="card-menu__item js-menu-default" role="menuitem" data-id="${escHtml(vehicle.id)}">
-            <span data-lucide="star"></span>
-            ${t("vehicle.makeDefault")}
-          </button>
-          <button type="button" class="card-menu__item card-menu__item--danger js-menu-delete" role="menuitem" data-id="${escHtml(vehicle.id)}">
-            <span data-lucide="trash-2"></span>
-            ${t("vehicle.deleteVehicle")}
-          </button>
-        </div>`
-        : ""}
-    </div>
-  `;
-
   return `
-    <section class="card vehicle-card">
-      <div class="vehicle-card__head">
-        <span class="vehicle-card__icon" data-lucide="car-front"></span>
-        <div class="vehicle-card__info">
-          <div class="vehicle-card__name">
-            ${escHtml(vehicle.name)}
-            ${isDefault ? `<span class="vehicle-card__badge">${t("vehicle.defaultBadge")}</span>` : ""}
-          </div>
-          ${meta ? `<div class="vehicle-card__meta">${escHtml(meta)}</div>` : ""}
+    <section class="card vehicle-row${isDefault ? " vehicle-row--default" : ""}">
+      <div class="vehicle-row__main">
+        <span class="vehicle-row__icon" data-lucide="car-front"></span>
+        <div class="vehicle-row__info">
+          <div class="vehicle-row__name">${escHtml(vehicle.name)}</div>
+          ${meta ? `<div class="vehicle-row__meta">${escHtml(meta)}</div>` : ""}
         </div>
-        ${menu}
       </div>
-      <div class="vehicle-card__odometer">
-        <span class="vehicle-card__odometer-label">${t("vehicle.currentMileage")}</span>
-        <span class="vehicle-card__odometer-value">
-          ${vehicle.currentOdometer != null ? `${faNum(vehicle.currentOdometer)} ${t("common.kmUnit")}` : t("vehicle.notRecorded")}
-        </span>
-      </div>
-      <div class="vehicle-card__actions">
-        <button type="button" class="btn btn--text js-update-mileage" data-id="${escHtml(vehicle.id)}">
+
+      <div class="vehicle-row__mileage">
+        <div class="vehicle-row__mileage-value">
           <span data-lucide="gauge"></span>
+          <span>${mileage != null ? `${faNum(mileage)} ${t("common.kmUnit")}` : t("vehicle.notRecorded")}</span>
+        </div>
+        ${
+          updatedAt
+            ? `<div class="vehicle-row__mileage-updated" aria-label="${t("vehicle.mileageUpdated")}">${formatDate(updatedAt.slice(0, 10))}</div>`
+            : ""
+        }
+        <button type="button" class="btn btn--text vehicle-row__update js-update-mileage" data-id="${escHtml(vehicle.id)}">
+          <span data-lucide="refresh-cw"></span>
           ${t("vehicle.updateMileage")}
         </button>
-        <button type="button" class="btn btn--filled js-open-services" data-id="${escHtml(vehicle.id)}">
-          <span data-lucide="wrench"></span>
-          ${t("vehicle.services")}
+      </div>
+
+      <div class="card-menu">
+        <button type="button" class="icon-btn js-menu-toggle" data-id="${escHtml(vehicle.id)}"
+          aria-haspopup="menu" aria-expanded="${menuOpen}" aria-label="${t("vehicle.menuLabel")}">
+          <span data-lucide="more-vertical"></span>
         </button>
+        ${menuOpen ? cardMenuPopoverHtml(vehicle.id, isDefault) : ""}
       </div>
     </section>
+  `;
+}
+
+/** Dropdown popover + full-screen click-away backdrop for the three-dot menu. */
+function cardMenuPopoverHtml(vehicleId: string, isDefault: boolean): string {
+  return `
+    <div class="card-menu__backdrop js-menu-backdrop"></div>
+    <div class="card-menu__popover" role="menu" aria-label="${t("vehicle.menuLabel")}">
+      <button type="button" class="card-menu__item js-menu-edit" role="menuitem" data-id="${escHtml(vehicleId)}">
+        <span data-lucide="pencil"></span>
+        ${t("vehicle.edit")}
+      </button>
+      <button type="button" class="card-menu__item js-menu-default" role="menuitem" data-id="${escHtml(vehicleId)}"
+        ${isDefault ? 'aria-disabled="true"' : ""}>
+        <span data-lucide="star"></span>
+        ${t("vehicle.makeDefault")}
+        ${isDefault ? `<span class="card-menu__check" data-lucide="check"></span>` : ""}
+      </button>
+      <div class="card-menu__divider" role="separator"></div>
+      <button type="button" class="card-menu__item card-menu__item--danger js-menu-delete" role="menuitem" data-id="${escHtml(vehicleId)}">
+        <span data-lucide="trash-2"></span>
+        ${t("vehicle.deleteVehicle")}
+      </button>
+    </div>
   `;
 }
 
@@ -341,27 +353,12 @@ function bind(container: HTMLElement): void {
       redraw(container);
     });
   });
-  container.querySelectorAll<HTMLButtonElement>(".js-edit-vehicle").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.modal = { kind: "edit", vehicleId: button.dataset.id ?? "", confirmDelete: false };
-      state.menuVehicleId = null;
-      state.formValues = {};
-      redraw(container);
-    });
-  });
   container.querySelectorAll<HTMLButtonElement>(".js-update-mileage").forEach((button) => {
     button.addEventListener("click", () => {
       state.modal = { kind: "mileage", vehicleId: button.dataset.id ?? "" };
       state.menuVehicleId = null;
       state.formValues = {};
       redraw(container);
-    });
-  });
-  // سرویس ها → the services page, pre-selecting this vehicle.
-  container.querySelectorAll<HTMLButtonElement>(".js-open-services").forEach((button) => {
-    button.addEventListener("click", () => {
-      const id = button.dataset.id ?? "";
-      window.location.hash = `#/maintenance?vehicle=${encodeURIComponent(id)}`;
     });
   });
   container.querySelectorAll<HTMLButtonElement>(".js-cancel-modal").forEach((button) => {
@@ -390,7 +387,7 @@ function bind(container: HTMLElement): void {
     redraw(container);
   });
 
-  /* Three-dot menu */
+  /* Three-dot menu: toggle + click-away backdrop + items. */
   container.querySelectorAll<HTMLButtonElement>(".js-menu-toggle").forEach((button) => {
     button.addEventListener("click", () => {
       const id = button.dataset.id ?? null;
@@ -419,6 +416,7 @@ function bind(container: HTMLElement): void {
   });
   container.querySelectorAll<HTMLButtonElement>(".js-menu-default").forEach((button) => {
     button.addEventListener("click", () => {
+      if (button.getAttribute("aria-disabled") === "true") return;
       const id = button.dataset.id ?? "";
       state.menuVehicleId = null;
       store.update((draft) => {
@@ -507,7 +505,7 @@ function submitVehicleForm(container: HTMLElement, form: HTMLFormElement): void 
     return;
   }
 
-  // Add — namespace is empty for a brand-new vehicle.
+  // Add — the garage is empty for a brand-new vehicle.
   state.modal = null;
   state.formValues = {};
   store.update((draft) => {
@@ -515,6 +513,7 @@ function submitVehicleForm(container: HTMLElement, form: HTMLFormElement): void 
       id: createId(),
       ...input,
       currentOdometer: null,
+      odometerUpdatedAt: null,
       createdAt: now,
       updatedAt: now,
     });
@@ -544,8 +543,10 @@ function submitMileageForm(container: HTMLElement, form: HTMLFormElement): void 
   store.update((draft) => {
     const vehicle = draft.vehicles.find((v) => v.id === vehicleId);
     if (!vehicle || value == null) return;
+    const now = new Date().toISOString();
     vehicle.currentOdometer = value;
-    vehicle.updatedAt = new Date().toISOString();
+    vehicle.odometerUpdatedAt = now;
+    vehicle.updatedAt = now;
   });
 }
 

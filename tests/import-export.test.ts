@@ -23,6 +23,7 @@ function validDataset(): Dataset {
       fuelType: "gasoline",
       averageDailyDistance: 40,
       currentOdometer: 104500,
+      odometerUpdatedAt: "2026-09-01T08:00:00.000Z",
       createdAt: "2026-09-01T08:00:00.000Z",
       updatedAt: "2026-09-01T08:00:00.000Z",
     },

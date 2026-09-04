@@ -37,6 +37,7 @@ describe("Store", () => {
         fuelType: null,
         averageDailyDistance: null,
         currentOdometer: null,
+        odometerUpdatedAt: null,
         createdAt: "2026-09-04T00:00:00.000Z",
         updatedAt: "2026-09-04T00:00:00.000Z",
       });
@@ -59,6 +60,7 @@ describe("Store", () => {
         fuelType: null,
         averageDailyDistance: null,
         currentOdometer: 104500,
+        odometerUpdatedAt: null,
         createdAt: "2026-09-04T00:00:00.000Z",
         updatedAt: "2026-09-04T00:00:00.000Z",
       });
@@ -78,7 +80,7 @@ describe("Store", () => {
   it("reset() restores the default dataset and clears storage", () => {
     const store = freshStore();
     store.update((draft) => {
-      draft.vehicles.push({ id: "v1", name: "x", make: "", model: "", year: null, fuelType: null, averageDailyDistance: null, currentOdometer: null, createdAt: "", updatedAt: "" });
+      draft.vehicles.push({ id: "v1", name: "x", make: "", model: "", year: null, fuelType: null, averageDailyDistance: null, currentOdometer: null, odometerUpdatedAt: null, createdAt: "", updatedAt: "" });
     });
     store.reset();
     expect(store.get()).toEqual(defaultDataset());
