@@ -90,23 +90,19 @@ export function statusLabel(status: MaintenanceStatus): string {
 export type HealthBand = "high" | "mid" | "low";
 
 /**
- * Three-band health color classification derived from the EXISTING status
- * logic (§28 thresholds — no new numbers): ok/upcoming → high, dueSoon →
- * mid, due/overdue (and inspection-required) → low. Used only for the
- * visual color of percent-based donuts and health bars.
+ * Three-band health color classification driven by the PERCENTAGE itself
+ * (green / orange / red), reusing the engine's configured status thresholds
+ * (§28–§29) — no new or duplicate numbers:
+ *   at/below duePercent   → low (red)   — also covers negative/overdue
+ *   at/below dueSoonPercent → mid (orange)
+ *   otherwise             → high (green)
+ * Chart fills and the percentage text must be colored from the SAME rounded
+ * value so the two always match.
  */
-export function healthBand(status: MaintenanceStatus): HealthBand {
-  switch (status) {
-    case "ok":
-    case "upcoming":
-      return "high";
-    case "dueSoon":
-      return "mid";
-    case "due":
-    case "overdue":
-    case "inspectionRequired":
-      return "low";
-  }
+export function healthBand(percent: number, thresholds: { duePercent: number; dueSoonPercent: number }): HealthBand {
+  if (percent <= thresholds.duePercent) return "low";
+  if (percent <= thresholds.dueSoonPercent) return "mid";
+  return "high";
 }
 
 /** Urgency ordering: overdue first … ok last (§30 sorting). */

@@ -1987,11 +1987,16 @@ textarea.field__input {
   transition: stroke-dasharray var(--md-motion-duration-medium) var(--md-motion-easing);
 }
 
-/* Donut color follows the three-band health classification (green / orange
- * / red) derived from the existing status thresholds — not per-status hues. */
+/* Donut ring AND its center percentage are colored by the same three-band
+ * health classification (green / orange / red) derived from the rounded
+ * percentage via the configured thresholds, so value and chart match. */
 .donut--high .donut__value { stroke: var(--md-status-ok); }
 .donut--mid .donut__value { stroke: var(--md-status-due); }
 .donut--low .donut__value { stroke: var(--md-status-overdue); }
+
+.donut--high .donut__center { color: var(--md-status-ok); }
+.donut--mid .donut__center { color: var(--md-status-due); }
+.donut--low .donut__center { color: var(--md-status-overdue); }
 
 .donut__center {
   position: absolute;

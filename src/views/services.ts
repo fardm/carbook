@@ -11,12 +11,7 @@ import {
   type ItemDraft,
   type ItemDraftError,
 } from "../domain/item-factory";
-import {
-  calculateMaintenance,
-  contextForVehicle,
-  todayIso,
-  type MaintenanceStatus,
-} from "../domain/maintenance";
+import { calculateMaintenance, contextForVehicle, todayIso } from "../domain/maintenance";
 import {
   sortHistoryNewestFirst,
   validateInspectionRecordEntry,
@@ -450,7 +445,7 @@ function serviceCardHtml(item: MaintenanceItem, dataset: ReturnType<typeof store
         <div class="service-card__body">
           ${
             lines.percent != null
-              ? donutHtml(lines.percent, lines.calc.status, item.name)
+              ? donutHtml(lines.percent, dataset.settings.statusThresholds, item.name)
               : `<div class="service-card__state" data-lucide="${STATUS_ICONS[lines.calc.status]}"></div>`
           }
           <div class="service-card__detail">
@@ -470,12 +465,19 @@ function serviceCardHtml(item: MaintenanceItem, dataset: ReturnType<typeof store
   `;
 }
 
-/** Inline SVG donut of the remaining life, colored by the three-band
- * health classification (green / orange / red) derived from the status. */
-function donutHtml(percent: number, status: MaintenanceStatus, label: string): string {
+/** Inline SVG donut of the remaining life. The ring and the percentage in
+ * its center are colored by the SAME three-band health classification
+ * (green / orange / red) derived from the rounded percentage via the
+ * configured status thresholds. */
+function donutHtml(
+  percent: number,
+  thresholds: { duePercent: number; dueSoonPercent: number },
+  label: string,
+): string {
   const rounded = Math.max(0, Math.min(100, Math.round(percent)));
+  const band = healthBand(rounded, thresholds);
   return `
-    <div class="donut donut--${healthBand(status)}" role="img" aria-label="${escHtml(label)}">
+    <div class="donut donut--${band}" role="img" aria-label="${escHtml(label)}">
       <svg viewBox="0 0 100 100" aria-hidden="true">
         <circle class="donut__track" cx="50" cy="50" r="42" pathLength="100"></circle>
         <circle class="donut__value" cx="50" cy="50" r="42" pathLength="100"
@@ -871,13 +873,16 @@ function detailOverviewSectionHtml(item: MaintenanceItem, dataset: ReturnType<ty
   const calc = calculateMaintenance(item, contextForVehicle(dataset, item.vehicleId));
   const percent = calc.remainingPercent;
   const rounded = percent != null ? Math.max(0, Math.min(100, Math.round(percent))) : null;
+  // The same rounded value colors the percentage text and the bar fill, so
+  // the value and the chart always agree.
+  const band = rounded != null ? healthBand(rounded, dataset.settings.statusThresholds) : null;
 
   const healthValue =
     rounded != null ? `${faNum(rounded)}<small class="status-card__unit">٪</small>` : "—";
   const healthBar =
-    rounded != null
+    rounded != null && band != null
       ? `<div class="health-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${rounded}" aria-label="${t("maintenance.detail.health")}">
-          <div class="health-bar__fill health-bar__fill--${healthBand(calc.status)}" style="width: ${rounded}%"></div>
+          <div class="health-bar__fill health-bar__fill--${band}" style="width: ${rounded}%"></div>
         </div>`
       : "";
 
@@ -909,7 +914,7 @@ function detailOverviewSectionHtml(item: MaintenanceItem, dataset: ReturnType<ty
         <article class="status-card">
           <span class="status-card__icon" data-lucide="heart" aria-hidden="true"></span>
           <h3 class="status-card__title">${t("maintenance.detail.health")}</h3>
-          <div class="status-card__value${rounded != null ? ` status-card__value--${healthBand(calc.status)}` : ""}">${healthValue}</div>
+          <div class="status-card__value${rounded != null && band != null ? ` status-card__value--${band}` : ""}">${healthValue}</div>
           ${healthBar}
         </article>
         <article class="status-card">
