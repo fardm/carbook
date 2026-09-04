@@ -774,6 +774,68 @@
   font-weight: 600;
 }
 
+/* Part-lifetime row directly below the service title. */
+.detail-head__lifetime {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--md-space-2) var(--md-space-4);
+  margin-top: var(--md-space-1);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-typescale-body-medium);
+}
+
+.detail-head__lifetime-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-space-1);
+}
+
+.detail-head__lifetime-item svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Status section: health donut + recommended replacement date/km. */
+.health-grid {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--md-space-5);
+  margin-top: var(--md-space-2);
+}
+
+.health {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--md-space-1);
+  flex-shrink: 0;
+}
+
+.health__label {
+  font-size: var(--md-typescale-label-medium);
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.health__donut .donut {
+  width: 128px;
+  height: 128px;
+}
+
+.health-list {
+  flex: 1;
+  min-width: 220px;
+}
+
+.info-list__meta {
+  display: block;
+  margin-top: 2px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-typescale-body-small);
+}
+
 .detail-actions {
   display: flex;
   flex-wrap: wrap;

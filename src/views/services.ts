@@ -1,5 +1,6 @@
 import { CATALOG, catalogEntry, categoryName } from "../catalog";
 import { lastInspectionFor, lastServiceFor } from "../domain/baselines";
+import { diffDays } from "../domain/calendar/dates";
 import { createId } from "../domain/ids";
 import {
   buildItem,
@@ -241,19 +242,19 @@ function fabBarHtml(itemId: string | null): string {
     const calc = calculateMaintenance(item, contextForVehicle(dataset, item.vehicleId));
     const recordLabel = item.rule.inspectionBased
       ? t("maintenance.record.inspectionTitle")
-      : t("services.addServiceNew");
+      : t("maintenance.detail.replaceService");
     const recordClass = item.rule.inspectionBased ? "js-record-inspection" : "js-record-service";
     const recordButtonHtml = `
       <button type="button" class="btn btn--filled ${recordClass}" data-id="${escHtml(item.id)}">
-        <span data-lucide="plus"></span>
+        <span data-lucide="refresh-cw"></span>
         ${recordLabel}
       </button>`;
     const calendarHref = calendarEventHref(item, calc);
     const calendarLink = calendarHref
       ? `
       <a class="btn btn--secondary" href="${escHtml(calendarHref)}" target="_blank" rel="noopener noreferrer">
-        <span data-lucide="calendar-plus"></span>
-        ${t("maintenance.detail.addToCalendar")}
+        <span data-lucide="bell"></span>
+        ${t("maintenance.detail.reminder")}
       </a>`
       : "";
     const inner = calendarHref
@@ -462,16 +463,6 @@ function donutHtml(percent: number, status: string, label: string): string {
           stroke-dasharray="${rounded} ${100 - rounded}"></circle>
       </svg>
       <span class="donut__center">${faNum(rounded)}<small>٪</small></span>
-    </div>
-  `;
-}
-
-function progressHtml(percent: number, status: string, label: string): string {
-  const rounded = Math.round(percent);
-  return `
-    <div class="progress progress--${status}" role="progressbar"
-      aria-valuenow="${rounded}" aria-valuemin="0" aria-valuemax="100" aria-label="${escHtml(label)}">
-      <div class="progress__fill" style="width:${rounded}%"></div>
     </div>
   `;
 }
@@ -722,12 +713,7 @@ function itemDetailPageHtml(itemId: string): string {
   const services = dataset.serviceHistory.filter((r) => r.maintenanceItemId === itemId);
   const inspections = dataset.inspectionHistory.filter((r) => r.maintenanceItemId === itemId);
 
-  const headChip = inactive
-    ? `<span class="status-chip status-chip--inactive">${t("maintenance.detail.inactiveBadge")}</span>`
-    : `<span class="status-chip status-chip--${overviewHtml.calc.status}">
-        <span data-lucide="${STATUS_ICONS[overviewHtml.calc.status]}"></span>
-        ${statusLabel(overviewHtml.calc.status)}
-      </span>`;
+  const lifetimeRow = detailLifetimeRowHtml(item);
 
   return `
     ${backLink}
@@ -737,14 +723,14 @@ function itemDetailPageHtml(itemId: string): string {
         <div class="detail-head__info">
           <div class="detail-head__title">
             <span class="item-list__name">${escHtml(item.name)}</span>
-            ${headChip}
           </div>
+          ${lifetimeRow}
         </div>
         ${detailHeadActionsHtml(item)}
       </div>
       ${actionRow ? `<div class="detail-actions">${actionRow}</div>` : ""}
     </section>
-    ${overviewHtml.html}
+    ${overviewHtml}
     ${detailHistoryHtml(item, services, inspections)}
   `;
 }
@@ -807,72 +793,92 @@ function calendarEventHref(
   });
 }
 
-/** Status/remaining overview + explanation rows. */
-function detailOverviewHtml(item: MaintenanceItem, dataset: ReturnType<typeof store.get>): {
-  html: string;
-  calc: ReturnType<typeof calculateMaintenance>;
-} {
-  const lines = itemMetricLines(item, dataset);
-  const calc = lines.calc;
-  const rule = item.rule;
-  const km = rule.intervalKm;
-  const months = rule.intervalMonths;
-  const intervalValue = [
-    km != null ? `${faNum(km)} ${t("common.kmUnit")}` : null,
-    months != null ? `${faNum(months)} ${t("maintenance.monthsUnit")}` : null,
-  ]
-    .filter((part): part is string => part != null)
-    .join(" · ");
+/** Lifetime row directly below the service title: the part lifetime the user
+ * configured, in kilometers and in time (e.g. ۵٬۰۰۰ کیلومتر · ۶ ماه). */
+function detailLifetimeRowHtml(item: MaintenanceItem): string {
+  const { intervalKm, intervalMonths } = item.rule;
+  const parts: string[] = [];
+  if (intervalKm != null) {
+    parts.push(`
+      <span class="detail-head__lifetime-item">
+        <span data-lucide="gauge"></span>
+        ${faNum(intervalKm)} ${t("common.kmUnit")}
+      </span>`);
+  }
+  if (intervalMonths != null) {
+    parts.push(`
+      <span class="detail-head__lifetime-item">
+        <span data-lucide="calendar"></span>
+        ${faNum(intervalMonths)} ${t("maintenance.monthsUnit")}
+      </span>`);
+  }
+  return parts.length > 0 ? `<div class="detail-head__lifetime">${parts.join("")}</div>` : "";
+}
 
-  const rows: { label: string; value: string }[] = [];
+/**
+ * Status section: exactly three items — سلامتی (health donut), تاریخ
+ * پیشنهادی تعویض (date + remaining time), and کیلومتر پیشنهادی تعویض
+ * (mileage + remaining km). All values come from the engine, which combines
+ * the user's configured lifetime with the vehicle's current odometer/date.
+ */
+function detailOverviewHtml(item: MaintenanceItem, dataset: ReturnType<typeof store.get>): string {
+  const calc = calculateMaintenance(item, contextForVehicle(dataset, item.vehicleId));
+  const percent = calc.remainingPercent;
 
-  if (rule.inspectionBased) {
-    const last = lastInspectionFor(dataset.inspectionHistory, item.id);
-    rows.push({
-      label: t("maintenance.detail.lastInspection"),
-      value: last
-        ? `${formatDate(last.date)}${
-            last.condition ? ` — ${t(`maintenance.condition.${last.condition}` as never)}` : ""
-          }`
-        : t("maintenance.detail.neverInspected"),
-    });
-    rows.push({ label: t("maintenance.detail.configuredInterval"), value: intervalValue });
-  } else {
-    const last = lastServiceFor(dataset.serviceHistory, item.id);
-    rows.push({ label: t("maintenance.detail.configuredInterval"), value: intervalValue });
-    if (last && (km != null || months != null)) {
-      const parts: string[] = [];
-      if (calc.nextDueOdometer != null) parts.push(`${faNum(calc.nextDueOdometer)} ${t("common.kmUnit")}`);
-      if (calc.nextDueDate) parts.push(formatDate(calc.nextDueDate));
-      if (parts.length > 0) {
-        rows.push({ label: t("maintenance.detail.serviceAfter"), value: parts.join(" · ") });
-      }
-    }
+  const healthBlock =
+    percent != null
+      ? `
+      <div class="health">
+        <div class="health__donut">${donutHtml(percent, calc.status, item.name)}</div>
+        <div class="health__label">${t("maintenance.detail.health")}</div>
+      </div>`
+      : "";
+
+  const recommendedDate = calc.estimatedDueDate ?? calc.nextDueDate;
+  const dateValue = recommendedDate ? formatDate(recommendedDate) : t("maintenance.detail.notRecorded");
+  let dateMeta = "";
+  if (recommendedDate) {
+    const days = diffDays(recommendedDate, todayIso());
+    dateMeta =
+      days >= 0
+        ? `${faNum(days)} ${t("maintenance.detail.remainingDays")}`
+        : `${faNum(-days)} ${t("maintenance.detail.pastDays")}`;
   }
 
-  const explainRows = rows
-    .map(
-      (row) => `
-        <div class="info-list__row"><dt>${escHtml(row.label)}</dt><dd>${escHtml(row.value)}</dd></div>
-      `,
-    )
-    .join("");
+  const dueKm = calc.nextDueOdometer;
+  const kmValue = dueKm != null ? faNum(dueKm) : t("maintenance.detail.notRecorded");
+  let kmMeta = "";
+  if (calc.remainingKm != null) {
+    kmMeta =
+      calc.remainingKm >= 0
+        ? `${faNum(calc.remainingKm)} ${t("maintenance.detail.remainingKm")}`
+        : `${faNum(-calc.remainingKm)} ${t("maintenance.detail.pastKm")}`;
+  }
 
-  return {
-    calc,
-    html: `
-      <section class="card">
-        <h2 class="card__title">${t("maintenance.detail.overviewTitle")}</h2>
-        <div class="detail-metrics">
-          ${lines.primaryLine ? `<div class="metric metric--primary">${lines.primaryLine}</div>` : ""}
-          ${lines.secondaryLine ? `<div class="metric">${lines.secondaryLine}</div>` : ""}
-          ${lines.dateLine ? `<div class="metric metric--muted">${lines.dateLine}</div>` : ""}
-        </div>
-        ${lines.percent != null ? progressHtml(lines.percent, calc.status, item.name) : ""}
-        ${explainRows ? `<dl class="info-list">${explainRows}</dl>` : ""}
-      </section>
-    `,
-  };
+  return `
+    <section class="card">
+      <h2 class="card__title">${t("maintenance.detail.overviewTitle")}</h2>
+      <div class="health-grid">
+        ${healthBlock}
+        <dl class="info-list health-list">
+          <div class="info-list__row">
+            <dt>${t("maintenance.detail.recommendedDate")}</dt>
+            <dd>
+              ${escHtml(dateValue)}
+              ${dateMeta ? `<span class="info-list__meta">${escHtml(dateMeta)}</span>` : ""}
+            </dd>
+          </div>
+          <div class="info-list__row">
+            <dt>${t("maintenance.detail.recommendedKm")}</dt>
+            <dd>
+              ${escHtml(kmValue)}
+              ${kmMeta ? `<span class="info-list__meta">${escHtml(kmMeta)}</span>` : ""}
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+  `;
 }
 
 /** Row actions for a history record: a single three-dot button opening a
