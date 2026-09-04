@@ -752,19 +752,23 @@ function itemDetailPageHtml(itemId: string): string {
     <section class="card service-detail-card">
       <div class="service-detail-card__sections">
         <section class="service-detail-card__header">
-          <div class="service-detail-card__header-row">
-            <div class="service-info">
-              <span class="service-info__icon" data-lucide="${item.icon}"></span>
-              <div class="service-info__main">
-                <div class="service-info__name">${escHtml(item.name)}</div>
-                ${detailLifetimeRowHtml(item)}
+          <button type="button" class="service-detail-card__header-hit js-edit-service-header"
+            data-id="${escHtml(item.id)}"
+            aria-label="${t("maintenance.editItem")}: ${escHtml(item.name)}">
+            <div class="service-detail-card__header-row">
+              <div class="service-info">
+                <span class="service-info__icon" data-lucide="${item.icon}"></span>
+                <div class="service-info__main">
+                  <div class="service-info__name">${escHtml(item.name)}</div>
+                  ${detailLifetimeRowHtml(item)}
+                </div>
               </div>
+              <span class="status-chip status-chip--${calc.status}">
+                <span data-lucide="${STATUS_ICONS[calc.status]}"></span>
+                ${statusLabel(calc.status)}
+              </span>
             </div>
-            <span class="status-chip status-chip--${calc.status}">
-              <span data-lucide="${STATUS_ICONS[calc.status]}"></span>
-              ${statusLabel(calc.status)}
-            </span>
-          </div>
+          </button>
           ${inactive ? `<div class="service-detail__actions">${detailActionRowHtml(item, inactive)}</div>` : ""}
         </section>
         ${detailOverviewSectionHtml(item, dataset)}
@@ -902,10 +906,10 @@ function detailOverviewSectionHtml(item: MaintenanceItem, dataset: ReturnType<ty
   return `
     <section class="service-detail-card__status">
       <div class="status-grid">
-        <article class="status-card status-card--${calc.status}">
+        <article class="status-card">
           <span class="status-card__icon" data-lucide="heart" aria-hidden="true"></span>
           <h3 class="status-card__title">${t("maintenance.detail.health")}</h3>
-          <div class="status-card__value">${healthValue}</div>
+          <div class="status-card__value${rounded != null ? ` status-card__value--${healthBand(calc.status)}` : ""}">${healthValue}</div>
           ${healthBar}
         </article>
         <article class="status-card">
@@ -1492,6 +1496,18 @@ function bindDetailEvents(container: HTMLElement): void {
   container.querySelectorAll<HTMLButtonElement>(".js-history-toggle").forEach((button) => {
     button.addEventListener("click", () => {
       state.historyOpen = !state.historyOpen;
+      redraw(container);
+    });
+  });
+
+  /* The whole service header (icon + title + lifetime + status chip) opens
+   * the same edit form as the card menu's ویرایش action. */
+  container.querySelectorAll<HTMLButtonElement>(".js-edit-service-header").forEach((button) => {
+    button.addEventListener("click", () => {
+      const item = store.get().maintenanceItems.find((candidate) => candidate.id === button.dataset.id);
+      if (!item) return;
+      state.serviceMenuId = null;
+      openEditServiceForm(item);
       redraw(container);
     });
   });

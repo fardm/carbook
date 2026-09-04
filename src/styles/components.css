@@ -932,6 +932,39 @@ textarea.field__input {
   flex-wrap: wrap;
 }
 
+/* The whole service header (icon + title + lifetime + status chip) is a
+ * single hit target that opens the edit form. Reset the button chrome so
+ * the visual design stays identical; only a whisper of hover/press
+ * feedback hints at interactivity (no pencil, no chevron). */
+.service-detail-card__header-hit {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--md-shape-medium);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.service-detail-card__header-hit:hover {
+  background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 6%, transparent);
+}
+
+/* Pressed state doubles as touch feedback on devices without hover. */
+.service-detail-card__header-hit:active {
+  background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+}
+
+.service-detail-card__header-hit:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
 .service-detail-card__history {
   padding: var(--md-space-4);
 }
@@ -1150,13 +1183,11 @@ textarea.field__input {
   color: var(--md-sys-color-on-surface-variant);
 }
 
-/* Health percentage inherits the status color (mirrors the donut palette). */
-.status-card--ok .status-card__value { color: var(--md-status-ok); }
-.status-card--upcoming .status-card__value { color: var(--md-status-upcoming); }
-.status-card--dueSoon .status-card__value { color: var(--md-status-due-soon); }
-.status-card--due .status-card__value { color: var(--md-status-due); }
-.status-card--overdue .status-card__value { color: var(--md-status-overdue); }
-.status-card--inspectionRequired .status-card__value { color: var(--md-status-due); }
+/* Health percentage matches the chart/bar fill color: the same three-band
+ * green/orange/red classification derived from the status. */
+.status-card__value--high { color: var(--md-status-ok); }
+.status-card__value--mid { color: var(--md-status-due); }
+.status-card__value--low { color: var(--md-status-overdue); }
 
 /* Part-health progress bar: minimal 6px track with a neutral, noticeably
  * lighter empty portion (full-strength highest container — clearly
