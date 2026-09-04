@@ -922,6 +922,16 @@ textarea.field__input {
   padding-block: var(--md-space-4);
 }
 
+/* Header row: service info on the right (RTL start), the compact status
+ * chip on the left — wraps onto its own line on narrow screens. */
+.service-detail-card__header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--md-space-3);
+  flex-wrap: wrap;
+}
+
 .service-detail-card__history {
   padding: var(--md-space-4);
 }
@@ -1148,13 +1158,16 @@ textarea.field__input {
 .status-card--overdue .status-card__value { color: var(--md-status-overdue); }
 .status-card--inspectionRequired .status-card__value { color: var(--md-status-due); }
 
-/* Part-health progress bar: minimal 6px track with a status-colored fill. */
+/* Part-health progress bar: minimal 6px track with a neutral, noticeably
+ * lighter empty portion (full-strength highest container — clearly
+ * distinguishable from the card's soft 45% mix) and a fill colored by the
+ * three-band health classification (green / orange / red) from the status. */
 .health-bar {
   width: 100%;
   height: 6px;
   margin-top: var(--md-space-1);
   border-radius: var(--md-shape-full);
-  background-color: var(--md-sys-color-surface-container-high);
+  background-color: var(--md-sys-color-surface-container-highest);
   overflow: hidden;
 }
 
@@ -1165,12 +1178,9 @@ textarea.field__input {
   transition: width var(--md-motion-duration-medium) var(--md-motion-easing);
 }
 
-.status-card--ok .health-bar__fill { background-color: var(--md-status-ok); }
-.status-card--upcoming .health-bar__fill { background-color: var(--md-status-upcoming); }
-.status-card--dueSoon .health-bar__fill { background-color: var(--md-status-due-soon); }
-.status-card--due .health-bar__fill { background-color: var(--md-status-due); }
-.status-card--overdue .health-bar__fill { background-color: var(--md-status-overdue); }
-.status-card--inspectionRequired .health-bar__fill { background-color: var(--md-status-due); }
+.health-bar__fill--high { background-color: var(--md-status-ok); }
+.health-bar__fill--mid { background-color: var(--md-status-due); }
+.health-bar__fill--low { background-color: var(--md-status-overdue); }
 
 .delete-confirm {
   display: inline-flex;
@@ -1948,12 +1958,11 @@ textarea.field__input {
   transition: stroke-dasharray var(--md-motion-duration-medium) var(--md-motion-easing);
 }
 
-.donut--ok .donut__value { stroke: var(--md-status-ok); }
-.donut--upcoming .donut__value { stroke: var(--md-status-upcoming); }
-.donut--dueSoon .donut__value { stroke: var(--md-status-due-soon); }
-.donut--due .donut__value { stroke: var(--md-status-due); }
-.donut--overdue .donut__value { stroke: var(--md-status-overdue); }
-.donut--inspectionRequired .donut__value { stroke: var(--md-status-due); }
+/* Donut color follows the three-band health classification (green / orange
+ * / red) derived from the existing status thresholds — not per-status hues. */
+.donut--high .donut__value { stroke: var(--md-status-ok); }
+.donut--mid .donut__value { stroke: var(--md-status-due); }
+.donut--low .donut__value { stroke: var(--md-status-overdue); }
 
 .donut__center {
   position: absolute;
@@ -2153,13 +2162,15 @@ textarea.field__input {
 }
 
 /* Small secondary action under a field (e.g. «استفاده از کیلومتر فعلی»):
- * compact, quiet, never competes with the input itself. */
+ * compact, quiet, never competes with the input itself. Sits tight against
+ * its own field (no top margin — the field's gap provides it) and carries
+ * a small bottom margin to separate it from whatever comes next. */
 .field-action {
   align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: var(--md-space-1);
-  margin-block-start: var(--md-space-1);
+  margin-block-end: var(--md-space-1);
   padding: var(--md-space-1) var(--md-space-2);
   border-radius: var(--md-shape-full);
   color: var(--md-sys-color-on-surface-variant);

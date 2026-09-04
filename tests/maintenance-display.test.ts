@@ -4,6 +4,7 @@ import type { DisplayMode } from "../src/domain/types";
 import {
   compareByUrgency,
   formatRemainingTime,
+  healthBand,
   primaryMetricText,
   resolvePrimaryMetric,
   secondaryMetricText,
@@ -102,6 +103,15 @@ describe("status labels and urgency (§29, §30)", () => {
       expect(statusLabel(status).length).toBeGreaterThan(0);
       expect(urgencyRank(status)).toBeGreaterThanOrEqual(0);
     }
+  });
+
+  it("classifies health bands green/orange/red from the existing statuses", () => {
+    expect(healthBand("ok")).toBe("high");
+    expect(healthBand("upcoming")).toBe("high");
+    expect(healthBand("dueSoon")).toBe("mid");
+    expect(healthBand("due")).toBe("low");
+    expect(healthBand("overdue")).toBe("low");
+    expect(healthBand("inspectionRequired")).toBe("low");
   });
 
   it("orders overdue < due < dueSoon = inspection < upcoming < ok", () => {

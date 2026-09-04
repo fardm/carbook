@@ -11,7 +11,12 @@ import {
   type ItemDraft,
   type ItemDraftError,
 } from "../domain/item-factory";
-import { calculateMaintenance, contextForVehicle, todayIso } from "../domain/maintenance";
+import {
+  calculateMaintenance,
+  contextForVehicle,
+  todayIso,
+  type MaintenanceStatus,
+} from "../domain/maintenance";
 import {
   sortHistoryNewestFirst,
   validateInspectionRecordEntry,
@@ -39,6 +44,7 @@ import { applyIcons, CUSTOM_ICON_CHOICES, STATUS_ICONS } from "../ui/icons";
 import {
   compareByUrgency,
   dueDateText,
+  healthBand,
   primaryMetricText,
   resolvePrimaryMetric,
   secondaryMetricText,
@@ -464,11 +470,12 @@ function serviceCardHtml(item: MaintenanceItem, dataset: ReturnType<typeof store
   `;
 }
 
-/** Inline SVG donut of the remaining life, colored by the status. */
-function donutHtml(percent: number, status: string, label: string): string {
+/** Inline SVG donut of the remaining life, colored by the three-band
+ * health classification (green / orange / red) derived from the status. */
+function donutHtml(percent: number, status: MaintenanceStatus, label: string): string {
   const rounded = Math.max(0, Math.min(100, Math.round(percent)));
   return `
-    <div class="donut donut--${status}" role="img" aria-label="${escHtml(label)}">
+    <div class="donut donut--${healthBand(status)}" role="img" aria-label="${escHtml(label)}">
       <svg viewBox="0 0 100 100" aria-hidden="true">
         <circle class="donut__track" cx="50" cy="50" r="42" pathLength="100"></circle>
         <circle class="donut__value" cx="50" cy="50" r="42" pathLength="100"
@@ -642,7 +649,7 @@ function serviceFormModalHtml(): string {
         inputmode="numeric" min="0" step="1" value="${escHtml(fieldValue("serviceOdometer"))}" />
       <button type="button" class="btn btn--text field-action js-use-current-km"
         ${currentKm == null ? "disabled" : ""}>
-        <span data-lucide="gauge"></span>
+        <span data-lucide="download"></span>
         <span>${t("services.useCurrentKm")}</span>
       </button>
       <p class="field__error" id="service-error-odometer" hidden></p>
@@ -734,6 +741,7 @@ function itemDetailPageHtml(itemId: string): string {
   }
 
   const inactive = !item.active;
+  const calc = calculateMaintenance(item, contextForVehicle(dataset, item.vehicleId));
   const backLink = `<a class="btn btn--text detail-back" href="${back}">
     <span data-lucide="arrow-right" aria-hidden="true"></span>
     <span>${t("maintenance.detail.backToList")}</span>
@@ -744,12 +752,18 @@ function itemDetailPageHtml(itemId: string): string {
     <section class="card service-detail-card">
       <div class="service-detail-card__sections">
         <section class="service-detail-card__header">
-          <div class="service-info">
-            <span class="service-info__icon" data-lucide="${item.icon}"></span>
-            <div class="service-info__main">
-              <div class="service-info__name">${escHtml(item.name)}</div>
-              ${detailLifetimeRowHtml(item)}
+          <div class="service-detail-card__header-row">
+            <div class="service-info">
+              <span class="service-info__icon" data-lucide="${item.icon}"></span>
+              <div class="service-info__main">
+                <div class="service-info__name">${escHtml(item.name)}</div>
+                ${detailLifetimeRowHtml(item)}
+              </div>
             </div>
+            <span class="status-chip status-chip--${calc.status}">
+              <span data-lucide="${STATUS_ICONS[calc.status]}"></span>
+              ${statusLabel(calc.status)}
+            </span>
           </div>
           ${inactive ? `<div class="service-detail__actions">${detailActionRowHtml(item, inactive)}</div>` : ""}
         </section>
@@ -859,7 +873,7 @@ function detailOverviewSectionHtml(item: MaintenanceItem, dataset: ReturnType<ty
   const healthBar =
     rounded != null
       ? `<div class="health-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${rounded}" aria-label="${t("maintenance.detail.health")}">
-          <div class="health-bar__fill" style="width: ${rounded}%"></div>
+          <div class="health-bar__fill health-bar__fill--${healthBand(calc.status)}" style="width: ${rounded}%"></div>
         </div>`
       : "";
 
@@ -1085,6 +1099,11 @@ function recordServiceFormModalHtml(): string {
           <label class="field__label" for="record-odometer">${t("maintenance.record.odometerLabel")}</label>
           <input class="field__input" id="record-odometer" name="odometer" type="number"
             inputmode="numeric" min="0" step="1" value="${record?.odometer ?? defaultKm ?? ""}" />
+          <button type="button" class="btn btn--text field-action js-use-current-km"
+            ${defaultKm == null ? "disabled" : ""}>
+            <span data-lucide="download"></span>
+            <span>${t("services.useCurrentKm")}</span>
+          </button>
           <p class="field__error" id="record-error-odometer" hidden></p>
         </div>
         <div class="field">
@@ -1687,6 +1706,20 @@ function bindFormEvents(container: HTMLElement): void {
 function bindRecordFormEvents(container: HTMLElement): void {
   const form = container.querySelector<HTMLFormElement>("#record-form");
   if (!form) return;
+  /* «استفاده از کیلومتر فعلی»: quick-fills the record's odometer with the
+   * vehicle's registered mileage — same convenience as in the service form. */
+  container.querySelectorAll<HTMLButtonElement>(".js-use-current-km").forEach((button) => {
+    button.addEventListener("click", () => {
+      const itemId = state.recordForm?.itemId ?? "";
+      const km = defaultRecordOdometer(itemId);
+      if (km == null) return;
+      const input = container.querySelector<HTMLInputElement>("#record-odometer");
+      if (!input) return;
+      input.value = String(km);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  });
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     submitRecordForm(container, form);

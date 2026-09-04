@@ -87,6 +87,28 @@ export function statusLabel(status: MaintenanceStatus): string {
   return t(STATUS_KEYS[status] as never);
 }
 
+export type HealthBand = "high" | "mid" | "low";
+
+/**
+ * Three-band health color classification derived from the EXISTING status
+ * logic (§28 thresholds — no new numbers): ok/upcoming → high, dueSoon →
+ * mid, due/overdue (and inspection-required) → low. Used only for the
+ * visual color of percent-based donuts and health bars.
+ */
+export function healthBand(status: MaintenanceStatus): HealthBand {
+  switch (status) {
+    case "ok":
+    case "upcoming":
+      return "high";
+    case "dueSoon":
+      return "mid";
+    case "due":
+    case "overdue":
+    case "inspectionRequired":
+      return "low";
+  }
+}
+
 /** Urgency ordering: overdue first … ok last (§30 sorting). */
 export function urgencyRank(status: MaintenanceStatus): number {
   switch (status) {
