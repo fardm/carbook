@@ -1,6 +1,6 @@
 import { createId } from "../domain/ids";
 import { validateMileage, type OdometerValueError } from "../domain/odometer";
-import type { FuelType, Vehicle } from "../domain/types";
+import type { Vehicle } from "../domain/types";
 import { validateVehicle, type VehicleError } from "../domain/vehicle";
 import { t, type MessageKey } from "../i18n";
 import { store } from "../state/store";
@@ -41,16 +41,6 @@ interface VehicleViewState {
 }
 
 const state: VehicleViewState = { modal: null, menuVehicleId: null, formValues: {} };
-
-const FUEL_KEYS: Record<FuelType, MessageKey> = {
-  gasoline: "vehicle.fuelGasoline",
-  diesel: "vehicle.fuelDiesel",
-  hybrid: "vehicle.fuelHybrid",
-  electric: "vehicle.fuelElectric",
-  cng: "vehicle.fuelCng",
-  lpg: "vehicle.fuelLpg",
-  other: "vehicle.fuelOther",
-};
 
 const ERROR_KEYS: Record<VehicleError | OdometerValueError, MessageKey> = {
   nameRequired: "vehicle.errorNameRequired",
@@ -166,7 +156,10 @@ function vehicleRowHtml(vehicle: Vehicle, defaultVehicleId: string | null): stri
   `;
 }
 
-/** Dropdown popover + full-screen click-away backdrop for the three-dot menu. */
+/** Dropdown popover + full-screen click-away backdrop for the three-dot menu.
+ * The default toggle is contextual: انتخاب به عنوان پیشفرض on non-default
+ * cars, برداشتن از پیشفرض on the current default (there is always at most
+ * one default vehicle). */
 function cardMenuPopoverHtml(vehicleId: string, isDefault: boolean): string {
   return `
     <div class="card-menu__backdrop js-menu-backdrop"></div>
@@ -175,11 +168,9 @@ function cardMenuPopoverHtml(vehicleId: string, isDefault: boolean): string {
         <span data-lucide="pencil"></span>
         ${t("vehicle.edit")}
       </button>
-      <button type="button" class="card-menu__item js-menu-default" role="menuitem" data-id="${escHtml(vehicleId)}"
-        ${isDefault ? 'aria-disabled="true"' : ""}>
+      <button type="button" class="card-menu__item js-menu-default" role="menuitem" data-id="${escHtml(vehicleId)}">
         <span data-lucide="star"></span>
-        ${t("vehicle.makeDefault")}
-        ${isDefault ? `<span class="card-menu__check" data-lucide="check"></span>` : ""}
+        ${isDefault ? t("vehicle.removeDefault") : t("vehicle.makeDefault")}
       </button>
       <div class="card-menu__divider" role="separator"></div>
       <button type="button" class="card-menu__item card-menu__item--danger js-menu-delete" role="menuitem" data-id="${escHtml(vehicleId)}">
@@ -215,12 +206,6 @@ function formValue(field: string, fallback: string = ""): string {
 
 function vehicleFormModalHtml(vehicle: Vehicle | null, confirmDelete: boolean): string {
   const editing = vehicle != null;
-  const fuelOptions = (Object.keys(FUEL_KEYS) as FuelType[])
-    .map(
-      (fuel) =>
-        `<option value="${fuel}" ${vehicle?.fuelType === fuel ? "selected" : ""}>${t(FUEL_KEYS[fuel])}</option>`,
-    )
-    .join("");
   const field = (name: string, get: () => string | null): string =>
     formValue(name, editing && vehicle ? get() ?? "" : "");
 
@@ -238,42 +223,31 @@ function vehicleFormModalHtml(vehicle: Vehicle | null, confirmDelete: boolean): 
         </div>
         <div class="form__grid">
           <div class="field">
-            <label class="field__label" for="vehicle-make">${t("vehicle.make")}</label>
-            <input class="field__input" id="vehicle-make" name="make" type="text"
-              value="${escHtml(field("make", () => vehicle?.make ?? null))}"
-              placeholder="${t("vehicle.makePlaceholder")}" ${confirmDelete ? "disabled" : ""} />
-          </div>
-          <div class="field">
-            <label class="field__label" for="vehicle-model">${t("vehicle.model")}</label>
-            <input class="field__input" id="vehicle-model" name="model" type="text"
-              value="${escHtml(field("model", () => vehicle?.model ?? null))}"
-              placeholder="${t("vehicle.modelPlaceholder")}" ${confirmDelete ? "disabled" : ""} />
-          </div>
-          <div class="field">
             <label class="field__label" for="vehicle-year">${t("vehicle.year")}</label>
             <input class="field__input" id="vehicle-year" name="year" type="number"
               inputmode="numeric" min="1300" max="2100" step="1"
               value="${escHtml(field("year", () => (vehicle?.year != null ? String(vehicle.year) : null)))}"
               ${confirmDelete ? "disabled" : ""} />
-            <p class="field__hint">${t("vehicle.yearHint")}</p>
             <p class="field__error" id="vehicle-error-year" hidden></p>
           </div>
           <div class="field">
-            <label class="field__label" for="vehicle-fuel">${t("vehicle.fuelType")}</label>
-            <select class="field__input" id="vehicle-fuel" name="fuelType" ${confirmDelete ? "disabled" : ""}>
-              <option value="">—</option>
-              ${fuelOptions}
-            </select>
+            <label class="field__label" for="vehicle-average">${t("vehicle.averageDaily")} (${t("vehicle.averageDailyUnit")})</label>
+            <input class="field__input" id="vehicle-average" name="averageDaily" type="number"
+              inputmode="decimal" min="0" step="any"
+              value="${escHtml(field("averageDaily", () => (vehicle?.averageDailyDistance != null ? String(vehicle.averageDailyDistance) : null)))}"
+              ${confirmDelete ? "disabled" : ""} />
+            <p class="field__hint">${t("vehicle.averageHint")}</p>
+            <p class="field__error" id="vehicle-error-average" hidden></p>
           </div>
         </div>
         <div class="field">
-          <label class="field__label" for="vehicle-average">${t("vehicle.averageDaily")} (${t("vehicle.averageDailyUnit")})</label>
-          <input class="field__input" id="vehicle-average" name="averageDaily" type="number"
-            inputmode="decimal" min="0" step="any"
-            value="${escHtml(field("averageDaily", () => (vehicle?.averageDailyDistance != null ? String(vehicle.averageDailyDistance) : null)))}"
+          <label class="field__label" for="vehicle-mileage">${t("vehicle.mileageLabel")} (${t("common.kmUnit")})</label>
+          <input class="field__input" id="vehicle-mileage" name="mileage" type="number"
+            inputmode="numeric" min="0" step="1"
+            value="${escHtml(field("mileage", () => (vehicle?.currentOdometer != null ? String(vehicle.currentOdometer) : null)))}"
             ${confirmDelete ? "disabled" : ""} />
-          <p class="field__hint">${t("vehicle.averageHint")}</p>
-          <p class="field__error" id="vehicle-error-average" hidden></p>
+          <p class="field__hint">${t("vehicle.mileageHint")}</p>
+          <p class="field__error" id="vehicle-error-mileage" hidden></p>
         </div>
         <div class="form__actions vehicle-modal-actions">
           <button type="button" class="btn btn--text js-cancel-modal">${t("common.cancel")}</button>
@@ -416,11 +390,11 @@ function bind(container: HTMLElement): void {
   });
   container.querySelectorAll<HTMLButtonElement>(".js-menu-default").forEach((button) => {
     button.addEventListener("click", () => {
-      if (button.getAttribute("aria-disabled") === "true") return;
       const id = button.dataset.id ?? "";
       state.menuVehicleId = null;
       store.update((draft) => {
-        draft.settings.defaultVehicleId = id;
+        // Toggle: a default car can be removed, a regular car becomes default.
+        draft.settings.defaultVehicleId = draft.settings.defaultVehicleId === id ? null : id;
       });
     });
   });
@@ -464,24 +438,29 @@ function deleteVehicle(vehicleId: string): void {
 function submitVehicleForm(container: HTMLElement, form: HTMLFormElement): void {
   const data = new FormData(form);
   const name = String(data.get("name") ?? "").trim();
-  const make = String(data.get("make") ?? "").trim();
-  const model = String(data.get("model") ?? "").trim();
   const yearRaw = String(data.get("year") ?? "").trim();
   const averageRaw = String(data.get("averageDaily") ?? "").trim();
-  const fuelRaw = String(data.get("fuelType") ?? "");
+  const mileageRaw = String(data.get("mileage") ?? "").trim();
 
-  const input = {
+  const year = yearRaw === "" ? null : Number(toLatinDigits(yearRaw));
+  const average = averageRaw === "" ? null : Number(toLatinDigits(averageRaw));
+  // Initial/current mileage: optional — empty keeps it unknown (null).
+  const mileage = mileageRaw === "" ? null : Number(toLatinDigits(mileageRaw));
+
+  const errors = validateVehicle({
     name,
-    make,
-    model,
-    year: yearRaw === "" ? null : Number(toLatinDigits(yearRaw)),
-    fuelType: (fuelRaw === "" ? null : fuelRaw) as FuelType | null,
-    averageDailyDistance: averageRaw === "" ? null : Number(toLatinDigits(averageRaw)),
-  };
-
-  const errors = validateVehicle(input);
-  if (errors.length > 0) {
-    showFieldErrors(container, errors.map((error) => [VEHICLE_ERROR_FIELD[error], t(ERROR_KEYS[error])]));
+    make: "",
+    model: "",
+    year,
+    fuelType: null,
+    averageDailyDistance: average,
+  });
+  const mileageErrors = mileage != null ? validateMileage(mileage) : [];
+  if (errors.length > 0 || mileageErrors.length > 0) {
+    showFieldErrors(container, [
+      ...errors.map((error): [string, string] => [VEHICLE_ERROR_FIELD[error], t(ERROR_KEYS[error])]),
+      ...mileageErrors.map((error): [string, string] => ["vehicle-error-mileage", t(ERROR_KEYS[error])]),
+    ]);
     return;
   }
 
@@ -495,25 +474,32 @@ function submitVehicleForm(container: HTMLElement, form: HTMLFormElement): void 
       const vehicle = draft.vehicles.find((v) => v.id === vehicleId);
       if (!vehicle) return;
       vehicle.name = name;
-      vehicle.make = make;
-      vehicle.model = model;
-      vehicle.year = input.year;
-      vehicle.fuelType = input.fuelType;
-      vehicle.averageDailyDistance = input.averageDailyDistance;
+      vehicle.year = year;
+      vehicle.averageDailyDistance = average;
       vehicle.updatedAt = now;
+      // Only treat the mileage as a new reading when it actually changed.
+      if (mileage != null && mileage !== vehicle.currentOdometer) {
+        vehicle.currentOdometer = mileage;
+        vehicle.odometerUpdatedAt = now;
+      }
     });
     return;
   }
 
-  // Add — the garage is empty for a brand-new vehicle.
+  // Add — brand-new vehicle with the entered initial mileage.
   state.modal = null;
   state.formValues = {};
   store.update((draft) => {
     draft.vehicles.push({
       id: createId(),
-      ...input,
-      currentOdometer: null,
-      odometerUpdatedAt: null,
+      name,
+      make: "",
+      model: "",
+      year,
+      fuelType: null,
+      averageDailyDistance: average,
+      currentOdometer: mileage,
+      odometerUpdatedAt: mileage != null ? now : null,
       createdAt: now,
       updatedAt: now,
     });

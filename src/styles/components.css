@@ -1117,6 +1117,8 @@
   flex-shrink: 0;
   padding-inline: var(--md-space-4);
   border-inline-start: 1px solid var(--md-sys-color-outline-variant);
+  /* Keep the column clear of the three-dot menu pinned to the top-left. */
+  margin-inline-end: 48px;
 }
 
 .vehicle-row__mileage-value {
@@ -1148,33 +1150,20 @@
   height: 15px;
 }
 
-@media (max-width: 620px) {
-  .vehicle-row {
-    flex-wrap: wrap;
-  }
-
-  .vehicle-row__mileage {
-    flex-direction: row;
-    align-items: center;
-    width: 100%;
-    flex-wrap: wrap;
-    border-inline-start: none;
-    border-top: 1px solid var(--md-sys-color-outline-variant);
-    padding-block-start: var(--md-space-3);
-    padding-inline: 0;
-  }
-
-  .vehicle-row__mileage-updated {
-    margin-inline-start: auto;
-  }
-}
+/* Mobile vehicle layout is defined after the menu styles below. */
 
 /* --- Vehicle three-dot dropdown menu --- */
-.card-menu {
+.vehicle-row {
   position: relative;
+}
+
+/* Menu pinned to the exact top-left corner of the card (all screen sizes). */
+.card-menu {
+  position: absolute;
+  top: var(--md-space-2);
+  left: var(--md-space-2);
   display: flex;
   align-items: center;
-  flex-shrink: 0;
 }
 
 .card-menu__backdrop {
@@ -1581,4 +1570,36 @@
 .card a,
 .card a:hover {
   text-decoration: none;
+}
+
+/* --- Vehicles: mobile responsive layout --- */
+@media (max-width: 620px) {
+  .vehicle-row {
+    flex-wrap: wrap;
+  }
+
+  .vehicle-row__main {
+    margin-inline-start: 0;
+  }
+
+  /* Mileage stacks vertically, right-aligned (never a single row). */
+  .vehicle-row__mileage {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start; /* flex-start = the right edge in RTL */
+    gap: var(--md-space-1);
+    border-inline-start: none;
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+    margin-top: var(--md-space-2);
+    padding: var(--md-space-3) 0 0;
+  }
+
+  .vehicle-row__update {
+    margin-inline-start: 0;
+  }
+
+  /* Full-width mileage row: drop the desktop corner clearance. */
+  .vehicle-row__mileage {
+    margin-inline-end: 0;
+  }
 }
