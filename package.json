@@ -1,0 +1,23 @@
+{
+  "name": "car-maintenance-tracker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Personal local-first car maintenance tracker PWA (Persian RTL)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "gen:icons": "node scripts/gen-icons.mjs"
+  },
+  "dependencies": {
+    "lucide": "^1.40.0"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0"
+  }
+}

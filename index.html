@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <script>
+      // Pre-paint theme: avoid a light flash for dark-mode users before
+      // src/ui/theme.ts runs. Mirrors that module — if the storage key or
+      // settings.theme shape changes, update BOTH places.
+      (function () {
+        try {
+          var stored = JSON.parse(localStorage.getItem("car-maintenance-tracker.dataset"));
+          var pref = stored && stored.settings && stored.settings.theme;
+          var dark =
+            pref === "dark" ||
+            (pref !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.dataset.theme = "dark";
+        } catch (e) {
+          /* no stored data yet — light default */
+        }
+      })();
+    </script>
+    <!-- theme-color content is kept in sync with the resolved theme by src/ui/theme.ts -->
+    <meta name="theme-color" content="#0f3d33" />
+    <meta name="description" content="دفترچه نگهداری خودرو — ابزار شخصی ثبت و پیگیری سرویس‌های خودرو" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="دفترچه خودرو" />
+    <title>دفترچه نگهداری خودرو</title>
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="./icon-180.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-bar" id="app-bar">
+        <div class="app-bar__inner">
+          <div class="app-bar__title">
+            <span class="app-bar__icon" data-lucide="car-front"></span>
+            <span id="app-title"></span>
+          </div>
+          <div class="app-bar__actions" id="app-bar-actions"></div>
+        </div>
+      </header>
+
+      <main class="app-content" id="app-content" tabindex="-1"></main>
+
+      <nav class="nav" id="app-nav" aria-label="ناوبری اصلی"></nav>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

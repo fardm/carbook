@@ -1,0 +1,898 @@
+/*
+ * Base component styles.
+ * Components grow in later phases; only shell-level pieces live here now.
+ */
+
+/* --- Buttons (Material filled / text) --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--md-space-2);
+  min-height: 40px;
+  padding: 0 var(--md-space-4);
+  border-radius: var(--md-shape-full);
+  font-size: var(--md-typescale-label-large);
+  font-weight: 600;
+  transition:
+    background-color var(--md-motion-duration-short) var(--md-motion-easing),
+    box-shadow var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+.btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.btn--filled {
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  box-shadow: var(--md-elevation-1);
+}
+
+.btn--filled:hover {
+  background-color: color-mix(in srgb, var(--md-sys-color-primary) 88%, black);
+  box-shadow: var(--md-elevation-2);
+}
+
+.btn--text {
+  color: var(--md-sys-color-primary);
+  border-radius: var(--md-shape-full);
+}
+
+.btn--text:hover {
+  background-color: color-mix(in srgb, var(--md-sys-color-primary) 10%, transparent);
+}
+
+.btn--danger {
+  background-color: var(--md-sys-color-error);
+  color: var(--md-sys-color-on-error);
+  box-shadow: var(--md-elevation-1);
+}
+
+.btn--danger:hover {
+  background-color: color-mix(in srgb, var(--md-sys-color-error) 88%, black);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- Icon button --- */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--md-shape-full);
+  color: var(--md-sys-color-on-surface-variant);
+  transition: background-color var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+.icon-btn:hover {
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+}
+
+.icon-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* --- Cards --- */
+.card {
+  background-color: var(--md-sys-color-surface-container-low);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-shape-large);
+  padding: var(--md-space-4);
+}
+
+/* --- View scaffolding --- */
+.view-title {
+  font-size: var(--md-typescale-headline-small);
+  margin: 0;
+}
+
+.view-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-4);
+}
+
+/* --- Card head --- */
+.card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--md-space-3);
+}
+
+.card__title {
+  font-size: var(--md-typescale-title-medium);
+  font-weight: 600;
+}
+
+/* --- Info list (vehicle details) --- */
+.info-list {
+  margin: var(--md-space-3) 0 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.info-list__row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--md-space-3);
+  padding: var(--md-space-2) 0;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.info-list__row:last-child {
+  border-bottom: none;
+}
+
+.info-list__row dt {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-typescale-label-medium);
+  font-weight: 600;
+}
+
+.info-list__row dd {
+  margin: 0;
+  text-align: end;
+}
+
+/* --- Forms (Material-ish text fields) --- */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-4);
+}
+
+.form__title {
+  font-size: var(--md-typescale-title-medium);
+  font-weight: 600;
+}
+
+.form__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--md-space-3);
+}
+
+@media (max-width: 480px) {
+  .form__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--md-space-2);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-1);
+}
+
+.field__label {
+  font-size: var(--md-typescale-label-medium);
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.field__input {
+  min-height: 48px;
+  width: 100%;
+  padding: 0 var(--md-space-3);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-shape-extra-small);
+  background-color: var(--md-sys-color-surface-container-lowest);
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--md-typescale-body-large);
+}
+
+.field__input:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 0;
+  border-color: transparent;
+}
+
+.field__error {
+  color: var(--md-sys-color-error);
+  font-size: var(--md-typescale-label-small);
+}
+
+.field__warn {
+  color: var(--md-status-due-soon);
+  font-size: var(--md-typescale-label-small);
+}
+
+.field__hint {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-typescale-label-small);
+}
+
+/* --- Vehicle summary (dashboard) --- */
+.vehicle-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--md-space-4);
+}
+
+.vehicle-summary__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--md-shape-medium);
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  flex-shrink: 0;
+}
+
+.vehicle-summary__icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.vehicle-summary__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.vehicle-summary__name {
+  font-size: var(--md-typescale-title-medium);
+  font-weight: 600;
+}
+
+.vehicle-summary__meta {
+  font-size: var(--md-typescale-body-medium);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.vehicle-summary__odometer {
+  font-size: var(--md-typescale-title-large);
+  font-weight: 600;
+  margin-top: var(--md-space-1);
+}
+
+.vehicle-summary--empty {
+  justify-content: space-between;
+}
+
+.vehicle-summary__empty-text {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* --- Odometer card & history --- */
+.odometer-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--md-space-3);
+}
+
+.odometer-card__label {
+  font-size: var(--md-typescale-label-medium);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.odometer-card__value {
+  font-size: var(--md-typescale-title-large);
+  font-weight: 600;
+  margin-top: var(--md-space-1);
+}
+
+.history__list {
+  list-style: none;
+  margin: var(--md-space-2) 0 0;
+  padding: 0;
+}
+
+.history__item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--md-space-3);
+  padding: var(--md-space-3) 0;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.history__item:last-child {
+  border-bottom: none;
+}
+
+.history__date {
+  font-weight: 600;
+}
+
+.history__km {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-typescale-body-medium);
+  margin-top: 2px;
+}
+
+.history__note {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-typescale-body-small);
+  margin-top: 2px;
+  white-space: pre-line;
+}
+
+.history__empty {
+  color: var(--md-sys-color-on-surface-variant);
+  margin-top: var(--md-space-3);
+}
+
+/* --- Status chips (§29: icon + label + color) --- */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-space-1);
+  padding: 2px var(--md-space-2);
+  border-radius: var(--md-shape-full);
+  font-size: var(--md-typescale-label-small);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-chip svg {
+  width: 14px;
+  height: 14px;
+}
+
+.status-chip--ok {
+  background: var(--md-status-ok-container);
+  color: var(--md-status-on-ok-container);
+}
+
+.status-chip--upcoming {
+  background: var(--md-status-upcoming-container);
+  color: var(--md-status-on-upcoming-container);
+}
+
+.status-chip--dueSoon {
+  background: var(--md-status-due-soon-container);
+  color: var(--md-status-on-due-soon-container);
+}
+
+.status-chip--due {
+  background: var(--md-status-due-container);
+  color: var(--md-status-on-due-container);
+}
+
+.status-chip--overdue {
+  background: var(--md-status-overdue-container);
+  color: var(--md-status-on-overdue-container);
+}
+
+.status-chip--inspectionRequired {
+  background: var(--md-status-due-container);
+  color: var(--md-status-on-due-container);
+}
+
+.status-chip--inactive {
+  background: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* --- Item list head (name + chip) --- */
+.item-list__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--md-space-2);
+}
+
+/* --- Metrics --- */
+.metric {
+  font-size: var(--md-typescale-body-medium);
+  color: var(--md-sys-color-on-surface);
+}
+
+.metric--primary {
+  font-weight: 700;
+  margin-top: var(--md-space-1);
+}
+
+.metric--muted {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+/* --- Progress bar (remaining life, §29 visual) --- */
+.progress {
+  margin-top: var(--md-space-2);
+  height: 6px;
+  border-radius: var(--md-shape-full);
+  background-color: var(--md-sys-color-surface-container-highest);
+  overflow: hidden;
+}
+
+.progress__fill {
+  height: 100%;
+  border-radius: var(--md-shape-full);
+  transition: width var(--md-motion-duration-medium) var(--md-motion-easing);
+}
+
+.progress--ok .progress__fill { background: var(--md-status-ok); }
+.progress--upcoming .progress__fill { background: var(--md-status-upcoming); }
+.progress--dueSoon .progress__fill { background: var(--md-status-due-soon); }
+.progress--due .progress__fill { background: var(--md-status-due); }
+.progress--overdue .progress__fill { background: var(--md-status-overdue); }
+.progress--inspectionRequired .progress__fill { background: var(--md-status-due); }
+
+/* --- Dashboard summary chips (§30) --- */
+.summary-chips {
+  display: flex;
+  gap: var(--md-space-2);
+  margin-top: var(--md-space-3);
+}
+
+.summary-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--md-space-2);
+  padding: var(--md-space-2) var(--md-space-4);
+  border-radius: var(--md-shape-small);
+  border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.summary-chip__count {
+  font-size: var(--md-typescale-title-large);
+  font-weight: 700;
+}
+
+.summary-chip__label {
+  font-size: var(--md-typescale-label-medium);
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.summary-chip--overdue .summary-chip__count { color: var(--md-status-overdue); }
+.summary-chip--dueSoon .summary-chip__count { color: var(--md-status-due); }
+.summary-chip--ok .summary-chip__count { color: var(--md-status-ok); }
+
+/* --- Tabs --- */
+.tabs {
+  display: flex;
+  gap: var(--md-space-1);
+  margin: var(--md-space-3) 0;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.tabs__tab {
+  padding: var(--md-space-2) var(--md-space-4);
+  border-radius: var(--md-shape-extra-small) var(--md-shape-extra-small) 0 0;
+  font-size: var(--md-typescale-label-large);
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface-variant);
+  position: relative;
+}
+
+.tabs__tab[aria-selected="true"] {
+  color: var(--md-sys-color-primary);
+}
+
+.tabs__tab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 1px 1px 0 0;
+  background-color: var(--md-sys-color-primary);
+}
+
+/* --- Item lists (active items, catalog) --- */
+.item-list {
+  list-style: none;
+  margin: var(--md-space-2) 0 0;
+  padding: 0;
+}
+
+.item-list__row {
+  display: flex;
+  align-items: center;
+  gap: var(--md-space-3);
+  padding: var(--md-space-3) 0;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+/* Rows link to the item detail page (§32); actions stay outside the link. */
+.item-list__main {
+  display: flex;
+  align-items: center;
+  gap: var(--md-space-3);
+  flex: 1;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.item-list__main:hover .item-list__name {
+  color: var(--md-sys-color-primary);
+}
+
+.item-list__row:last-child {
+  border-bottom: none;
+}
+
+.item-list__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--md-shape-small);
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface-variant);
+  flex-shrink: 0;
+}
+
+.item-list__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.item-list__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-list__name {
+  font-weight: 600;
+}
+
+.item-list__meta {
+  font-size: var(--md-typescale-label-medium);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.empty-note {
+  color: var(--md-sys-color-on-surface-variant);
+  margin-top: var(--md-space-3);
+}
+
+/* --- Catalog browser --- */
+.catalog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-2);
+}
+
+.catalog-group {
+  margin-top: var(--md-space-3);
+}
+
+.catalog-group__title {
+  font-size: var(--md-typescale-title-medium);
+  font-weight: 600;
+  color: var(--md-sys-color-primary);
+  margin-bottom: var(--md-space-1);
+}
+
+/* --- Segmented control (display mode) --- */
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--md-space-1);
+}
+
+.segmented__option {
+  padding: var(--md-space-2) var(--md-space-4);
+  border-radius: var(--md-shape-full);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-typescale-label-large);
+  font-weight: 600;
+  transition: background-color var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+.segmented__option:hover {
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+.segmented__option--active {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  border-color: transparent;
+}
+
+.segmented--small .segmented__option {
+  padding: var(--md-space-1) var(--md-space-3);
+  font-size: var(--md-typescale-label-medium);
+}
+
+/* --- Item row actions --- */
+.item-list__actions {
+  display: flex;
+  gap: var(--md-space-1);
+  flex-shrink: 0;
+}
+
+/* --- Custom item form --- */
+.icon-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--md-space-1);
+}
+
+.icon-choice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--md-shape-extra-small);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  color: var(--md-sys-color-on-surface-variant);
+  transition: background-color var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+.icon-choice svg {
+  width: 20px;
+  height: 20px;
+}
+
+.icon-choice:hover {
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+.icon-choice--active {
+  background-color: var(--md-sys-color-primary-container);
+  border-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.checkbox-field {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--md-space-2);
+  cursor: pointer;
+}
+
+.checkbox-field input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--md-sys-color-primary);
+}
+
+/* --- Item detail page (§32–§36) --- */
+.detail-back {
+  align-self: flex-start;
+  margin-inline-start: calc(-1 * var(--md-space-2));
+}
+
+.detail-head {
+  display: flex;
+  align-items: center;
+  gap: var(--md-space-3);
+}
+
+.detail-head__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-1);
+}
+
+.detail-head__title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--md-space-2);
+  font-size: var(--md-typescale-title-large);
+  font-weight: 600;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--md-space-2);
+  margin-top: var(--md-space-4);
+  padding-top: var(--md-space-3);
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.detail-actions__confirm {
+  color: var(--md-sys-color-error);
+  font-size: var(--md-typescale-label-medium);
+  font-weight: 600;
+}
+
+.delete-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-space-1);
+}
+
+.detail-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-1);
+  margin-top: var(--md-space-2);
+}
+
+/* --- Placeholder view (Phase 1 scaffolding) --- */
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--md-space-3);
+  padding: var(--md-space-7) var(--md-space-4);
+}
+
+.placeholder__icon {
+  display: inline-flex;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--md-shape-extra-large);
+  align-items: center;
+  justify-content: center;
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.placeholder__icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.placeholder__title {
+  font-size: var(--md-typescale-headline-small);
+}
+
+.placeholder__text {
+  max-width: 480px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.placeholder__badge {
+  display: inline-block;
+  padding: var(--md-space-1) var(--md-space-3);
+  border-radius: var(--md-shape-full);
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-typescale-label-small);
+  font-weight: 600;
+}
+/* --- Settings: JSON backup & restore (Phase 10) --- */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.card__text {
+  color: var(--md-sys-color-on-surface-variant);
+  margin: var(--md-space-2) 0 0;
+}
+
+.settings-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--md-space-3);
+  margin-top: var(--md-space-3);
+}
+
+.settings-note {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-typescale-label-medium);
+  margin: 0;
+}
+
+.settings-file-label {
+  margin-top: var(--md-space-3);
+  cursor: pointer;
+  width: fit-content;
+}
+
+/* --- Info boxes (warn / error / success) --- */
+.box {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--md-space-2);
+  border-radius: var(--md-shape-medium);
+  padding: var(--md-space-3) var(--md-space-4);
+  margin-top: var(--md-space-3);
+  font-size: var(--md-typescale-body-medium);
+}
+
+.box svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin-top: 2px;
+}
+
+.box--warn {
+  background-color: var(--md-status-due-soon-container);
+  color: var(--md-status-on-due-soon-container);
+}
+
+.box--error,
+.box--danger {
+  background-color: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+.box--success {
+  align-items: center;
+  background-color: var(--md-status-ok-container);
+  color: var(--md-status-on-ok-container);
+}
+
+.settings-success {
+  justify-content: space-between;
+}
+
+.settings-errors {
+  flex-direction: column;
+}
+
+.settings-errors__title {
+  font-weight: 700;
+}
+
+.settings-errors__list {
+  margin: 0;
+  padding-inline-start: var(--md-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-1);
+}
+
+.settings-preview {
+  margin-top: var(--md-space-4);
+  padding-top: var(--md-space-4);
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.settings-preview__title {
+  font-size: var(--md-typescale-title-medium);
+  font-weight: 600;
+  margin: 0 0 var(--md-space-2);
+}
+
+.settings-preview__title code {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
+  margin-inline-start: var(--md-space-2);
+  padding: 0 var(--md-space-2);
+  border-radius: var(--md-shape-extra-small);
+  background-color: var(--md-sys-color-surface-container-high);
+  font-size: var(--md-typescale-label-small);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.settings-preview__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--md-space-2);
+  margin-top: var(--md-space-3);
+}
+
+/* --- Settings: appearance (colour theme) --- */
+.settings-theme {
+  margin-top: var(--md-space-3);
+  width: fit-content;
+}

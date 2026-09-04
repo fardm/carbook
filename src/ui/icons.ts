@@ -1,0 +1,120 @@
+import {
+  ArrowLeftRight,
+  Battery,
+  CalendarPlus,
+  CarFront,
+  Circle,
+  CircleAlert,
+  CircleCheck,
+  CircleDot,
+  ClipboardCheck,
+  Cog,
+  Compass,
+  createIcons,
+  Crosshair,
+  Disc,
+  Download,
+  Droplet,
+  Droplets,
+  Fan,
+  Filter,
+  Fuel,
+  Gauge,
+  History,
+  Infinity,
+  LayoutDashboard,
+  Lightbulb,
+  Link,
+  OctagonAlert,
+  Plus,
+  RefreshCw,
+  Search,
+  Settings,
+  Settings2,
+  Snowflake,
+  SprayCan,
+  Target,
+  TriangleAlert,
+  Upload,
+  Wind,
+  Wrench,
+  Zap,
+} from "lucide";
+
+/**
+ * Icon registry. Lucide's createIcons resolves `data-lucide` attribute
+ * values (kebab-case, e.g. "car-front") to PascalCase keys in this map.
+ * Add new icons here when a view needs them.
+ */
+export const iconRegistry = {
+  ArrowLeftRight,
+  Battery,
+  CalendarPlus,
+  CarFront,
+  Circle,
+  CircleAlert,
+  CircleCheck,
+  CircleDot,
+  ClipboardCheck,
+  Cog,
+  Compass,
+  Crosshair,
+  Disc,
+  Download,
+  Droplet,
+  Droplets,
+  Fan,
+  Filter,
+  Fuel,
+  Gauge,
+  History,
+  Infinity,
+  LayoutDashboard,
+  Lightbulb,
+  Link,
+  OctagonAlert,
+  Plus,
+  RefreshCw,
+  Search,
+  Settings,
+  Settings2,
+  Snowflake,
+  SprayCan,
+  Target,
+  TriangleAlert,
+  Upload,
+  Wind,
+  Wrench,
+  Zap,
+} as const;
+
+/** Status → lucide icon name for status chips (§29: icon + label + color). */
+export const STATUS_ICONS: Record<string, string> = {
+  ok: "circle-check",
+  upcoming: "circle",
+  dueSoon: "circle-alert",
+  due: "triangle-alert",
+  overdue: "octagon-alert",
+  inspectionRequired: "clipboard-check",
+};
+
+/** Icons offered to the user when creating a custom item (§37). */
+export const CUSTOM_ICON_CHOICES = [
+  "wrench",
+  "settings-2",
+  "filter",
+  "droplets",
+  "zap",
+  "gauge",
+  "battery",
+  "lightbulb",
+  "snowflake",
+  "spray-can",
+  "fan",
+  "fuel",
+] as const;
+
+/** Replaces every `[data-lucide]` element in the document with its SVG. */
+export function applyIcons(): void {
+  createIcons({ icons: iconRegistry });
+}
