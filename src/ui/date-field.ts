@@ -1,19 +1,20 @@
 /**
  * Calendar-aware date field (§4 of the calendar requirements).
  *
- * Replaces the native `<input type="date">` with a popover month grid that
- * renders in the SELECTED calendar system (Solar Hijri by default): Persian
- * month names (فروردین … اسفند), Jalali year navigation, Saturday-first
- * weeks, and correct leap/month lengths. Picking a day stores the Gregorian
- * ISO ("yyyy-mm-dd") in a hidden input — the app's internal representation
- * is never a Jalali string (§3).
+ * A hybrid input: the visible control is a TEXT input where the user can
+ * type the date manually in the selected calendar ("۱۴۰۵/۰۶/۱۴" or
+ * "۲۰۲۶/۰۹/۰۵"), and a calendar icon on the LEFT opens the popover month
+ * grid (Jalali by default). Both paths write the SAME hidden ISO input
+ * ("yyyy-mm-dd") — the app's internal representation is never a Jalali
+ * string (§3) — and both feed the form's existing date validation
+ * unchanged.
  *
  * The widget is self-contained: each `[data-date-field]` root owns its
- * hidden input, trigger button, and popover, so views just render
- * `dateFieldHtml(...)` and call `bindDateFields(container)` alongside their
- * other bindings. Selecting a day dispatches a bubbling `change` event on
- * the hidden input so the item form's re-render-safe value capture
- * (decision 31) keeps working.
+ * hidden input, text input, calendar trigger, and popover, so views just
+ * render `dateFieldHtml(...)` and call `bindDateFields(container)`.
+ * Selecting a day (or successfully parsing typed text) dispatches a
+ * bubbling `change` event on the hidden input so the item form's
+ * re-render-safe value capture (decision 31) keeps working.
  */
 
 import {
@@ -21,8 +22,10 @@ import {
   faDigits,
   formatDate,
   gregorianIsoToJalaliIso,
+  jalaliIsoToGregorianIso,
   monthGrid,
   parseIso,
+  toCalendarIso,
   todayIso,
   WEEKDAYS_SHORT,
 } from "../domain/calendar";
@@ -31,7 +34,7 @@ import { t } from "../i18n";
 import { escHtml } from "./escape";
 
 export interface DateFieldOptions {
-  /** id of the trigger button (the form's <label for> points here). */
+  /** id of the text input (the form's <label for> points here). */
   fieldId: string;
   /** name of the hidden input (read by FormData on submit). */
   name: string;
@@ -41,22 +44,27 @@ export interface DateFieldOptions {
   label: string;
 }
 
-/** Field markup: hidden ISO input + trigger button + (empty) popover. */
+/** Field markup: hidden ISO input + text input + calendar trigger + popover.
+ * The text input is the field's `.field__input` — same border, focus ring,
+ * padding, and floating-label rules as every other input — with the
+ * calendar button sitting inside it on the left (inline-end in RTL). */
 export function dateFieldHtml(opts: DateFieldOptions): string {
   const calendar = currentCalendar();
-  const hasValue = opts.value !== "";
+  const textValue = opts.value !== "" ? dateInputText(opts.value, calendar) : "";
   return `
     <div class="date-field" data-date-field>
       <input type="hidden" id="${escHtml(opts.fieldId)}-input" name="${escHtml(opts.name)}"
         value="${escHtml(opts.value)}" data-df-input />
-      <button type="button" id="${escHtml(opts.fieldId)}" class="field__input date-field__button"
-        data-df-button aria-haspopup="dialog" aria-expanded="false" aria-label="${escHtml(opts.label)}">
-        <span class="date-field__value ${hasValue ? "" : "date-field__value--empty"}" data-df-value>
-          ${hasValue ? escHtml(formatDate(opts.value, calendar)) : escHtml(t("dateField.empty"))}
-        </span>
+      <input type="text" id="${escHtml(opts.fieldId)}" class="field__input date-field__text"
+        data-df-text inputmode="numeric" autocomplete="off"
+        aria-label="${escHtml(opts.label)}" value="${escHtml(textValue)}" />
+      <button type="button" class="date-field__icon-btn" data-df-button
+        aria-haspopup="dialog" aria-expanded="false"
+        aria-label="${t("dateField.openPicker")}" title="${t("dateField.openPicker")}">
         <span data-lucide="calendar" class="date-field__icon" aria-hidden="true"></span>
       </button>
-      <div class="date-field__popover" data-df-popover hidden role="dialog" aria-label="${escHtml(opts.label)}"></div>
+      <div class="date-field__popover" data-df-popover hidden role="dialog"
+        aria-label="${escHtml(opts.label)}"></div>
     </div>
   `;
 }
@@ -67,8 +75,11 @@ export function bindDateFields(container: HTMLElement): void {
     const button = root.querySelector<HTMLButtonElement>("[data-df-button]");
     const popover = root.querySelector<HTMLElement>("[data-df-popover]");
     const input = root.querySelector<HTMLInputElement>("[data-df-input]");
-    if (!button || !popover || !input) return;
+    const text = root.querySelector<HTMLInputElement>("[data-df-text]");
+    if (!button || !popover || !input || !text) return;
 
+    // Only the calendar icon opens the picker; the input itself is for
+    // manual entry.
     button.addEventListener("click", () => {
       if (popover.hidden) {
         openPopover(root, popover, input);
@@ -76,8 +87,70 @@ export function bindDateFields(container: HTMLElement): void {
         closePopover(root, popover);
       }
     });
+
+    // Manual entry: commit on blur/Enter (change), never on every keystroke.
+    text.addEventListener("change", () => commitTypedDate(input, text));
+    text.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") commitTypedDate(input, text);
+    });
   });
   registerGlobalClose();
+}
+
+/* --- Manual entry --- */
+
+/** Parses the typed text into the hidden ISO input (unparseable text is
+ * handed to the form's existing validation; empty input clears the date). */
+function commitTypedDate(input: HTMLInputElement, text: HTMLInputElement): void {
+  const typed = text.value.trim();
+  if (typed === "") {
+    setIso(input, "");
+    return;
+  }
+  const iso = parseTypedDate(typed, currentCalendar());
+  if (iso) {
+    text.value = dateInputText(iso, currentCalendar());
+    setIso(input, iso);
+  } else {
+    // Non-empty but unparseable: keep it so submit validation reports
+    // "تاریخ معتبر نیست." instead of silently dropping the entry.
+    setIso(input, typed);
+  }
+}
+
+/** Writes the hidden ISO and notifies the form (bubbling change). */
+function setIso(input: HTMLInputElement, iso: string): void {
+  input.value = iso;
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+/** ISO → editable numeric text in the active calendar: "۱۴۰۵/۰۶/۱۴". */
+function dateInputText(iso: string, calendar: CalendarPreference): string {
+  const calendarIso = toCalendarIso(iso, calendar);
+  if (!calendarIso) return "";
+  const [year, month, day] = calendarIso.split("-");
+  return faDigits(`${year}/${month}/${day}`);
+}
+
+/** Parses a typed date in the active calendar → Gregorian ISO; null when
+ * unparseable. Accepts Persian or Latin digits, "-" / "/" separators (or
+ * none — "14050614"), with or without leading zeros. */
+function parseTypedDate(text: string, calendar: CalendarPreference): string | null {
+  const latin = text
+    .trim()
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/[/.]/g, "-");
+  const dashed =
+    /^\d{4}-\d{1,2}-\d{1,2}$/.test(latin)
+      ? latin
+      : /^\d{8}$/.test(latin)
+        ? latin.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3")
+        : null;
+  if (!dashed) return null;
+  const [year, month, day] = dashed.split("-");
+  const padded = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  if (calendar === "jalali") return jalaliIsoToGregorianIso(padded);
+  return parseIso(padded) ? padded : null;
 }
 
 /* --- Popover internals --- */
@@ -197,19 +270,19 @@ function shiftMonth(root: HTMLElement, popover: HTMLElement, delta: number, sele
   renderPopover(root, popover, calendar, Math.floor(total / 12), (total % 12) + 1, selectedIso);
 }
 
-/** Stores the picked date (Gregorian ISO), updates the label, notifies the
+/** Stores the picked date (Gregorian ISO) in both inputs, notifies the
  * form, and closes the popover. */
 function selectDay(root: HTMLElement, popover: HTMLElement, iso: string): void {
   if (iso === "") return;
   const input = root.querySelector<HTMLInputElement>("[data-df-input]");
-  const valueEl = root.querySelector<HTMLElement>("[data-df-value]");
-  if (!input || !valueEl) return;
+  const text = root.querySelector<HTMLInputElement>("[data-df-text]");
+  if (!input || !text) return;
 
   input.value = iso;
-  valueEl.textContent = formatDate(iso);
-  valueEl.classList.remove("date-field__value--empty");
-  // Bubbling change keeps the item form's re-render-safe capture working.
-  input.dispatchEvent(new Event("change", { bubbles: true }));
+  text.value = dateInputText(iso, currentCalendar());
+  setIso(input, iso);
+  // The text input's change keeps the floating label in sync.
+  text.dispatchEvent(new Event("change", { bubbles: true }));
   closePopover(root, popover);
 }
 
@@ -236,3 +309,4 @@ function closeAllPopovers(): void {
     if (popover && !popover.hidden) closePopover(root, popover);
   });
 }
+

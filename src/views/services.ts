@@ -656,13 +656,15 @@ function serviceFormModalHtml(): string {
       ${dateFieldHtml({
         fieldId: "service-date",
         name: "serviceDate",
-        value: fieldValue("serviceDate", todayIso()),
+        // Never auto-fill today: the user records the actual replacement
+        // date, and an empty field shows the label inside as a placeholder.
+        value: fieldValue("serviceDate"),
         label: t("services.replacementDate"),
       })}
       <p class="field__error" id="service-error-date" hidden></p>
     </div>
     <div class="field">
-      <label class="field__label" for="service-odometer">${t("services.replacementKm")} (${t("common.kmUnit")})</label>
+      <label class="field__label" for="service-odometer">${t("services.replacementKm")}</label>
       <input class="field__input" id="service-odometer" name="serviceOdometer" type="number"
         inputmode="numeric" min="0" step="1" value="${escHtml(fieldValue("serviceOdometer"))}" />
       <button type="button" class="btn btn--text field-action js-use-current-km"

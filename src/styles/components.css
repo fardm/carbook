@@ -147,8 +147,9 @@
 /* --- Forms: one consistent floating-label design system across vehicle,
  * service, replacement, and inspection forms. Text/number inputs float
  * their label on focus/value (src/ui/floating-field.ts syncs the state);
- * selects, date triggers and textareas always show the label floated,
- * because they always display a value or an empty-state hint. */
+ * date triggers behave the same way — the label rests inside while empty
+ * and floats on focus/selection. Selects and textareas always show the
+ * label floated, because they always display a value. */
 .form {
   display: flex;
   flex-direction: column;
@@ -219,12 +220,11 @@
 }
 
 /* Text & number inputs float when focused or filled (JS adds the classes).
- * Selects, date triggers and textareas stay floated permanently. */
+ * Selects and textareas stay floated permanently. */
 .field:has(input.field__input).is-filled .field__label,
 .field:has(input.field__input).is-focused .field__label,
 .field:has(select.field__input) .field__label,
-.field:has(textarea.field__input) .field__label,
-.field:has(.date-field) .field__label {
+.field:has(textarea.field__input) .field__label {
   top: 4px;
   transform: translateY(0) scale(0.78);
 }
@@ -1399,29 +1399,40 @@ textarea.field__input {
   position: relative;
 }
 
-.date-field__button {
-  display: flex;
+/* The text input IS the `.field__input`, so it inherits the exact border,
+ * padding, focus ring, and floating-label behavior of every other input.
+ * Only the inline-end padding grows to keep typed text clear of the
+ * calendar button sitting inside it. */
+input.date-field__text {
+  padding-inline-end: 44px;
+}
+
+/* Only the calendar button opens the picker — the input itself is for
+ * typing. The button floats inside the input box on the LEFT (inline-end
+ * in RTL), vertically centered. */
+.date-field__icon-btn {
+  position: absolute;
+  inset-inline-end: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--md-space-2);
-  cursor: pointer;
-  text-align: start;
-}
-
-.date-field__value {
-  flex: 1;
-  min-width: 0;
-}
-
-.date-field__value--empty {
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--md-shape-full);
   color: var(--md-sys-color-on-surface-variant);
+  transition: background-color var(--md-motion-duration-short) var(--md-motion-easing);
 }
 
-.date-field__icon {
-  flex: none;
+.date-field__icon-btn:hover {
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+}
+
+.date-field__icon-btn svg {
   width: 18px;
   height: 18px;
-  color: var(--md-sys-color-on-surface-variant);
 }
 
 .date-field__popover {

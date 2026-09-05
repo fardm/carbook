@@ -283,7 +283,7 @@ function mileageModalHtml(vehicle: Vehicle | null): string {
         <div class="form__title">${t("vehicle.updateMileage")}</div>
         ${vehicle ? `<p class="card__text">${t("vehicle.mileageFor")}: ${name}</p>` : ""}
         <div class="field">
-          <label class="field__label" for="mileage-value">${t("vehicle.mileageLabel")} (${t("common.kmUnit")})</label>
+          <label class="field__label" for="mileage-value">${t("vehicle.mileageLabel")}</label>
           <input class="field__input" id="mileage-value" name="mileage" type="number"
             inputmode="numeric" min="0" step="1" autofocus
             value="${escHtml(formValue("mileage", vehicle?.currentOdometer != null ? String(vehicle.currentOdometer) : ""))}" />

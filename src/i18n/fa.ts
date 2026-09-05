@@ -22,7 +22,7 @@ export const fa = {
     kmUnit: "کیلومتر",
   },
   dateField: {
-    empty: "انتخاب تاریخ",
+    openPicker: "انتخاب تاریخ از تقویم",
     today: "امروز",
     prevMonth: "ماه قبل",
     nextMonth: "ماه بعد",
