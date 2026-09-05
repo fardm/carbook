@@ -59,11 +59,11 @@ export interface MaintenanceRule {
 }
 
 /** An active maintenance item (§14). Separate from the catalog templates.
- * Every item belongs to exactly one vehicle (or is a legacy item with
- * `vehicleId` null, migrated from the pre-multi-vehicle schema). */
+ * Every item belongs to exactly one vehicle; `vehicleId` is null only when
+ * the item is unassigned. */
 export interface MaintenanceItem {
   id: string;
-  /** Owning vehicle; null = legacy unassigned item (schema ≤3 data). */
+  /** Owning vehicle; null = unassigned item. */
   vehicleId: string | null;
   /** Catalog template id (Phase 5); null for custom items (§14, §37). */
   catalogId: string | null;
@@ -84,7 +84,7 @@ export interface MaintenanceItem {
 export interface ServiceRecord {
   id: string;
   maintenanceItemId: string;
-  /** Owning vehicle (the item's vehicle at record time); null for legacy. */
+  /** Owning vehicle (the item's vehicle at record time); null when unassigned. */
   vehicleId: string | null;
   /** "yyyy-mm-dd". */
   date: string;
@@ -133,7 +133,7 @@ export interface Settings {
 
 /** Versioned application dataset (§39). The single persisted structure. */
 export interface Dataset {
-  /** Schema version; migrated on load (see persistence/repository.ts). */
+  /** Schema version — v8 is the current baseline; older versions are not migrated. */
   version: number;
   /** ISO datetime of the last JSON export; null until the first export (§41). */
   exportedAt: string | null;

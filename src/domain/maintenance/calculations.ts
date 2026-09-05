@@ -13,7 +13,7 @@ export type Criterion = "km" | "time";
 /** Everything the calculation needs for ONE vehicle (multi-vehicle: each
  * item is computed against its own vehicle's facts). */
 export interface CalculationContext {
-  /** The item's vehicle facts; null for legacy unassigned items / no vehicle. */
+  /** The item's vehicle facts; null for unassigned items / no vehicle. */
   vehicle: { averageDailyDistance: number | null; currentOdometer: number | null } | null;
   serviceHistory: readonly ServiceRecord[];
   settings: Pick<Settings, "statusThresholds">;

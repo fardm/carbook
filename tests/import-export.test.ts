@@ -127,28 +127,6 @@ describe("validateImportText — round trip (§49: export → import → equival
     expect(result.dataset).toEqual(d);
   });
 
-  it("migrates a legacy single-vehicle file (same migration table as loading)", () => {
-    // A pre-multi-vehicle backup: singular `vehicle` + `odometerHistory`,
-    // items/records with NO vehicleId (v4 links them to the vehicle).
-    const d = cloneValid();
-    d.version = 0;
-    const legacy = d as unknown as Record<string, unknown>;
-    legacy.vehicle = d.vehicles[0];
-    legacy.odometerHistory = [];
-    delete legacy.vehicles;
-    for (const row of d.maintenanceItems) delete (row as { vehicleId?: string }).vehicleId;
-    for (const row of d.serviceHistory) delete (row as { vehicleId?: string }).vehicleId;
-    const result = validateImportText(textOf(d));
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.dataset.version).toBe(CURRENT_VERSION);
-    expect(result.dataset.vehicles[0].id).toBe("v1");
-    expect(result.dataset.vehicles[0].name).toBe("پژو ۲۰۷");
-    // Items/records were linked to the migrated vehicle.
-    expect(result.dataset.maintenanceItems[0].vehicleId).toBe("v1");
-    expect(result.dataset.serviceHistory[0].vehicleId).toBe("v1");
-  });
-
   it("tolerates extra unknown top-level keys (forward-compatible within a version)", () => {
     const raw = JSON.parse(validText()) as Record<string, unknown>;
     raw.futureField = { anything: true };
@@ -187,8 +165,12 @@ describe("validateImportText — root & version gate (§40, §47)", () => {
     expectIssue(JSON.stringify(raw), "version", "invalidValue");
   });
 
-  it("rejects a future (unsupported) version without touching anything else", () => {
+  it("rejects an unsupported version (older or newer) without touching anything else", () => {
+    // v8 is the baseline: pre-v8 backups (e.g. v7 inspection-era data) have
+    // no migration path and are rejected exactly like future versions.
     const raw = JSON.parse(validText()) as Record<string, unknown>;
+    raw.version = 7;
+    expectIssue(JSON.stringify(raw), "version", "unsupportedVersion");
     raw.version = 99;
     expectIssue(JSON.stringify(raw), "version", "unsupportedVersion");
   });
@@ -305,7 +287,7 @@ describe("validateImportText — maintenance items & rules", () => {
     expectIssue(textOf(d), "maintenanceItems[0].vehicleId", "unknownReference");
   });
 
-  it("accepts a null vehicleId (legacy unassigned item)", () => {
+  it("accepts a null vehicleId (unassigned item)", () => {
     const d = cloneValid();
     d.maintenanceItems[0].vehicleId = null;
     expect(validateImportText(textOf(d)).ok).toBe(true);

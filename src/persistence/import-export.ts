@@ -2,7 +2,6 @@ import { CURRENT_VERSION } from "../domain/defaults";
 import { isIsoDate } from "../domain/odometer";
 import { isValidProductionYear } from "../domain/vehicle";
 import type { Dataset } from "../domain/types";
-import { migrateRaw } from "./repository";
 
 /**
  * JSON backup / restore (§40–§43).
@@ -11,10 +10,10 @@ import { migrateRaw } from "./repository";
  * corrupt storage falls back to the default dataset so the app never crashes
  * (decision 13). Import is the opposite — STRICT and fail-closed: an invalid
  * file must never modify current data (§42 "If invalid: do not modify
- * existing data"). Old versions walk the SAME migration table as loading,
- * then the migrated object is validated field by field against the current
- * schema. This module is pure (no DOM/browser APIs) so it is fully
- * unit-testable.
+ * existing data"). Only the current schema version is accepted — no
+ * migration paths are maintained — and the object is validated field by
+ * field against the current schema. This module is pure (no DOM/browser
+ * APIs) so it is fully unit-testable.
  */
 
 export type ImportIssueKind =
@@ -88,7 +87,7 @@ export function backupFilename(dateIso: string): string {
 /* --- Strict import validation (§40 step 1–4, §42, §47) --- */
 
 /**
- * Parses + migrates + strictly validates an imported backup file.
+ * Parses + strictly validates an imported backup file.
  * Returns the validated dataset ONLY when every check passes; any issue
  * returns ok:false and the caller must leave current data untouched.
  */
@@ -108,7 +107,9 @@ export function validateImportText(text: string): ImportResult {
     return { ok: false, issues };
   }
 
-  // Version gate before anything else (§40 step 3–4).
+  // Version gate before anything else (§40 step 3–4): only the current
+  // schema version is supported — older versions have no migration path and
+  // are rejected exactly like future ones.
   if (!("version" in parsed)) {
     issues.push({ path: "version", kind: "missingField" });
     return { ok: false, issues };
@@ -121,20 +122,12 @@ export function validateImportText(text: string): ImportResult {
     issues.push({ path: "version", kind: "invalidValue" });
     return { ok: false, issues };
   }
-  if (parsed.version > CURRENT_VERSION) {
+  if (parsed.version !== CURRENT_VERSION) {
     issues.push({ path: "version", kind: "unsupportedVersion" });
     return { ok: false, issues };
   }
 
-  let raw: Record<string, unknown> = parsed;
-  if (parsed.version < CURRENT_VERSION) {
-    const migrated = migrateRaw(parsed);
-    if (!migrated.ok) {
-      issues.push({ path: "version", kind: "invalidValue" });
-      return { ok: false, issues };
-    }
-    raw = migrated.value;
-  }
+  const raw: Record<string, unknown> = parsed;
 
   // Required top-level fields (§42: missing fields / wrong types are fatal).
   for (const field of TOP_LEVEL_FIELDS) {
@@ -445,7 +438,7 @@ function checkItemReference(
   }
 }
 
-/** items/records: `vehicleId` must exist (or be null = legacy unassigned). */
+/** items/records: `vehicleId` must exist (or be null = unassigned). */
 function checkVehicleField(
   row: Record<string, unknown>,
   path: string,

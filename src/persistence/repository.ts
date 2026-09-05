@@ -53,7 +53,11 @@ export function createRepository(backend: StorageBackend): Repository {
   };
 }
 
-/** Parses and migrates a stored JSON string into a valid Dataset. */
+/**
+ * Parses a stored JSON string into a valid Dataset. v8 is the only supported
+ * schema version — no migration paths are maintained for older data, so
+ * anything other than the current version is ignored defensively.
+ */
 export function loadFromString(raw: string): Dataset {
   let parsed: unknown;
   try {
@@ -71,185 +75,17 @@ export function loadFromString(raw: string): Dataset {
     warnInvalid("missing numeric version");
     return defaultDataset();
   }
-  if (parsed.version > CURRENT_VERSION) {
+  if (parsed.version !== CURRENT_VERSION) {
     console.warn(
-      `[persistence] Stored data version ${parsed.version} is newer than supported ${CURRENT_VERSION}; starting fresh.`,
+      `[persistence] Stored data version ${parsed.version} is not supported (current: ${CURRENT_VERSION}); starting fresh.`,
     );
     return defaultDataset();
   }
 
-  const migrated = migrateRaw(parsed);
-  if (!migrated.ok) {
-    warnInvalid(migrated.reason);
-    return defaultDataset();
-  }
-
-  return normalize(migrated.value);
+  return normalize(parsed);
 }
 
-export type MigrateResult =
-  | { ok: true; value: Record<string, unknown> }
-  | { ok: false; reason: string };
-
-/**
- * Walks the migration table from the object's own version up to
- * CURRENT_VERSION. Shared by defensive loading (loadFromString) and the
- * strict Phase 10 import validator — one migration path for both.
- */
-export function migrateRaw(raw: Record<string, unknown>): MigrateResult {
-  if (typeof raw.version !== "number") {
-    return { ok: false, reason: "missing numeric version" };
-  }
-  if (raw.version > CURRENT_VERSION) {
-    return { ok: false, reason: `version ${raw.version} newer than supported` };
-  }
-  let migrated: Record<string, unknown> = raw;
-  for (let version = raw.version; version < CURRENT_VERSION; version += 1) {
-    const step = migrations[version];
-    if (!step) {
-      return { ok: false, reason: `no migration path from version ${version}` };
-    }
-    migrated = step(migrated);
-  }
-  return { ok: true, value: migrated };
-}
-
-/**
- * Migration table: version → migration function, one step per version.
- * Version 0 is a placeholder for pre-schema data; normalize() repairs shape.
- */
-const migrations: Record<number, (raw: Record<string, unknown>) => Record<string, unknown>> = {
-  0: (raw) => raw,
-  // v1 → v2 (Phase 12): the Settings gained a UI colour-theme preference.
-  1: (raw) => {
-    const settings = raw.settings;
-    if (isRecord(settings) && !("theme" in settings)) {
-      settings.theme = "system";
-    }
-    return raw;
-  },
-  // v2 → v3 (Calendar system): the Settings gained a global date/calendar
-  // preference. Default = Solar Hijri (شمسی). Stored dates are untouched.
-  2: (raw) => {
-    const settings = raw.settings;
-    if (isRecord(settings) && !("calendar" in settings)) {
-      settings.calendar = "jalali";
-    }
-    return raw;
-  },
-  // v3 → v4 (Multi-vehicle): the single `vehicle` + `odometerHistory` become
-  // `vehicles[]`. The current odometer is the latest reading (history is no
-  // longer kept). Every maintenance item and record is linked to the vehicle
-  // (null when no vehicle existed), so nothing is ever shared between cars.
-  3: (raw) => {
-    const vehicles: unknown[] = [];
-    if (isRecord(raw.vehicle)) {
-      const readings = Array.isArray(raw.odometerHistory) ? (raw.odometerHistory as unknown[]) : [];
-      const sorted = [...readings].sort((a, b) =>
-        isRecord(a) && isRecord(b)
-          ? compareCreated(a, b)
-          : 0,
-      );
-      const latest = sorted.length > 0 ? sorted[sorted.length - 1] : null;
-      const currentOdometer =
-        latest != null && isRecord(latest) && typeof latest.odometer === "number"
-          ? latest.odometer
-          : null;
-      vehicles.push({ ...raw.vehicle, currentOdometer });
-    }
-    const vehicleId = vehicles.length > 0 && isRecord(vehicles[0]) ? (vehicles[0].id as string) : null;
-    const link = (collection: unknown): unknown[] =>
-      Array.isArray(collection)
-        ? collection.map((element) => (isRecord(element) ? { ...element, vehicleId } : element))
-        : [];
-    raw.vehicles = vehicles;
-    raw.maintenanceItems = link(raw.maintenanceItems);
-    raw.serviceHistory = link(raw.serviceHistory);
-    raw.inspectionHistory = link(raw.inspectionHistory);
-    delete raw.vehicle;
-    delete raw.odometerHistory;
-    return raw;
-  },
-  // v4 → v5 (Default vehicle): the Settings gained a `defaultVehicleId`
-  // preference used to auto-select a vehicle on the Services page.
-  4: (raw) => {
-    const settings = raw.settings;
-    if (isRecord(settings) && !("defaultVehicleId" in settings)) {
-      settings.defaultVehicleId = null;
-    }
-    return raw;
-  },
-  // v5 → v6 (Mileage timestamp): each Vehicle records `odometerUpdatedAt` so
-  // the vehicles page can show when the mileage was last updated. A single
-  // timestamp — the odometer history/log stays removed.
-  5: (raw) => {
-    if (Array.isArray(raw.vehicles)) {
-      raw.vehicles = raw.vehicles.map((vehicle) =>
-        isRecord(vehicle) && vehicle.odometerUpdatedAt === undefined
-          ? { ...vehicle, odometerUpdatedAt: null }
-          : vehicle,
-      );
-    }
-    return raw;
-  },
-  // v6 → v7 (Currency): the Settings gained a `currency` preference for
-  // recording/displaying service costs. Default = تومان (IRR). Stored costs
-  // are untouched — no conversion, the unit is only a display label.
-  6: (raw) => {
-    const settings = raw.settings;
-    if (isRecord(settings) && !("currency" in settings)) {
-      settings.currency = "IRR";
-    }
-    return raw;
-  },
-  // v7 → v8 (Unified services): the inspection workflow is removed. Every
-  // inspection record becomes a regular service record (cost defaults to
-  // null) and the separate inspection history is dropped; the condition /
-  // measurement fields are discarded. No item is inspection-based anymore.
-  7: (raw) => {
-    const services = Array.isArray(raw.serviceHistory) ? raw.serviceHistory : [];
-    const inspections = Array.isArray(raw.inspectionHistory) ? raw.inspectionHistory : [];
-    const converted = inspections.map((entry) => {
-      if (!isRecord(entry)) return entry;
-      return {
-        id: entry.id,
-        maintenanceItemId: entry.maintenanceItemId,
-        vehicleId: entry.vehicleId,
-        date: entry.date,
-        odometer: entry.odometer,
-        notes: typeof entry.notes === "string" ? entry.notes : "",
-        cost: null,
-        createdAt: entry.createdAt,
-      };
-    });
-    raw.serviceHistory = [...services, ...converted];
-    delete raw.inspectionHistory;
-    if (Array.isArray(raw.maintenanceItems)) {
-      raw.maintenanceItems = raw.maintenanceItems.map((item) => {
-        if (isRecord(item) && isRecord(item.rule)) {
-          const rule = { ...item.rule };
-          delete rule.inspectionBased;
-          return { ...item, rule };
-        }
-        return item;
-      });
-    }
-    return raw;
-  },
-};
-
-/** Sorts odometer readings for the v3→v4 migration by (date, createdAt). */
-function compareCreated(a: Record<string, unknown>, b: Record<string, unknown>): number {
-  const aDate = typeof a.date === "string" ? a.date : "";
-  const bDate = typeof b.date === "string" ? b.date : "";
-  if (aDate !== bDate) return aDate < bDate ? -1 : 1;
-  const aCreated = typeof a.createdAt === "string" ? a.createdAt : "";
-  const bCreated = typeof b.createdAt === "string" ? b.createdAt : "";
-  if (aCreated !== bCreated) return aCreated < bCreated ? -1 : 1;
-  return 0;
-}
-
-/** Ensures the migrated object has the exact Dataset shape (§40 step 5). */
+/** Ensures the parsed object has the exact Dataset shape (§40 step 5). */
 function normalize(raw: Record<string, unknown>): Dataset {
   const fallback = defaultDataset();
   return {

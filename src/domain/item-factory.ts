@@ -24,7 +24,7 @@ export type ItemDraftError = "nameRequired" | "kmInvalid" | "monthsInvalid" | "r
 export type CustomItemError = ItemDraftError;
 
 /** Builds an active item from user configuration. The item is linked to its
- * owning vehicle via `opts.vehicleId` (null = legacy unassigned). */
+ * owning vehicle via `opts.vehicleId` (null = unassigned). */
 export function buildItem(
   draft: ItemDraft,
   opts: { catalogId: string | null; now: string; id?: string; vehicleId?: string | null },
