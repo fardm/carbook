@@ -422,12 +422,27 @@ function itemMetricLines(item: MaintenanceItem, dataset: ReturnType<typeof store
 
 function serviceCardHtml(item: MaintenanceItem, dataset: ReturnType<typeof store.get>): string {
   const lines = itemMetricLines(item, dataset);
-  const last = item.rule.inspectionBased
-    ? lastInspectionFor(dataset.inspectionHistory, item.id)
-    : lastServiceFor(dataset.serviceHistory, item.id);
   const notRecorded = t("maintenance.detail.notRecorded");
-  const kmValue = last?.odometer != null ? `${faNum(last.odometer)} ${t("common.kmUnit")}` : notRecorded;
-  const dateValue = last ? formatDate(last.date) : notRecorded;
+
+  // Recommended NEXT replacement (تعویض بعدی), not the last one: remaining
+  // days until the estimated due date and remaining km until the due
+  // odometer — the same numbers the detail page's status cards show.
+  const recommendedDate = lines.calc.estimatedDueDate ?? lines.calc.nextDueDate;
+  let daysValue: string = notRecorded;
+  if (recommendedDate) {
+    const days = diffDays(recommendedDate, todayIso());
+    daysValue =
+      days >= 0
+        ? `${faNum(days)} ${t("maintenance.detail.remainingDays")}`
+        : `${faNum(-days)} ${t("maintenance.detail.pastDays")}`;
+  }
+  let kmValue: string = notRecorded;
+  if (lines.calc.remainingKm != null) {
+    kmValue =
+      lines.calc.remainingKm >= 0
+        ? `${faNum(lines.calc.remainingKm)} ${t("common.kmUnit")} ${t("maintenance.detail.remainingKm")}`
+        : `${faNum(-lines.calc.remainingKm)} ${t("common.kmUnit")} ${t("maintenance.detail.pastKm")}`;
+  }
 
   return `
     <article class="card service-card">
@@ -449,13 +464,14 @@ function serviceCardHtml(item: MaintenanceItem, dataset: ReturnType<typeof store
               : `<div class="service-card__state" data-lucide="${STATUS_ICONS[lines.calc.status]}"></div>`
           }
           <div class="service-card__detail">
+            <div class="service-card__next-label">${t("maintenance.list.nextReplacement")}:</div>
+            <div class="metric service-card__last">
+              <span data-lucide="calendar"></span>
+              ${escHtml(daysValue)}
+            </div>
             <div class="metric service-card__last">
               <span data-lucide="gauge"></span>
               ${escHtml(kmValue)}
-            </div>
-            <div class="metric service-card__last">
-              <span data-lucide="calendar"></span>
-              ${escHtml(dateValue)}
             </div>
           </div>
         </div>

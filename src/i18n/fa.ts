@@ -136,6 +136,7 @@ export const fa = {
       dueDate: "سررسید",
       estimateDate: "تخمین",
       conditionLabel: "وضعیت",
+      nextReplacement: "تعویض بعدی",
       sortUrgency: "فوریت",
       sortName: "نام",
     },
