@@ -1069,8 +1069,9 @@ function recordMenuHtml(recordId: string): string {
 
 /** Single-row history entry: date first, mileage after, actions at the left. */
 function historyRecordRowHtml(
-  record: { id: string; date: string; odometer: number | null },
+  record: { id: string; date: string; odometer: number | null; cost: number | null },
 ): string {
+  const currency = currencyLabel(store.get().settings.currency);
   return `
     <li class="history__item">
       <div class="history__main">
@@ -1078,6 +1079,11 @@ function historyRecordRowHtml(
         ${
           record.odometer != null
             ? `<span class="history__km">${faNum(record.odometer)} ${t("common.kmUnit")}</span>`
+            : ""
+        }
+        ${
+          record.cost != null
+            ? `<span class="history__km">${faNum(record.cost)} ${currency}</span>`
             : ""
         }
       </div>
@@ -1814,12 +1820,12 @@ function submitServiceForm(container: HTMLElement, form: HTMLFormElement): void 
 
   if (errors.length > 0 || initialErrors.length > 0 || shownRecordErrors.length > 0 || hasCostError) {
     showServiceErrors(container, [
-      ...errors.map((error): [ItemDraftError | InitialDataError, string] => [error, t(DRAFT_ERROR_KEYS[error])]),
-      ...initialErrors.map((error): [ItemDraftError | InitialDataError, string] => [error, t(INITIAL_ERROR_KEYS[error])]),
-      ...shownRecordErrors.map((error): [InitialDataError, string] => [error as InitialDataError, t(SERVICE_ERROR_KEYS[error])]),
+      ...errors.map((error): [ItemDraftError | InitialDataError | ServiceRecordError, string] => [error, t(DRAFT_ERROR_KEYS[error])]),
+      ...initialErrors.map((error): [ItemDraftError | InitialDataError | ServiceRecordError, string] => [error, t(INITIAL_ERROR_KEYS[error])]),
+      ...shownRecordErrors.map((error): [ItemDraftError | InitialDataError | ServiceRecordError, string] => [error as ItemDraftError | InitialDataError | ServiceRecordError, t(SERVICE_ERROR_KEYS[error])]),
     ]);
     if (hasCostError) {
-      showServiceErrors(container, [["invalidCost" as ItemDraftError | InitialDataError, t(SERVICE_ERROR_KEYS["invalidCost"])]]);
+      showServiceErrors(container, [["invalidCost" as ItemDraftError | InitialDataError | ServiceRecordError, t(SERVICE_ERROR_KEYS["invalidCost"])]]);
     }
     return;
   }
@@ -1847,7 +1853,7 @@ function submitServiceForm(container: HTMLElement, form: HTMLFormElement): void 
 
 function showServiceErrors(
   container: HTMLElement,
-  errors: [ItemDraftError | InitialDataError, string][],
+  errors: [ItemDraftError | InitialDataError | ServiceRecordError, string][],
 ): void {
   for (const [error, message] of errors) {
     const id =
