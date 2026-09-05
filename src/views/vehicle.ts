@@ -276,12 +276,10 @@ function deleteModalHtml(vehicle: Vehicle | null): string {
 }
 
 function mileageModalHtml(vehicle: Vehicle | null): string {
-  const name = vehicle ? escHtml(vehicle.name) : "";
   return `
     <div class="modal" role="dialog" aria-modal="true" aria-label="${t("vehicle.updateMileage")}">
       <form id="mileage-form" class="form" novalidate>
         <div class="form__title">${t("vehicle.updateMileage")}</div>
-        ${vehicle ? `<p class="card__text">${t("vehicle.mileageFor")}: ${name}</p>` : ""}
         <div class="field">
           <label class="field__label" for="mileage-value">${t("vehicle.mileageLabel")}</label>
           <input class="field__input" id="mileage-value" name="mileage" type="number"
