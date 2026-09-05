@@ -763,6 +763,15 @@ function serviceFormModalHtml(): string {
             </div>
           </div>
 
+          ${!editing ? `
+          <div class="field">
+            <label class="field__label" for="service-cost">${t("maintenance.record.costLabel")}</label>
+            <input class="field__input" id="service-cost" name="serviceCost" type="number"
+              inputmode="decimal" min="0" step="any" value="${escHtml(fieldValue("serviceCost"))}"
+              placeholder="${faNum(0)} ${currencyLabel(store.get().settings.currency)}" />
+            <p class="field__error" id="service-error-cost" hidden></p>
+          </div>` : ""}
+
           <div class="form__actions">
             <button type="button" class="btn btn--text js-close-overlay">${t("common.cancel")}</button>
             <button type="submit" class="btn btn--filled">
@@ -1174,7 +1183,6 @@ function recordServiceFormModalHtml(): string {
           <input class="field__input" id="record-cost" name="cost" type="number"
             inputmode="decimal" min="0" step="any" value="${record?.cost ?? ""}"
             placeholder="${faNum(0)} ${currency}" />
-          <p class="field__hint">${t("maintenance.record.costHint")} ${currency}</p>
           <p class="field__error" id="record-error-cost" hidden></p>
         </div>
         <div class="field">
@@ -1798,12 +1806,21 @@ function submitServiceForm(container: HTMLElement, form: HTMLFormElement): void 
   };
   const errors = validateItemDraft(draft);
   const initialErrors = validateInitialService({ date, odometer }, todayIso());
+  const serviceCostRaw = String(data.get("serviceCost") ?? "").trim();
+  const serviceCost = serviceCostRaw === "" ? null : Number(toLatinDigits(serviceCostRaw));
+  const recordErrors = validateServiceRecordEntry({ date, odometer, cost: serviceCost }, { today: todayIso() });
+  const shownRecordErrors = recordErrors.filter((error) => error !== "invalidCost");
+  const hasCostError = recordErrors.includes("invalidCost");
 
-  if (errors.length > 0 || initialErrors.length > 0) {
+  if (errors.length > 0 || initialErrors.length > 0 || shownRecordErrors.length > 0 || hasCostError) {
     showServiceErrors(container, [
       ...errors.map((error): [ItemDraftError | InitialDataError, string] => [error, t(DRAFT_ERROR_KEYS[error])]),
       ...initialErrors.map((error): [ItemDraftError | InitialDataError, string] => [error, t(INITIAL_ERROR_KEYS[error])]),
+      ...shownRecordErrors.map((error): [InitialDataError, string] => [error as InitialDataError, t(SERVICE_ERROR_KEYS[error])]),
     ]);
+    if (hasCostError) {
+      showServiceErrors(container, [["invalidCost" as ItemDraftError | InitialDataError, t(SERVICE_ERROR_KEYS["invalidCost"])]]);
+    }
     return;
   }
 
@@ -1822,7 +1839,7 @@ function submitServiceForm(container: HTMLElement, form: HTMLFormElement): void 
       date,
       odometer,
       notes: "",
-      cost: null,
+      cost: serviceCost,
       createdAt: now,
     });
   });
@@ -1838,7 +1855,9 @@ function showServiceErrors(
         ? DRAFT_ERROR_IDS[error as ItemDraftError]
         : error === "invalidOdometer"
           ? "service-error-odometer"
-          : "service-error-date";
+          : error === "invalidCost"
+            ? "service-error-cost"
+            : "service-error-date";
     const element = container.querySelector<HTMLElement>(`#${id}`);
     if (element) {
       element.textContent = message;

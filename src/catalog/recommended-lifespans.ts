@@ -12,6 +12,8 @@ export const RECOMMENDED_LIFESPAN_KM: Readonly<Record<string, number>> = {
   oilFilter: 10000,
   sparkPlugs: 40000,
   timingBelt: 80000,
+  alternatorBelt: 80000,
+  acBelt: 80000,
   timingChain: 150000,
   pcvValve: 60000,
 
