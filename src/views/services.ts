@@ -1079,9 +1079,8 @@ function recordMenuHtml(recordId: string): string {
 
 /** Single-row history entry: date first, mileage after, actions at the left. */
 function historyRecordRowHtml(
-  record: { id: string; date: string; odometer: number | null; cost: number | null },
+  record: { id: string; date: string; odometer: number | null },
 ): string {
-  const currency = currencyLabel(store.get().settings.currency);
   return `
     <li class="history__item">
       <div class="history__main">
@@ -1089,11 +1088,6 @@ function historyRecordRowHtml(
         ${
           record.odometer != null
             ? `<span class="history__km">${faNum(record.odometer)} ${t("common.kmUnit")}</span>`
-            : ""
-        }
-        ${
-          record.cost != null
-            ? `<span class="history__km">${faNum(record.cost)} ${currency}</span>`
             : ""
         }
       </div>
