@@ -83,7 +83,7 @@ describe("item factories (§14, §37)", () => {
   });
 
   it("itemFromCatalog preserves the catalog interval", () => {
-    const item = itemFromCatalog(catalogEntry("brakePadsFront")!, NOW);
+    const item = itemFromCatalog(catalogEntry("brakePads")!, NOW);
     expect(item.rule.intervalKm).toBe(10000);
     expect(item.rule.intervalMonths).toBe(6);
   });

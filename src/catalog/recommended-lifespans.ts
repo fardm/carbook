@@ -11,11 +11,9 @@ export const RECOMMENDED_LIFESPAN_KM: Readonly<Record<string, number>> = {
   engineOil: 10000,
   oilFilter: 10000,
   sparkPlugs: 40000,
-  timingBelt: 80000,
   alternatorBelt: 80000,
   acBelt: 80000,
   timingChain: 150000,
-  pcvValve: 60000,
 
   // Fluids
   coolant: 40000,
@@ -25,21 +23,15 @@ export const RECOMMENDED_LIFESPAN_KM: Readonly<Record<string, number>> = {
   washerFluid: 10000,
 
   // Brakes
-  brakePadsFront: 10000,
-  brakePadsRear: 10000,
-  brakeDiscsFront: 30000,
-  brakeDiscsRear: 30000,
+  brakePads: 10000,
+  brakeDiscs: 30000,
 
   // Tires & wheels
   tires: 40000,
-  wheelAlignment: 10000,
   wheelBalancing: 10000,
 
   // Electrical
   battery: 60000,
-  headlights: 40000,
-  brakeLights: 40000,
-  turnSignals: 40000,
 
   // Filters
   airFilter: 20000,
