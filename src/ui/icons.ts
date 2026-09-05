@@ -31,7 +31,6 @@ import {
   Gauge,
   Heart,
   History,
-  Hourglass,
   Infinity,
   Info,
   Lightbulb,
@@ -55,6 +54,7 @@ import {
   Upload,
   Wind,
   Wrench,
+  X,
   Zap,
 } from "lucide";
 
@@ -95,7 +95,6 @@ export const iconRegistry = {
   Gauge,
   Heart,
   History,
-  Hourglass,
   Infinity,
   Info,
   Lightbulb,
@@ -119,6 +118,7 @@ export const iconRegistry = {
   Upload,
   Wind,
   Wrench,
+  X,
   Zap,
 } as const;
 

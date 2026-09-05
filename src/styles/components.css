@@ -1083,30 +1083,11 @@ textarea.field__input {
   font-weight: 600;
 }
 
-/* Part lifetime under the service name: label + km (+ days when estimable). */
+/* Part lifetime under the service name — single muted text line. */
 .service-info__lifetime {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--md-space-2);
   margin-top: var(--md-space-1);
   color: var(--md-sys-color-on-surface-variant);
   font-size: var(--md-typescale-body-medium);
-}
-
-.service-info__lifetime-label {
-  flex: none;
-}
-
-.service-info__lifetime-item {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--md-space-1);
-}
-
-.service-info__lifetime-item svg {
-  width: 16px;
-  height: 16px;
 }
 
 /* Inactive-item reactivate action inside the Service Information section. */
@@ -2147,6 +2128,105 @@ input.affix-field__input {
 .type-card--custom .type-card__icon {
   background-color: var(--md-sys-color-primary-container);
   color: var(--md-sys-color-on-primary-container);
+}
+
+/* --- Service-type picker: search box --- */
+/* The search input sits between the modal title and the grid; it reuses the
+ * standard floating-label `.field` + `.field__input` look, with the leading
+ * search icon and a clear (×) button nested inside the input. */
+.type-picker__search {
+  /* The grid below already carries a var(--md-space-4) top margin; no extra
+   * spacing is needed between the search box and the cards. */
+  margin-block-end: 0;
+}
+
+.type-search {
+  position: relative;
+}
+
+/* Only the inline-end side makes room for the clear (×) button. */
+input.type-search__input {
+  padding-inline-end: 44px;
+}
+
+/* Hide the browser's own cancel (×) so only our clear button appears. */
+input.type-search__input[type="search"]::-webkit-search-cancel-button,
+input.type-search__input[type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.type-search__clear {
+  position: absolute;
+  inset-inline-end: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--md-shape-full);
+  color: var(--md-sys-color-on-surface-variant);
+  transition: background-color var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+.type-search__clear:hover {
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+}
+
+.type-search__clear svg {
+  width: 18px;
+  height: 18px;
+}
+
+.type-search__clear[hidden] {
+  display: none;
+}
+
+/* Hidden cards and the empty state must actually leave the grid (their own
+ * display rules would otherwise beat the UA `[hidden]` rule). */
+.type-grid > .type-card[hidden],
+.type-grid > .type-picker__empty[hidden] {
+  display: none;
+}
+
+.type-picker__empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--md-space-2);
+  padding: var(--md-space-6) var(--md-space-3);
+  color: var(--md-sys-color-on-surface-variant);
+  text-align: center;
+}
+
+.type-picker__empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--md-shape-full);
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+.type-picker__empty-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.type-picker__empty-text {
+  font-size: var(--md-typescale-body-medium);
+}
+
+/* With zero matches the grid holds only the message; center it in the
+ * otherwise-empty scroll area instead of leaving it pinned to the top. */
+.modal--type-picker .type-grid--no-results {
+  align-content: center;
 }
 
 /* --- Service form modal --- */

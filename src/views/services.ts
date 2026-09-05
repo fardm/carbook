@@ -77,6 +77,8 @@ interface ServicesViewState {
   selectedVehicleId: string | null;
   /** Service-type picker modal is open. */
   pickerOpen: boolean;
+  /** Live query filtering service-type cards inside the picker. */
+  typeQuery: string;
   /** The add/edit service form modal. */
   form: { mode: "add"; catalogId: string | null } | { mode: "edit"; itemId: string } | null;
   /** Icon grid inside the form modal. */
@@ -107,6 +109,7 @@ interface ServicesViewState {
 const state: ServicesViewState = {
   selectedVehicleId: null,
   pickerOpen: false,
+  typeQuery: "",
   form: null,
   iconPickerOpen: false,
   icon: "wrench",
@@ -188,6 +191,7 @@ export function renderServices(container: HTMLElement): () => void {
     bind(container);
     applyIcons();
     bindFloatingFields(container);
+    applyTypeFilter(container);
     alignFabBar();
   };
   registerGlobalKeys();
@@ -520,10 +524,26 @@ function deleteConfirmInline(itemId: string): string {
 
 /* --- Service-type picker modal --- */
 
+/** Search text folded for matching: unifies Persian/Arabic letter variants,
+ * drops ZWNJ/RTL marks and whitespace, so «روغن موتور», «روغن‌موتور» and
+ * «Brake» queries all hit the catalog names they belong to. */
+function normalizeTypeSearch(text: string): string {
+  return text
+    .replace(/[\u200c-\u200f]/g, "")
+    .replace(/[يى]/g, "ی")
+    .replace(/ك/g, "ک")
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ة/g, "ه")
+    .toLowerCase()
+    .replace(/\s+/g, "");
+}
+
 function typePickerModalHtml(): string {
+  const query = state.typeQuery;
   const typeCards = CATALOG.map(
     (entry) => `
-      <button type="button" class="type-card js-pick-type" data-catalog-id="${escHtml(entry.id)}">
+      <button type="button" class="type-card js-pick-type js-type-card" data-catalog-id="${escHtml(entry.id)}"
+        data-search="${escHtml(normalizeTypeSearch(`${entry.name.fa} ${entry.name.en}`))}">
         <span class="type-card__icon" data-lucide="${entry.icon}"></span>
         <span class="type-card__name">${escHtml(entry.name.fa)}</span>
       </button>
@@ -534,10 +554,27 @@ function typePickerModalHtml(): string {
       <div class="modal modal--wide modal--type-picker" role="dialog" aria-modal="true"
         aria-label="${t("services.pickTypeTitle")}">
         <div class="form__title">${t("services.pickTypeTitle")}</div>
-        <p class="card__text">${t("services.pickTypeHint")}</p>
+        <div class="field type-picker__search">
+          <label class="field__label" for="type-search">${t("services.searchLabel")}</label>
+          <div class="type-search">
+            <input class="field__input type-search__input js-type-search" id="type-search"
+              type="search" autocomplete="off" autocapitalize="off" spellcheck="false"
+              value="${escHtml(query)}" placeholder="${t("services.searchPlaceholder")}" />
+            <button type="button" class="type-search__clear js-type-search-clear"
+              ${query === "" ? "hidden" : ""}
+              aria-label="${t("services.searchClear")}" title="${t("services.searchClear")}">
+              <span data-lucide="x" aria-hidden="true"></span>
+            </button>
+          </div>
+        </div>
         <div class="type-grid">
           ${typeCards}
-          <button type="button" class="type-card type-card--custom js-pick-type" data-catalog-id="">
+          <div class="type-picker__empty js-type-empty" hidden>
+            <span class="type-picker__empty-icon" data-lucide="search" aria-hidden="true"></span>
+            <p class="type-picker__empty-text">${t("services.searchEmpty")}</p>
+          </div>
+          <button type="button" class="type-card type-card--custom js-pick-type js-type-card" data-catalog-id=""
+            data-search="${escHtml(normalizeTypeSearch(`${t("services.customType")} custom`))}">
             <span class="type-card__icon" data-lucide="wrench"></span>
             <span class="type-card__name">${t("services.customType")}</span>
           </button>
@@ -548,6 +585,27 @@ function typePickerModalHtml(): string {
       </div>
     </div>
   `;
+}
+
+/** Hides the type cards that don't match the query and keeps the clear
+ * button and empty state in sync. Runs after every render and on each
+ * keystroke; it touches presentation only — cards reappear when the query
+ * clears and the CATALOG itself is never modified. */
+function applyTypeFilter(container: HTMLElement): void {
+  const input = container.querySelector<HTMLInputElement>(".js-type-search");
+  const query = normalizeTypeSearch(input?.value ?? state.typeQuery);
+  let matches = 0;
+  container.querySelectorAll<HTMLButtonElement>(".js-type-card").forEach((card) => {
+    const hit = query === "" || (card.dataset.search ?? "").includes(query);
+    card.hidden = !hit;
+    if (hit) matches += 1;
+  });
+  const grid = container.querySelector<HTMLElement>(".type-grid");
+  const empty = container.querySelector<HTMLElement>(".js-type-empty");
+  if (grid) grid.classList.toggle("type-grid--no-results", matches === 0);
+  if (empty) empty.hidden = matches > 0;
+  const clear = container.querySelector<HTMLButtonElement>(".js-type-search-clear");
+  if (clear) clear.hidden = query === "";
 }
 
 /** Icon-choices modal shown on top of the service form (never inline). */
@@ -847,9 +905,9 @@ function calendarEventHref(
   });
 }
 
-/** Lifetime row under the service name: label + configured km, and when the
- * vehicle has a usable daily mileage, estimated lifespan in days
- * (intervalKm ÷ averageDailyDistance). */
+/** Lifetime row under the service name:
+ * `عمر قطعه ≈ ۴۰٬۰۰۰ کیلومتر (تقریباً ۲ سال)` when daily mileage allows
+ * an estimate; otherwise just the km line. */
 function detailLifetimeRowHtml(
   item: MaintenanceItem,
   dataset: ReturnType<typeof store.get>,
@@ -863,23 +921,14 @@ function detailLifetimeRowHtml(
     averageDaily != null && Number.isFinite(averageDaily) && averageDaily > 0
       ? Math.round(intervalKm / averageDaily)
       : null;
-  const daysItem =
+  const duration =
     estimatedDays != null && estimatedDays > 0
-      ? `
-      <span class="service-info__lifetime-item">
-        <span data-lucide="hourglass"></span>
-        ${formatLifespanDuration(estimatedDays)}
-      </span>`
+      ? ` (${t("services.approximately")} ${formatLifespanDuration(estimatedDays)})`
       : "";
 
   return `
     <div class="service-info__lifetime">
-      <span class="service-info__lifetime-label">${t("services.lifeKm")}:</span>
-      <span class="service-info__lifetime-item">
-        <span data-lucide="gauge"></span>
-        ${faNum(intervalKm)} ${t("common.kmUnit")}
-      </span>
-      ${daysItem}
+      ${t("services.lifeKm")} ≈ ${faNum(intervalKm)} ${t("common.kmUnit")}${duration}
     </div>
   `;
 }
@@ -1270,6 +1319,37 @@ function bindListEvents(container: HTMLElement): void {
       redraw(container);
     });
   });
+
+  /* Type-picker search: filtering happens on the live DOM (no redraw), so
+   * the input keeps focus and the caret never jumps while typing. */
+  const typeSearch = container.querySelector<HTMLInputElement>(".js-type-search");
+  if (typeSearch) {
+    typeSearch.addEventListener("input", () => {
+      state.typeQuery = typeSearch.value;
+      applyTypeFilter(container);
+    });
+    // A first Escape clears the query; the global handler only closes the
+    // modal when the field is already empty.
+    typeSearch.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && typeSearch.value !== "") {
+        state.typeQuery = "";
+        typeSearch.value = "";
+        typeSearch.dispatchEvent(new Event("input"));
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    });
+  }
+  container.querySelectorAll<HTMLButtonElement>(".js-type-search-clear").forEach((button) => {
+    button.addEventListener("click", () => {
+      const input = container.querySelector<HTMLInputElement>(".js-type-search");
+      if (!input) return;
+      state.typeQuery = "";
+      input.value = "";
+      input.dispatchEvent(new Event("input"));
+      input.focus();
+    });
+  });
 }
 
 /** The container rendered last; used by the global Escape handler. */
@@ -1362,6 +1442,7 @@ function openTypePicker(): void {
   state.pickerOpen = true;
   state.form = null;
   state.formValues = {};
+  state.typeQuery = "";
 }
 
 function openServiceForm(catalogId: string | null): void {
@@ -1836,5 +1917,6 @@ function redraw(container: HTMLElement): void {
   bind(container);
   applyIcons();
   bindFloatingFields(container);
+  applyTypeFilter(container);
   alignFabBar();
 }
