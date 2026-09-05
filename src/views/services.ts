@@ -34,6 +34,8 @@ import { applyIcons, CUSTOM_ICON_CHOICES, STATUS_ICONS } from "../ui/icons";
 import {
   compareByUrgency,
   dueDateText,
+  formatLifespanDuration,
+  formatRemainingCountdown,
   healthBand,
   primaryMetricText,
   resolvePrimaryMetric,
@@ -396,11 +398,7 @@ function serviceCardHtml(item: MaintenanceItem, dataset: ReturnType<typeof store
   const recommendedDate = lines.calc.estimatedDueDate ?? lines.calc.nextDueDate;
   let daysValue: string = notRecorded;
   if (recommendedDate) {
-    const days = diffDays(recommendedDate, todayIso());
-    daysValue =
-      days >= 0
-        ? `${faNum(days)} ${t("maintenance.detail.remainingDays")}`
-        : `${faNum(-days)} ${t("maintenance.detail.pastDays")}`;
+    daysValue = formatRemainingCountdown(diffDays(recommendedDate, todayIso()));
   }
   let kmValue: string = notRecorded;
   if (lines.calc.remainingKm != null) {
@@ -758,7 +756,7 @@ function itemDetailPageHtml(itemId: string): string {
                 <span class="service-info__icon" data-lucide="${item.icon}"></span>
                 <div class="service-info__main">
                   <div class="service-info__name">${escHtml(item.name)}</div>
-                  ${detailLifetimeRowHtml(item)}
+                  ${detailLifetimeRowHtml(item, dataset)}
                 </div>
               </div>
               <span class="status-chip status-chip--${calc.status}">
@@ -840,17 +838,39 @@ function calendarEventHref(
   });
 }
 
-/** Lifetime row under the service name: the configured part lifetime — in
- * kilometers only (time-based part lifetime was removed). */
-function detailLifetimeRowHtml(item: MaintenanceItem): string {
+/** Lifetime row under the service name: label + configured km, and when the
+ * vehicle has a usable daily mileage, estimated lifespan in days
+ * (intervalKm ÷ averageDailyDistance). */
+function detailLifetimeRowHtml(
+  item: MaintenanceItem,
+  dataset: ReturnType<typeof store.get>,
+): string {
   const { intervalKm } = item.rule;
   if (intervalKm == null) return "";
+
+  const averageDaily =
+    dataset.vehicles.find((vehicle) => vehicle.id === item.vehicleId)?.averageDailyDistance ?? null;
+  const estimatedDays =
+    averageDaily != null && Number.isFinite(averageDaily) && averageDaily > 0
+      ? Math.round(intervalKm / averageDaily)
+      : null;
+  const daysItem =
+    estimatedDays != null && estimatedDays > 0
+      ? `
+      <span class="service-info__lifetime-item">
+        <span data-lucide="hourglass"></span>
+        ${formatLifespanDuration(estimatedDays)}
+      </span>`
+      : "";
+
   return `
     <div class="service-info__lifetime">
+      <span class="service-info__lifetime-label">${t("services.lifeKm")}:</span>
       <span class="service-info__lifetime-item">
         <span data-lucide="gauge"></span>
         ${faNum(intervalKm)} ${t("common.kmUnit")}
       </span>
+      ${daysItem}
     </div>
   `;
 }
@@ -882,11 +902,7 @@ function detailOverviewSectionHtml(item: MaintenanceItem, dataset: ReturnType<ty
   const dateValue = recommendedDate ? formatDate(recommendedDate) : t("maintenance.detail.notRecorded");
   let dateSecondary = "";
   if (recommendedDate) {
-    const days = diffDays(recommendedDate, todayIso());
-    dateSecondary =
-      days >= 0
-        ? `${faNum(days)} ${t("maintenance.detail.remainingDays")}`
-        : `${faNum(-days)} ${t("maintenance.detail.pastDays")}`;
+    dateSecondary = formatRemainingCountdown(diffDays(recommendedDate, todayIso()));
   }
 
   const dueKm = calc.nextDueOdometer;

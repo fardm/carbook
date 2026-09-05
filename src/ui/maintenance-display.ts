@@ -65,6 +65,28 @@ export function dueDateText(calc: MaintenanceCalculation, kind: PrimaryMetricKin
     : `${t("maintenance.list.dueDate")}: ${date}`;
 }
 
+/**
+ * Adaptive duration by total days (shared by عمر قطعه and replacement countdowns):
+ * < 60 → days, 60–364 → months (/30), ≥ 365 → years (/365).
+ */
+export function formatLifespanDuration(days: number): string {
+  const absolute = Math.abs(days);
+  if (absolute >= 365) {
+    return `${faNum(Math.round(absolute / 365))} ${t("maintenance.yearsUnit")}`;
+  }
+  if (absolute >= 60) {
+    return `${faNum(Math.round(absolute / 30))} ${t("maintenance.monthsUnit")}`;
+  }
+  return `${faNum(absolute)} ${t("maintenance.list.daysUnit")}`;
+}
+
+/** "۴۵ روز مانده" / "۲ ماه گذشته" — adaptive unit + remaining/past suffix. */
+export function formatRemainingCountdown(days: number): string {
+  const suffix =
+    days >= 0 ? t("maintenance.detail.remainingKm") : t("maintenance.detail.pastKm");
+  return `${formatLifespanDuration(Math.abs(days))} ${suffix}`;
+}
+
 /** Days → "۱۲ روز" or "۴ ماه" for large values (§23). */
 export function formatRemainingTime(days: number): string {
   const absolute = Math.abs(days);

@@ -3,6 +3,8 @@ import type { MaintenanceCalculation, MaintenanceStatus } from "../src/domain/ma
 import type { DisplayMode } from "../src/domain/types";
 import {
   compareByUrgency,
+  formatLifespanDuration,
+  formatRemainingCountdown,
   formatRemainingTime,
   healthBand,
   primaryMetricText,
@@ -93,6 +95,25 @@ describe("formatRemainingTime (§23)", () => {
     expect(formatRemainingTime(120)).toBe("۴ ماه");
     expect(formatRemainingTime(150)).toBe("۵ ماه");
     expect(formatRemainingTime(90)).toBe("۳ ماه");
+  });
+});
+
+describe("formatLifespanDuration / formatRemainingCountdown", () => {
+  it("uses days, months, and years at the shared thresholds", () => {
+    expect(formatLifespanDuration(45)).toBe("۴۵ روز");
+    expect(formatLifespanDuration(60)).toBe("۲ ماه");
+    expect(formatLifespanDuration(120)).toBe("۴ ماه");
+    expect(formatLifespanDuration(240)).toBe("۸ ماه");
+    expect(formatLifespanDuration(365)).toBe("۱ سال");
+    expect(formatLifespanDuration(730)).toBe("۲ سال");
+  });
+
+  it("appends مانده / گذشته for replacement countdowns", () => {
+    expect(formatRemainingCountdown(45)).toBe("۴۵ روز مانده");
+    expect(formatRemainingCountdown(60)).toBe("۲ ماه مانده");
+    expect(formatRemainingCountdown(365)).toBe("۱ سال مانده");
+    expect(formatRemainingCountdown(-10)).toBe("۱۰ روز گذشته");
+    expect(formatRemainingCountdown(-120)).toBe("۴ ماه گذشته");
   });
 });
 

@@ -1083,7 +1083,7 @@ textarea.field__input {
   font-weight: 600;
 }
 
-/* Kilometer-only part lifetime under the service name. */
+/* Part lifetime under the service name: label + km (+ days when estimable). */
 .service-info__lifetime {
   display: flex;
   flex-wrap: wrap;
@@ -1092,6 +1092,10 @@ textarea.field__input {
   margin-top: var(--md-space-1);
   color: var(--md-sys-color-on-surface-variant);
   font-size: var(--md-typescale-body-medium);
+}
+
+.service-info__lifetime-label {
+  flex: none;
 }
 
 .service-info__lifetime-item {
