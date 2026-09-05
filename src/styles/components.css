@@ -1411,15 +1411,15 @@ input.date-field__text {
   padding-inline-end: 44px;
 }
 
-/* Leave room for the calendar icon so the floated label never covers it. */
-.field:has(.date-field) .field__label {
+/* Leave room for inline affix icons so the floated label never covers them. */
+.field:has(.date-field) .field__label,
+.field:has(.affix-field) .field__label {
   max-width: calc(100% - 58px);
 }
 
-/* Only the calendar button opens the picker — the input itself is for
- * typing. The button floats inside the input box on the LEFT (inline-end
- * in RTL), vertically centered. */
-.date-field__icon-btn {
+/* Affix icon buttons sit inside the input on the LEFT (inline-end in RTL). */
+.date-field__icon-btn,
+.affix-field__btn {
   position: absolute;
   inset-inline-end: 4px;
   top: 50%;
@@ -1434,14 +1434,30 @@ input.date-field__text {
   transition: background-color var(--md-motion-duration-short) var(--md-motion-easing);
 }
 
-.date-field__icon-btn:hover {
+.date-field__icon-btn:hover,
+.affix-field__btn:hover:not(:disabled) {
   background-color: var(--md-sys-color-surface-container-high);
   color: var(--md-sys-color-on-surface);
 }
 
-.date-field__icon-btn svg {
+.date-field__icon-btn svg,
+.affix-field__btn svg {
   width: 18px;
   height: 18px;
+}
+
+.affix-field__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Inline affix wrapper (odometer / recommended lifespan quick-fill). */
+.affix-field {
+  position: relative;
+}
+
+input.affix-field__input {
+  padding-inline-end: 44px;
 }
 
 .date-field__popover {
@@ -2220,38 +2236,6 @@ input.date-field__text {
 /* Add-vehicle «انتخاب به عنوان پیشفرض» toggle row (label + helper text). */
 .vehicle-default-field {
   padding-top: var(--md-space-1);
-}
-
-/* Small secondary action under a field (e.g. «استفاده از کیلومتر فعلی»):
- * compact, quiet, never competes with the input itself. Sits tight against
- * its own field (no top margin — the field's gap provides it) and carries
- * a small bottom margin to separate it from whatever comes next. */
-.field-action {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--md-space-1);
-  margin-block-end: var(--md-space-1);
-  padding: var(--md-space-1) var(--md-space-2);
-  border-radius: var(--md-shape-full);
-  color: var(--md-sys-color-on-surface-variant);
-  font-size: var(--md-typescale-label-medium);
-  font-weight: 600;
-}
-
-.field-action svg {
-  width: 14px;
-  height: 14px;
-}
-
-.field-action:hover:not(:disabled) {
-  color: var(--md-sys-color-primary);
-  background-color: color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
-}
-
-.field-action:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
 }
 
 /* --- Card hover: pointer cursor but text is never underlined --- */

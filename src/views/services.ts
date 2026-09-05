@@ -635,13 +635,16 @@ function serviceFormModalHtml(): string {
     </div>
     <div class="field">
       <label class="field__label" for="service-odometer">${t("services.replacementKm")}</label>
-      <input class="field__input" id="service-odometer" name="serviceOdometer" type="number"
-        inputmode="numeric" min="0" step="1" value="${escHtml(fieldValue("serviceOdometer"))}" />
-      <button type="button" class="btn btn--text field-action js-use-current-km"
-        ${currentKm == null ? "disabled" : ""}>
-        <span data-lucide="download"></span>
-        <span>${t("services.useCurrentKm")}</span>
-      </button>
+      <div class="affix-field">
+        <input class="field__input affix-field__input" id="service-odometer" name="serviceOdometer" type="number"
+          inputmode="numeric" min="0" step="1" value="${escHtml(fieldValue("serviceOdometer"))}" />
+        <button type="button" class="affix-field__btn js-use-current-km"
+          ${currentKm == null ? "disabled" : ""}
+          title="${escHtml(t("services.useCurrentKm"))}"
+          aria-label="${escHtml(t("services.useCurrentKm"))}">
+          <span data-lucide="download" aria-hidden="true"></span>
+        </button>
+      </div>
       <p class="field__error" id="service-error-odometer" hidden></p>
     </div>
   `;
@@ -675,16 +678,22 @@ function serviceFormModalHtml(): string {
 
           <div class="field">
             <label class="field__label" for="service-km">${t("services.lifeKm")}</label>
+            ${recommendedKm != null ? `
+            <div class="affix-field">
+              <input class="field__input affix-field__input" id="service-km" name="intervalKm" type="number"
+                inputmode="numeric" min="1" step="1"
+                value="${escHtml(fieldValue("intervalKm", prefillKm != null ? String(prefillKm) : ""))}" />
+              <button type="button" class="affix-field__btn js-use-recommended-km"
+                data-recommended-km="${recommendedKm}"
+                title="${escHtml(t("services.useRecommendedLifespan"))}"
+                aria-label="${escHtml(t("services.useRecommendedLifespan"))}">
+                <span data-lucide="download" aria-hidden="true"></span>
+              </button>
+            </div>
+            <p class="field__hint">${t("services.recommendedLifespanHint")} ${faNum(recommendedKm)} ${t("common.kmUnit")}</p>` : `
             <input class="field__input" id="service-km" name="intervalKm" type="number"
               inputmode="numeric" min="1" step="1"
-              value="${escHtml(fieldValue("intervalKm", prefillKm != null ? String(prefillKm) : ""))}" />
-            ${recommendedKm != null ? `
-            <p class="field__hint">${t("services.recommendedLifespanHint")} ${faNum(recommendedKm)} ${t("common.kmUnit")}</p>
-            <button type="button" class="btn btn--text field-action js-use-recommended-km"
-              data-recommended-km="${recommendedKm}">
-              <span data-lucide="download"></span>
-              <span>${t("services.useRecommendedLifespan")}</span>
-            </button>` : ""}
+              value="${escHtml(fieldValue("intervalKm", prefillKm != null ? String(prefillKm) : ""))}" />`}
             <p class="field__error" id="service-error-km" hidden></p>
           </div>
           <p class="field__error" id="service-error-rule" hidden></p>
@@ -1085,13 +1094,16 @@ function recordServiceFormModalHtml(): string {
         </div>
         <div class="field">
           <label class="field__label" for="record-odometer">${t("maintenance.record.odometerLabel")}</label>
-          <input class="field__input" id="record-odometer" name="odometer" type="number"
-            inputmode="numeric" min="0" step="1" value="${record?.odometer ?? ""}" />
-          <button type="button" class="btn btn--text field-action js-use-current-km"
-            ${defaultKm == null ? "disabled" : ""}>
-            <span data-lucide="download"></span>
-            <span>${t("services.useCurrentKm")}</span>
-          </button>
+          <div class="affix-field">
+            <input class="field__input affix-field__input" id="record-odometer" name="odometer" type="number"
+              inputmode="numeric" min="0" step="1" value="${record?.odometer ?? ""}" />
+            <button type="button" class="affix-field__btn js-use-current-km"
+              ${defaultKm == null ? "disabled" : ""}
+              title="${escHtml(t("services.useCurrentKm"))}"
+              aria-label="${escHtml(t("services.useCurrentKm"))}">
+              <span data-lucide="download" aria-hidden="true"></span>
+            </button>
+          </div>
           <p class="field__error" id="record-error-odometer" hidden></p>
         </div>
         <div class="field">
