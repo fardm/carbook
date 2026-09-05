@@ -46,19 +46,13 @@ describe("catalog integrity (§12, §13, §20)", () => {
     }
   });
 
-  it("gives every inspection-based item an inspection interval (§16)", () => {
-    for (const entry of CATALOG.filter((candidate) => candidate.inspectionBased)) {
-      expect(entry.suggestedKm ?? entry.suggestedMonths, `${entry.id}`).not.toBeNull();
-    }
-  });
-
   it("provides the §20 examples", () => {
     expect(catalogEntry("engineOil")?.suggestedKm).toBe(10000);
     expect(catalogEntry("engineOil")?.kmRange).toEqual([8000, 12000]);
     expect(catalogEntry("cabinFilter")?.suggestedKm).toBe(15000);
     expect(catalogEntry("cabinFilter")?.kmRange).toEqual([10000, 20000]);
     expect(catalogEntry("brakeFluid")?.suggestedMonths).toBe(24);
-    expect(catalogEntry("tires")?.inspectionBased).toBe(true);
+    expect(catalogEntry("tires")?.suggestedMonths).toBe(60);
   });
 
   it("categoryName resolves every category; unknown ids are rejected", () => {
@@ -83,16 +77,15 @@ describe("item factories (§14, §37)", () => {
       intervalMonths: 6,
       trigger: "any",
       displayMode: "auto",
-      inspectionBased: false,
     });
     expect(item.active).toBe(true);
     expect(item.createdAt).toBe(NOW);
   });
 
-  it("itemFromCatalog preserves inspectionBased and inspection interval", () => {
+  it("itemFromCatalog preserves the catalog interval", () => {
     const item = itemFromCatalog(catalogEntry("brakePadsFront")!, NOW);
-    expect(item.rule.inspectionBased).toBe(true);
     expect(item.rule.intervalKm).toBe(10000);
+    expect(item.rule.intervalMonths).toBe(6);
   });
 
   it("customItemFromInput produces an item with catalogId null", () => {
@@ -102,13 +95,11 @@ describe("item factories (§14, §37)", () => {
       icon: "wrench",
       intervalKm: 50000,
       intervalMonths: null,
-      inspectionBased: false,
     };
     const item: MaintenanceItem = customItemFromInput(input, NOW);
     expect(item.catalogId).toBeNull();
     expect(item.name).toBe("تسمه دینام");
     expect(item.rule.intervalKm).toBe(50000);
-    expect(item.rule.inspectionBased).toBe(false);
   });
 
   it("validateCustomItem requires a name", () => {
@@ -122,10 +113,7 @@ describe("item factories (§14, §37)", () => {
   });
 
   it("validateCustomItem requires a tracking rule (§37)", () => {
-    expect(
-      validateCustomItem({ ...validCustom(), intervalKm: null, intervalMonths: null, inspectionBased: false }),
-    ).toContain("ruleRequired");
-    expect(validateCustomItem({ ...validCustom(), inspectionBased: true })).toEqual([]);
+    expect(validateCustomItem({ ...validCustom(), intervalKm: null, intervalMonths: null })).toContain("ruleRequired");
   });
 });
 
@@ -136,6 +124,5 @@ function validCustom(): CustomItemInput {
     icon: "wrench",
     intervalKm: 10000,
     intervalMonths: 6,
-    inspectionBased: false,
   };
 }

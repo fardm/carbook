@@ -17,7 +17,7 @@ function makeItem(partial: Partial<MaintenanceItem> = {}): MaintenanceItem {
     name: "Item",
     category: "engine",
     icon: "wrench",
-    rule: { intervalKm: 10000, intervalMonths: null, trigger: "any", displayMode: "auto", inspectionBased: false },
+    rule: { intervalKm: 10000, intervalMonths: null, trigger: "any", displayMode: "auto" },
     active: true,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
@@ -47,7 +47,6 @@ function makeCtx(overrides: Partial<CalculationContext> = {}): CalculationContex
   return {
     vehicle: vehicleAt(null),
     serviceHistory: [],
-    inspectionHistory: [],
     settings: { statusThresholds: { dueSoonPercent: 20, duePercent: 5 } },
     ...overrides,
   };

@@ -41,7 +41,6 @@ function validDataset(): Dataset {
         intervalMonths: 6,
         trigger: "any",
         displayMode: "auto",
-        inspectionBased: false,
       },
       active: true,
       createdAt: "2026-09-01T10:00:00.000Z",
@@ -58,19 +57,6 @@ function validDataset(): Dataset {
       notes: "روغن 10W-40",
       cost: 520000,
       createdAt: "2026-06-01T08:00:00.000Z",
-    },
-  ];
-  d.inspectionHistory = [
-    {
-      id: "i1",
-      maintenanceItemId: "m1",
-      vehicleId: "v1",
-      date: "2026-09-01",
-      odometer: 104500,
-      condition: "watch",
-      measurement: null,
-      notes: "",
-      createdAt: "2026-09-01T11:00:00.000Z",
     },
   ];
   return d;
@@ -152,7 +138,6 @@ describe("validateImportText — round trip (§49: export → import → equival
     delete legacy.vehicles;
     for (const row of d.maintenanceItems) delete (row as { vehicleId?: string }).vehicleId;
     for (const row of d.serviceHistory) delete (row as { vehicleId?: string }).vehicleId;
-    for (const row of d.inspectionHistory) delete (row as { vehicleId?: string }).vehicleId;
     const result = validateImportText(textOf(d));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -162,7 +147,6 @@ describe("validateImportText — round trip (§49: export → import → equival
     // Items/records were linked to the migrated vehicle.
     expect(result.dataset.maintenanceItems[0].vehicleId).toBe("v1");
     expect(result.dataset.serviceHistory[0].vehicleId).toBe("v1");
-    expect(result.dataset.inspectionHistory[0].vehicleId).toBe("v1");
   });
 
   it("tolerates extra unknown top-level keys (forward-compatible within a version)", () => {
@@ -357,14 +341,7 @@ describe("validateImportText — maintenance items & rules", () => {
     const d = cloneValid();
     d.maintenanceItems[0].rule.intervalKm = null;
     d.maintenanceItems[0].rule.intervalMonths = null;
-    d.maintenanceItems[0].rule.inspectionBased = false;
     expectIssue(textOf(d), "maintenanceItems[0].rule", "invalidValue");
-  });
-
-  it("rejects a non-boolean inspectionBased flag", () => {
-    const d = cloneValid();
-    (d.maintenanceItems[0].rule as unknown as Record<string, unknown>).inspectionBased = "yes";
-    expectIssue(textOf(d), "maintenanceItems[0].rule.inspectionBased", "wrongType");
   });
 
   it("rejects a non-boolean active flag", () => {
@@ -374,7 +351,7 @@ describe("validateImportText — maintenance items & rules", () => {
   });
 });
 
-describe("validateImportText — service & inspection history", () => {
+describe("validateImportText — service history", () => {
   it("rejects a service referencing an unknown item", () => {
     const d = cloneValid();
     d.serviceHistory[0].maintenanceItemId = "ghost-item";
@@ -405,29 +382,6 @@ describe("validateImportText — service & inspection history", () => {
     expectIssue(textOf(d), "serviceHistory[0].cost", "wrongType");
   });
 
-  it("rejects an unknown inspection condition", () => {
-    const d = cloneValid();
-    (d.inspectionHistory[0] as unknown as Record<string, unknown>).condition = "perfect";
-    expectIssue(textOf(d), "inspectionHistory[0].condition", "invalidValue");
-  });
-
-  it("rejects a negative measurement", () => {
-    const d = cloneValid();
-    d.inspectionHistory[0].measurement = -2;
-    expectIssue(textOf(d), "inspectionHistory[0].measurement", "invalidValue");
-  });
-
-  it("rejects an inspection referencing an unknown item", () => {
-    const d = cloneValid();
-    d.inspectionHistory[0].maintenanceItemId = "ghost-item";
-    expectIssue(textOf(d), "inspectionHistory[0].maintenanceItemId", "unknownReference");
-  });
-
-  it("accepts a null condition (model allows it; entry validation is stricter)", () => {
-    const d = cloneValid();
-    d.inspectionHistory[0].condition = null;
-    expect(validateImportText(textOf(d)).ok).toBe(true);
-  });
 });
 
 describe("validateImportText — settings", () => {

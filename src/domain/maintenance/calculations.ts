@@ -1,11 +1,5 @@
-import { lastInspectionFor, lastServiceFor } from "../baselines";
-import type {
-  InspectionRecord,
-  MaintenanceItem,
-  ServiceRecord,
-  Settings,
-  Vehicle,
-} from "../types";
+import { lastServiceFor } from "../baselines";
+import type { MaintenanceItem, ServiceRecord, Settings, Vehicle } from "../types";
 import { dayToIso, isoToDay, todayIso } from "./dates";
 import { nextDueDate, nextDueOdometer, totalIntervalDays } from "./rules";
 import {
@@ -22,7 +16,6 @@ export interface CalculationContext {
   /** The item's vehicle facts; null for legacy unassigned items / no vehicle. */
   vehicle: { averageDailyDistance: number | null; currentOdometer: number | null } | null;
   serviceHistory: readonly ServiceRecord[];
-  inspectionHistory: readonly InspectionRecord[];
   settings: Pick<Settings, "statusThresholds">;
 }
 
@@ -35,7 +28,6 @@ export function contextForVehicle(
   dataset: {
     vehicles: readonly Vehicle[];
     serviceHistory: readonly ServiceRecord[];
-    inspectionHistory: readonly InspectionRecord[];
     settings: Pick<Settings, "statusThresholds">;
   },
   vehicleId: string | null,
@@ -49,7 +41,6 @@ export function contextForVehicle(
         }
       : null,
     serviceHistory: dataset.serviceHistory,
-    inspectionHistory: dataset.inspectionHistory,
     settings: dataset.settings,
   };
 }
@@ -128,7 +119,6 @@ export function calculateMaintenance(
     {
       today,
       currentOdometer,
-      lastInspection: lastInspectionFor(ctx.inspectionHistory, item.id),
       thresholds: ctx.settings.statusThresholds,
     },
   );

@@ -127,7 +127,6 @@ export const STATUS_ICONS: Record<string, string> = {
   dueSoon: "clock",
   due: "calendar-clock",
   overdue: "triangle-alert",
-  inspectionRequired: "search-check",
 };
 
 /** Icons offered to the user when creating a custom item (§37). */

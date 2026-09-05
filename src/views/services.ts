@@ -1,10 +1,9 @@
 import { CATALOG, catalogEntry, categoryName } from "../catalog";
-import { lastInspectionFor, lastServiceFor } from "../domain/baselines";
+import { lastServiceFor } from "../domain/baselines";
 import { diffDays } from "../domain/calendar/dates";
 import { createId } from "../domain/ids";
 import {
   buildItem,
-  validateInitialInspection,
   validateInitialService,
   validateItemDraft,
   type InitialDataError,
@@ -14,15 +13,11 @@ import {
 import { calculateMaintenance, contextForVehicle, todayIso } from "../domain/maintenance";
 import {
   sortHistoryNewestFirst,
-  validateInspectionRecordEntry,
   validateServiceRecordEntry,
-  type InspectionRecordError,
   type ServiceRecordError,
 } from "../domain/records";
 import type {
   DisplayMode,
-  InspectionCondition,
-  InspectionRecord,
   MaintenanceItem,
   ServiceRecord,
 } from "../domain/types";
@@ -65,13 +60,12 @@ import {
  *   (خودکار / کیلومتر / زمان / هردو → DisplayMode).
  * - Active services render as cards with a donut of the remaining part life;
  *   clicking a card opens the per-service detail page (status overview,
- *   explanation, service/inspection history, record/edit events, lifecycle).
+ *   explanation, service history, record/edit events, lifecycle).
  */
 
 /* --- View state --- */
 
 interface RecordFormState {
-  kind: "service" | "inspection";
   recordId: string | null;
   itemId: string;
 }
@@ -90,14 +84,14 @@ interface ServicesViewState {
   displayMode: DisplayMode;
   /** Typed form values keyed by input name — survives re-renders. */
   formValues: Record<string, string>;
-  /** Open record form (add/edit service or inspection) on the detail page. */
+  /** Open record form (add/edit service) on the detail page. */
   recordForm: RecordFormState | null;
   /** Open record-details (cost/notes…) popover on the detail page. */
-  recordDetails: { kind: "service" | "inspection"; recordId: string } | null;
+  recordDetails: { recordId: string } | null;
   /** Open three-dot menu on a history row (dropdown popover). */
-  recordMenu: { kind: "service" | "inspection"; recordId: string } | null;
+  recordMenu: { recordId: string } | null;
   /** History record pending deletion (dedicated confirm modal). */
-  recordDeleteConfirm: { kind: "service" | "inspection"; recordId: string } | null;
+  recordDeleteConfirm: { recordId: string } | null;
   /** Item pending deletion (dedicated confirm modal). */
   deleteConfirmId: string | null;
   /** Item armed for permanent deletion (legacy inline confirm, list page). */
@@ -151,13 +145,6 @@ function healthMode(value: DisplayMode): DisplayMode {
   return value === "km" || value === "time" ? value : "km";
 }
 
-const CONDITION_OPTIONS: readonly { value: InspectionCondition; key: MessageKey }[] = [
-  { value: "good", key: "maintenance.condition.good" },
-  { value: "watch", key: "maintenance.condition.watch" },
-  { value: "replaceSoon", key: "maintenance.condition.replaceSoon" },
-  { value: "replaceNow", key: "maintenance.condition.replaceNow" },
-];
-
 const DRAFT_ERROR_IDS: Record<ItemDraftError, string> = {
   nameRequired: "service-error-name",
   kmInvalid: "service-error-km",
@@ -185,15 +172,6 @@ const SERVICE_ERROR_KEYS: Record<ServiceRecordError, MessageKey> = {
   futureDate: "maintenance.record.errorFutureDate",
   invalidOdometer: "maintenance.record.errorInvalidOdometer",
   invalidCost: "maintenance.record.errorInvalidCost",
-};
-
-const INSPECTION_ERROR_KEYS: Record<InspectionRecordError, MessageKey> = {
-  missingDate: "maintenance.record.errorMissingDate",
-  invalidDate: "maintenance.record.errorInvalidDate",
-  futureDate: "maintenance.record.errorFutureDate",
-  invalidOdometer: "maintenance.record.errorInvalidOdometer",
-  invalidMeasurement: "maintenance.record.errorInvalidMeasurement",
-  conditionRequired: "maintenance.record.errorConditionRequired",
 };
 
 /** Icon choices shown in the form's picker: custom choices + catalog icons. */
@@ -256,10 +234,8 @@ function fabBarHtml(itemId: string | null): string {
     const item = dataset.maintenanceItems.find((c) => c.id === itemId);
     if (!item || !item.active) return "";
     const calc = calculateMaintenance(item, contextForVehicle(dataset, item.vehicleId));
-    const recordLabel = item.rule.inspectionBased
-      ? t("maintenance.record.inspectionTitle")
-      : t("maintenance.detail.replaceService");
-    const recordClass = item.rule.inspectionBased ? "js-record-inspection" : "js-record-service";
+    const recordLabel = t("maintenance.detail.replaceService");
+    const recordClass = "js-record-service";
     const recordButtonHtml = `
       <button type="button" class="btn btn--filled ${recordClass}" data-id="${escHtml(item.id)}">
         <span data-lucide="refresh-cw"></span>
@@ -400,18 +376,8 @@ function itemMetricLines(item: MaintenanceItem, dataset: ReturnType<typeof store
 } {
   const calc = calculateMaintenance(item, contextForVehicle(dataset, item.vehicleId));
   const kind = resolvePrimaryMetric(calc, item.rule.displayMode);
-  let primaryLine: string | null;
-  if (item.rule.inspectionBased) {
-    const lastInspection = lastInspectionFor(dataset.inspectionHistory, item.id);
-    primaryLine =
-      lastInspection?.condition != null
-        ? `${t("maintenance.list.conditionLabel")}: ${t(`maintenance.condition.${lastInspection.condition}` as never)}`
-        : null;
-  } else {
-    primaryLine = primaryMetricText(calc, kind);
-  }
   return {
-    primaryLine,
+    primaryLine: primaryMetricText(calc, kind),
     secondaryLine: secondaryMetricText(calc, kind),
     dateLine: dueDateText(calc, kind),
     percent: calc.remainingPercent,
@@ -751,13 +717,12 @@ function itemDetailPageHtml(itemId: string): string {
     `;
   }
   const services = dataset.serviceHistory.filter((r) => r.maintenanceItemId === itemId);
-  const inspections = dataset.inspectionHistory.filter((r) => r.maintenanceItemId === itemId);
   if (renderedDetailItemId !== item.id) {
     renderedDetailItemId = item.id;
     // A short history (≤3 records) stays expanded by default so the empty
     // state or entries are visible; longer lists collapse so the status
     // sections stay readable without scrolling.
-    state.historyOpen = services.length + inspections.length <= 3;
+    state.historyOpen = services.length <= 3;
   }
 
   const inactive = !item.active;
@@ -792,7 +757,7 @@ function itemDetailPageHtml(itemId: string): string {
           ${inactive ? `<div class="service-detail__actions">${detailActionRowHtml(item, inactive)}</div>` : ""}
         </section>
         ${detailOverviewSectionHtml(item, dataset)}
-        ${detailHistorySectionHtml(item, services, inspections)}
+        ${detailHistorySectionHtml(services)}
       </div>
     </section>
   `;
@@ -846,19 +811,15 @@ function calendarEventHref(
   const date = calc.estimatedDueDate ?? calc.nextDueDate;
   if (!date) return null;
   const descriptionLines: string[] = [];
-  if (item.rule.inspectionBased) {
-    descriptionLines.push(t("maintenance.detail.lastInspection"));
-  } else {
-    const last = lastServiceFor(store.get().serviceHistory, item.id);
-    if (last) {
-      descriptionLines.push(
-        `${t("maintenance.detail.lastService")}: ${formatDate(last.date)}${
-          last.odometer != null ? ` (${faNum(last.odometer)} ${t("common.kmUnit")})` : ""
-        }`,
-      );
-    }
-    descriptionLines.push(`${t("maintenance.detail.calendarEventNote")}: ${formatDate(date)}`);
+  const last = lastServiceFor(store.get().serviceHistory, item.id);
+  if (last) {
+    descriptionLines.push(
+      `${t("maintenance.detail.lastService")}: ${formatDate(last.date)}${
+        last.odometer != null ? ` (${faNum(last.odometer)} ${t("common.kmUnit")})` : ""
+      }`,
+    );
   }
+  descriptionLines.push(`${t("maintenance.detail.calendarEventNote")}: ${formatDate(date)}`);
   return googleCalendarUrl({
     title: item.name,
     date,
@@ -956,41 +917,39 @@ function detailOverviewSectionHtml(item: MaintenanceItem, dataset: ReturnType<ty
  * dropdown popover with the ویرایش / جزئیات / حذف text actions (nothing is
  * injected into the row itself). */
 function historyRowActionsHtml(
-  kind: "service" | "inspection",
   record: { id: string; date: string; odometer: number | null },
 ): string {
-  const menuOpen =
-    state.recordMenu?.kind === kind && state.recordMenu.recordId === record.id;
+  const menuOpen = state.recordMenu?.recordId === record.id;
   return `
     <div class="history__actions">
-      <button type="button" class="icon-btn js-record-menu-toggle" data-kind="${kind}" data-id="${escHtml(record.id)}"
+      <button type="button" class="icon-btn js-record-menu-toggle" data-id="${escHtml(record.id)}"
         aria-haspopup="menu" aria-expanded="${menuOpen}"
         aria-label="${t("maintenance.detail.recordMenu")}" title="${t("maintenance.detail.recordMenu")}">
         <span data-lucide="more-horizontal"></span>
       </button>
-      ${menuOpen ? recordMenuHtml(kind, record.id) : ""}
+      ${menuOpen ? recordMenuHtml(record.id) : ""}
     </div>
   `;
 }
 
 /** Dropdown popover + full-screen click-away backdrop for a record's menu. */
-function recordMenuHtml(kind: "service" | "inspection", recordId: string): string {
+function recordMenuHtml(recordId: string): string {
   return `
     <div class="card-menu__backdrop js-record-menu-backdrop"></div>
     <div class="history-menu" role="menu" aria-label="${t("maintenance.detail.recordMenu")}">
       <button type="button" class="card-menu__item js-record-menu-edit" role="menuitem"
-        data-kind="${kind}" data-id="${escHtml(recordId)}">
+        data-id="${escHtml(recordId)}">
         <span data-lucide="pencil"></span>
         ${t("maintenance.detail.editRecord")}
       </button>
       <button type="button" class="card-menu__item js-record-menu-info" role="menuitem"
-        data-kind="${kind}" data-id="${escHtml(recordId)}">
+        data-id="${escHtml(recordId)}">
         <span data-lucide="info"></span>
         ${t("maintenance.detail.recordInfo")}
       </button>
       <div class="card-menu__divider" role="separator"></div>
       <button type="button" class="card-menu__item card-menu__item--danger js-record-menu-delete" role="menuitem"
-        data-kind="${kind}" data-id="${escHtml(recordId)}">
+        data-id="${escHtml(recordId)}">
         <span data-lucide="trash-2"></span>
         ${t("maintenance.detail.delete")}
       </button>
@@ -1000,7 +959,6 @@ function recordMenuHtml(kind: "service" | "inspection", recordId: string): strin
 
 /** Single-row history entry: date first, mileage after, actions at the left. */
 function historyRecordRowHtml(
-  kind: "service" | "inspection",
   record: { id: string; date: string; odometer: number | null },
 ): string {
   return `
@@ -1013,48 +971,26 @@ function historyRecordRowHtml(
             : ""
         }
       </div>
-      ${historyRowActionsHtml(kind, record)}
+      ${historyRowActionsHtml(record)}
     </li>
   `;
 }
 
 /** History content inside the unified card's third section — collapsible:
  * the section header toggles the panel (collapsed by default, per item).
- * The item's own history comes first (سوابق سرویس for replacement items /
- * سوابق بازرسی for inspection-based items), with the other kind listed
- * beneath it whenever such records exist. */
-function detailHistorySectionHtml(
-  item: MaintenanceItem,
-  services: ServiceRecord[],
-  inspections: InspectionRecord[],
-): string {
+ * Every item's service history renders here (سوابق سرویس). */
+function detailHistorySectionHtml(services: ServiceRecord[]): string {
   const serviceRows = sortHistoryNewestFirst(services)
-    .map((record) => historyRecordRowHtml("service", record))
-    .join("");
-  const inspectionRows = sortHistoryNewestFirst(inspections)
-    .map((record) => historyRecordRowHtml("inspection", record))
+    .map((record) => historyRecordRowHtml(record))
     .join("");
 
-  const inspectionBased = item.rule.inspectionBased;
-  const title = t(
-    inspectionBased
-      ? "maintenance.detail.inspectionHistoryTitle"
-      : "maintenance.detail.serviceHistoryTitle",
-  );
+  const title = t("maintenance.detail.serviceHistoryTitle");
   const serviceBlock = serviceRows ? `<ul class="history__list">${serviceRows}</ul>` : "";
-  const inspectionBlock = inspectionRows ? `<ul class="history__list">${inspectionRows}</ul>` : "";
 
   let content = "";
   if (state.historyOpen) {
-    if (inspectionBased) {
-      content = `
-      ${inspectionBlock || `<p class="history__empty">${t("maintenance.detail.noInspectionHistory")}</p>`}
-      ${serviceBlock ? `<h3 class="service-detail__subtitle">${t("maintenance.detail.serviceHistoryTitle")}</h3>${serviceBlock}` : ""}`;
-    } else {
-      content = `
-      ${serviceBlock || `<p class="history__empty">${t("maintenance.detail.noServiceHistory")}</p>`}
-      ${inspectionBlock ? `<h3 class="service-detail__subtitle">${t("maintenance.detail.inspectionHistoryTitle")}</h3>${inspectionBlock}` : ""}`;
-    }
+    content = `
+    ${serviceBlock || `<p class="history__empty">${t("maintenance.detail.noServiceHistory")}</p>`}`;
   }
 
   return `
@@ -1071,7 +1007,7 @@ function detailHistorySectionHtml(
   `;
 }
 
-/* --- Record service / inspection forms (detail page) --- */
+/* --- Record service forms (detail page) --- */
 
 function defaultRecordOdometer(itemId: string): number | null {
   const dataset = store.get();
@@ -1086,21 +1022,15 @@ function findServiceRecord(recordId: string | null): ServiceRecord | null {
   return store.get().serviceHistory.find((r) => r.id === recordId) ?? null;
 }
 
-function findInspectionRecord(recordId: string | null): InspectionRecord | null {
-  if (!recordId) return null;
-  return store.get().inspectionHistory.find((r) => r.id === recordId) ?? null;
-}
-
 /** Record add/edit forms live in a modal overlay (never inline on the page). */
 function recordFormModalHtml(): string {
-  const form = state.recordForm;
-  if (!form) return "";
-  return form.kind === "service" ? recordServiceFormModalHtml() : recordInspectionFormModalHtml();
+  if (!state.recordForm) return "";
+  return recordServiceFormModalHtml();
 }
 
 function recordServiceFormModalHtml(): string {
   const form = state.recordForm;
-  const record = form?.kind === "service" ? findServiceRecord(form.recordId) : null;
+  const record = form ? findServiceRecord(form.recordId) : null;
   const isEdit = record != null;
   const itemId = form?.itemId ?? "";
   const defaultKm = defaultRecordOdometer(itemId);
@@ -1158,86 +1088,13 @@ function recordServiceFormModalHtml(): string {
   `;
 }
 
-function recordInspectionFormModalHtml(): string {
-  const form = state.recordForm;
-  const record = form?.kind === "inspection" ? findInspectionRecord(form.recordId) : null;
-  const isEdit = record != null;
-  const itemId = form?.itemId ?? "";
-  const defaultKm = defaultRecordOdometer(itemId);
-  const title = isEdit ? t("maintenance.record.inspectionEditTitle") : t("maintenance.record.inspectionTitle");
-  const conditionOptions = CONDITION_OPTIONS.map(
-    (option) => `
-      <option value="${option.value}" ${record?.condition === option.value ? "selected" : ""}>${t(option.key)}</option>
-    `,
-  ).join("");
-
-  return `
-    <div class="modal-overlay">
-      <div class="modal" role="dialog" aria-modal="true" aria-label="${escHtml(title)}">
-      <form id="record-form" class="form" novalidate>
-        <div class="form__title">${escHtml(title)}</div>
-        <div class="form__grid">
-          <div class="field">
-            <label class="field__label" for="record-date">${t("maintenance.record.dateLabel")}</label>
-            ${dateFieldHtml({
-              fieldId: "record-date",
-              name: "date",
-              value: record?.date ?? todayIso(),
-              label: t("maintenance.record.dateLabel"),
-            })}
-            <p class="field__error" id="record-error-date" hidden></p>
-          </div>
-          <div class="field">
-            <label class="field__label" for="record-odometer">${t("maintenance.record.odometerLabel")}</label>
-            <input class="field__input" id="record-odometer" name="odometer" type="number"
-              inputmode="numeric" min="0" step="1" value="${record?.odometer ?? defaultKm ?? ""}" />
-            <p class="field__error" id="record-error-odometer" hidden></p>
-          </div>
-        </div>
-        <div class="form__grid">
-          <div class="field">
-            <label class="field__label" for="record-condition">${t("maintenance.record.conditionLabel")}</label>
-            <select class="field__input" id="record-condition" name="condition">
-              <option value="">—</option>
-              ${conditionOptions}
-            </select>
-            <p class="field__error" id="record-error-condition" hidden></p>
-          </div>
-          <div class="field">
-            <label class="field__label" for="record-measurement">${t("maintenance.record.measurementLabel")}</label>
-            <input class="field__input" id="record-measurement" name="measurement" type="number"
-              inputmode="decimal" min="0" step="any" value="${record?.measurement ?? ""}" />
-            <p class="field__hint">${t("maintenance.record.measurementHint")}</p>
-            <p class="field__error" id="record-error-measurement" hidden></p>
-          </div>
-        </div>
-        <div class="field">
-          <label class="field__label" for="record-notes">${t("maintenance.record.notesLabel")}</label>
-          <textarea class="field__input" id="record-notes" name="notes" rows="2">${record ? escHtml(record.notes) : ""}</textarea>
-        </div>
-        <div class="form__actions">
-          <button type="button" class="btn btn--text js-cancel-record">${t("maintenance.record.cancel")}</button>
-          <button type="submit" class="btn btn--filled">${t("maintenance.record.save")}</button>
-        </div>
-      </form>
-      </div>
-    </div>
-  `;
-}
-
 /** Popover showing the full detail of one history record (cost, notes…). */
 function recordDetailsModalHtml(): string {
   const details = state.recordDetails;
   if (!details) return "";
-  const serviceRecord = details.kind === "service" ? findServiceRecord(details.recordId) : null;
-  const inspectionRecord = details.kind === "inspection" ? findInspectionRecord(details.recordId) : null;
-  const record = serviceRecord ?? inspectionRecord;
+  const record = findServiceRecord(details.recordId);
   if (!record) return "";
-  const title = t(
-    details.kind === "service"
-      ? "maintenance.detail.recordInfoServiceTitle"
-      : "maintenance.detail.recordInfoInspectionTitle",
-  );
+  const title = t("maintenance.detail.recordInfoServiceTitle");
 
   const rows: { label: string; value: string }[] = [];
   rows.push({ label: t("maintenance.record.dateLabel"), value: formatDate(record.date) });
@@ -1247,26 +1104,11 @@ function recordDetailsModalHtml(): string {
       value: `${faNum(record.odometer)} ${t("common.kmUnit")}`,
     });
   }
-  if (details.kind === "service" && serviceRecord) {
-    if (serviceRecord.cost != null) {
-      rows.push({
-        label: t("maintenance.detail.costLabel"),
-        value: `${faNum(serviceRecord.cost)} ${currencyLabel(store.get().settings.currency)}`,
-      });
-    }
-  } else if (inspectionRecord) {
-    if (inspectionRecord.condition) {
-      rows.push({
-        label: t("maintenance.record.conditionLabel"),
-        value: t(`maintenance.condition.${inspectionRecord.condition}` as never),
-      });
-    }
-    if (inspectionRecord.measurement != null) {
-      rows.push({
-        label: t("maintenance.detail.measurementLabel"),
-        value: faNum(inspectionRecord.measurement),
-      });
-    }
+  if (record.cost != null) {
+    rows.push({
+      label: t("maintenance.detail.costLabel"),
+      value: `${faNum(record.cost)} ${currencyLabel(store.get().settings.currency)}`,
+    });
   }
   const notes = record.notes?.trim() ?? "";
   const list = rows
@@ -1345,7 +1187,7 @@ function recordDeleteConfirmModalHtml(): string {
           <div class="form__actions">
             <button type="button" class="btn btn--text js-close-overlay">${t("common.cancel")}</button>
             <button type="button" class="btn btn--danger js-confirm-record-delete"
-              data-kind="${confirm.kind}" data-id="${escHtml(confirm.recordId)}">
+              data-id="${escHtml(confirm.recordId)}">
               ${t("maintenance.detail.confirm")}
             </button>
           </div>
@@ -1568,14 +1410,13 @@ function bindDetailEvents(container: HTMLElement): void {
     });
   });
 
-  container.querySelectorAll<HTMLButtonElement>(".js-record-service, .js-record-inspection").forEach((button) => {
+  container.querySelectorAll<HTMLButtonElement>(".js-record-service").forEach((button) => {
     button.addEventListener("click", () => {
-      const kind = button.classList.contains("js-record-inspection") ? "inspection" : "service";
       state.recordDetails = null;
       state.recordMenu = null;
       state.recordDeleteConfirm = null;
       state.serviceMenuId = null;
-      state.recordForm = { kind, recordId: null, itemId: button.dataset.id ?? currentItemId ?? "" };
+      state.recordForm = { recordId: null, itemId: button.dataset.id ?? currentItemId ?? "" };
       redraw(container);
     });
   });
@@ -1589,10 +1430,8 @@ function bindDetailEvents(container: HTMLElement): void {
   /* Three-dot menu on history rows: toggle + click-away backdrop + items. */
   container.querySelectorAll<HTMLButtonElement>(".js-record-menu-toggle").forEach((button) => {
     button.addEventListener("click", () => {
-      const kind = button.dataset.kind === "inspection" ? "inspection" : "service";
       const id = button.dataset.id ?? "";
-      state.recordMenu =
-        state.recordMenu?.kind === kind && state.recordMenu.recordId === id ? null : { kind, recordId: id };
+      state.recordMenu = state.recordMenu?.recordId === id ? null : { recordId: id };
       state.serviceMenuId = null;
       redraw(container);
     });
@@ -1603,37 +1442,34 @@ function bindDetailEvents(container: HTMLElement): void {
   });
   container.querySelectorAll<HTMLButtonElement>(".js-record-menu-edit").forEach((button) => {
     button.addEventListener("click", () => {
-      const kind = button.dataset.kind === "inspection" ? "inspection" : "service";
       state.recordMenu = null;
       state.recordDetails = null;
       state.recordDeleteConfirm = null;
-      state.recordForm = { kind, recordId: button.dataset.id ?? null, itemId: currentItemId ?? "" };
+      state.recordForm = { recordId: button.dataset.id ?? null, itemId: currentItemId ?? "" };
       redraw(container);
     });
   });
   container.querySelectorAll<HTMLButtonElement>(".js-record-menu-info").forEach((button) => {
     button.addEventListener("click", () => {
-      const kind = button.dataset.kind === "inspection" ? "inspection" : "service";
       state.recordMenu = null;
       state.recordForm = null;
       state.recordDeleteConfirm = null;
-      state.recordDetails = { kind, recordId: button.dataset.id ?? "" };
+      state.recordDetails = { recordId: button.dataset.id ?? "" };
       redraw(container);
     });
   });
   container.querySelectorAll<HTMLButtonElement>(".js-record-menu-delete").forEach((button) => {
     button.addEventListener("click", () => {
-      const kind = button.dataset.kind === "inspection" ? "inspection" : "service";
       state.recordMenu = null;
       state.recordForm = null;
       state.recordDetails = null;
-      state.recordDeleteConfirm = { kind, recordId: button.dataset.id ?? "" };
+      state.recordDeleteConfirm = { recordId: button.dataset.id ?? "" };
       redraw(container);
     });
   });
   container.querySelectorAll<HTMLButtonElement>(".js-confirm-record-delete").forEach((button) => {
     button.addEventListener("click", () => {
-      deleteRecord(button.dataset.kind === "inspection" ? "inspection" : "service", button.dataset.id ?? "");
+      deleteRecord(button.dataset.id ?? "");
     });
   });
   container.querySelectorAll<HTMLButtonElement>(".js-reactivate-item").forEach((button) => {
@@ -1667,17 +1503,13 @@ function bindDetailEvents(container: HTMLElement): void {
   });
 }
 
-/** Removes one history record (service or inspection event). */
-function deleteRecord(kind: "service" | "inspection", recordId: string): void {
+/** Removes one history record (service event). */
+function deleteRecord(recordId: string): void {
   if (!recordId) return;
   state.recordDeleteConfirm = null;
   state.recordMenu = null;
   store.update((draft) => {
-    if (kind === "service") {
-      draft.serviceHistory = draft.serviceHistory.filter((record) => record.id !== recordId);
-    } else {
-      draft.inspectionHistory = draft.inspectionHistory.filter((record) => record.id !== recordId);
-    }
+    draft.serviceHistory = draft.serviceHistory.filter((record) => record.id !== recordId);
   });
 }
 
@@ -1690,7 +1522,6 @@ function deleteItemPermanently(itemId: string | null): void {
   store.update((draft) => {
     draft.maintenanceItems = draft.maintenanceItems.filter((item) => item.id !== itemId);
     draft.serviceHistory = draft.serviceHistory.filter((record) => record.maintenanceItemId !== itemId);
-    draft.inspectionHistory = draft.inspectionHistory.filter((record) => record.maintenanceItemId !== itemId);
   });
   if (maintenanceItemIdFromHash(window.location.hash) === itemId) {
     window.location.hash = "#/maintenance";
@@ -1789,7 +1620,6 @@ function submitServiceForm(container: HTMLElement, form: HTMLFormElement): void 
       icon: state.icon,
       intervalKm,
       intervalMonths,
-      inspectionBased: item.rule.inspectionBased,
       displayMode: state.displayMode,
     };
     const errors = validateItemDraft(draft);
@@ -1808,7 +1638,6 @@ function submitServiceForm(container: HTMLElement, form: HTMLFormElement): void 
         intervalMonths: draft.intervalMonths,
         trigger: "any",
         displayMode: draft.displayMode,
-        inspectionBased: draft.inspectionBased,
       };
       target.updatedAt = new Date().toISOString();
     });
@@ -1817,7 +1646,6 @@ function submitServiceForm(container: HTMLElement, form: HTMLFormElement): void 
 
   // Add a new service for the chosen vehicle.
   const entry = serviceForm.catalogId ? catalogEntry(serviceForm.catalogId) : null;
-  const inspectionBased = !!entry?.inspectionBased;
   const vehicleId = String(data.get("vehicleId") ?? "") || null;
   const date = String(data.get("serviceDate") ?? "");
   const odometerRaw = String(data.get("serviceOdometer") ?? "").trim();
@@ -1829,13 +1657,10 @@ function submitServiceForm(container: HTMLElement, form: HTMLFormElement): void 
     icon: state.icon,
     intervalKm,
     intervalMonths,
-    inspectionBased,
     displayMode: state.displayMode,
   };
   const errors = validateItemDraft(draft);
-  const initialErrors = inspectionBased
-    ? validateInitialInspection({ date, condition: null }, todayIso())
-    : validateInitialService({ date, odometer }, todayIso());
+  const initialErrors = validateInitialService({ date, odometer }, todayIso());
 
   if (errors.length > 0 || initialErrors.length > 0) {
     showServiceErrors(container, [
@@ -1853,30 +1678,16 @@ function submitServiceForm(container: HTMLElement, form: HTMLFormElement): void 
     const item = buildItem(draft, { catalogId, now, id: itemId, vehicleId });
     draftData.maintenanceItems.push(item);
     if (date === "") return;
-    if (inspectionBased) {
-      draftData.inspectionHistory.push({
-        id: createId(),
-        maintenanceItemId: itemId,
-        vehicleId,
-        date,
-        odometer,
-        condition: null,
-        measurement: null,
-        notes: "",
-        createdAt: now,
-      });
-    } else {
-      draftData.serviceHistory.push({
-        id: createId(),
-        maintenanceItemId: itemId,
-        vehicleId,
-        date,
-        odometer,
-        notes: "",
-        cost: null,
-        createdAt: now,
-      });
-    }
+    draftData.serviceHistory.push({
+      id: createId(),
+      maintenanceItemId: itemId,
+      vehicleId,
+      date,
+      odometer,
+      notes: "",
+      cost: null,
+      createdAt: now,
+    });
   });
 }
 
@@ -1899,7 +1710,7 @@ function showServiceErrors(
   }
 }
 
-/* --- Submit: record service / inspection events (detail page) --- */
+/* --- Submit: record service events (detail page) --- */
 
 function submitRecordForm(container: HTMLElement, form: HTMLFormElement): void {
   const recordForm = state.recordForm;
@@ -1915,49 +1726,11 @@ function submitRecordForm(container: HTMLElement, form: HTMLFormElement): void {
   const odometer = kmRaw === "" ? null : Number(toLatinDigits(kmRaw));
   const notes = String(data.get("notes") ?? "").trim();
 
-  if (recordForm.kind === "service") {
-    const costRaw = String(data.get("cost") ?? "").trim();
-    const cost = costRaw === "" ? null : Number(toLatinDigits(costRaw));
-    const errors = validateServiceRecordEntry({ date, odometer, cost }, { today: todayIso() });
-    if (errors.length > 0) {
-      showRecordErrors(container, errors.map((error) => [error, t(SERVICE_ERROR_KEYS[error])]));
-      return;
-    }
-    state.recordForm = null;
-    const now = new Date().toISOString();
-    store.update((draft) => {
-      const recordId = recordForm.recordId;
-      if (recordId) {
-        const record = draft.serviceHistory.find((r) => r.id === recordId);
-        if (record) {
-          record.date = date;
-          record.odometer = odometer;
-          record.cost = cost;
-          record.notes = notes;
-          return;
-        }
-      }
-      draft.serviceHistory.push({
-        id: createId(),
-        maintenanceItemId: itemId,
-        vehicleId: item.vehicleId,
-        date,
-        odometer,
-        notes,
-        cost,
-        createdAt: now,
-      });
-    });
-    return;
-  }
-
-  // Inspection event
-  const condition = (String(data.get("condition") ?? "") || null) as InspectionCondition | null;
-  const measurementRaw = String(data.get("measurement") ?? "").trim();
-  const measurement = measurementRaw === "" ? null : Number(toLatinDigits(measurementRaw));
-  const errors = validateInspectionRecordEntry({ date, odometer, condition, measurement }, { today: todayIso() });
+  const costRaw = String(data.get("cost") ?? "").trim();
+  const cost = costRaw === "" ? null : Number(toLatinDigits(costRaw));
+  const errors = validateServiceRecordEntry({ date, odometer, cost }, { today: todayIso() });
   if (errors.length > 0) {
-    showRecordErrors(container, errors.map((error) => [error, t(INSPECTION_ERROR_KEYS[error])]));
+    showRecordErrors(container, errors.map((error) => [error, t(SERVICE_ERROR_KEYS[error])]));
     return;
   }
   state.recordForm = null;
@@ -1965,42 +1738,36 @@ function submitRecordForm(container: HTMLElement, form: HTMLFormElement): void {
   store.update((draft) => {
     const recordId = recordForm.recordId;
     if (recordId) {
-      const record = draft.inspectionHistory.find((r) => r.id === recordId);
+      const record = draft.serviceHistory.find((r) => r.id === recordId);
       if (record) {
         record.date = date;
         record.odometer = odometer;
-        record.condition = condition;
-        record.measurement = measurement;
+        record.cost = cost;
         record.notes = notes;
         return;
       }
     }
-    draft.inspectionHistory.push({
+    draft.serviceHistory.push({
       id: createId(),
       maintenanceItemId: itemId,
       vehicleId: item.vehicleId,
       date,
       odometer,
-      condition,
-      measurement,
       notes,
+      cost,
       createdAt: now,
     });
   });
 }
 
-function showRecordErrors(container: HTMLElement, errors: [ServiceRecordError | InspectionRecordError, string][]): void {
+function showRecordErrors(container: HTMLElement, errors: [ServiceRecordError, string][]): void {
   for (const [error, message] of errors) {
     const fieldId =
       error === "invalidOdometer"
         ? "record-error-odometer"
         : error === "invalidCost"
           ? "record-error-cost"
-          : error === "invalidMeasurement"
-            ? "record-error-measurement"
-            : error === "conditionRequired"
-              ? "record-error-condition"
-              : "record-error-date";
+          : "record-error-date";
     const element = container.querySelector<HTMLElement>(`#${fieldId}`);
     if (element) {
       element.textContent = message;

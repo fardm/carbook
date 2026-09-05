@@ -44,8 +44,6 @@ export interface CatalogEntry {
   suggestedMonths: number | null;
   /** Reasonable months range for display. */
   monthsRange: [number, number] | null;
-  /** Inspection-based templates track condition, not fabricated life (§16). */
-  inspectionBased: boolean;
   /** Default display preference (§26); "auto" unless stated otherwise. */
   displayMode?: DisplayMode;
 }

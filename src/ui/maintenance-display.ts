@@ -16,7 +16,7 @@ export type PrimaryMetricKind = "km" | "days" | "none";
 /**
  * Resolves the primary metric to show (§26): Auto follows the engine's
  * primary criterion; explicit modes fall back to the other criterion when
- * their own is unavailable; inspection items have no metric.
+ * their own is unavailable.
  */
 export function resolvePrimaryMetric(
   calc: MaintenanceCalculation,
@@ -80,7 +80,6 @@ const STATUS_KEYS: Record<MaintenanceStatus, string> = {
   dueSoon: "status.dueSoon",
   due: "status.due",
   overdue: "status.overdue",
-  inspectionRequired: "status.inspectionRequired",
 };
 
 export function statusLabel(status: MaintenanceStatus): string {
@@ -113,7 +112,6 @@ export function urgencyRank(status: MaintenanceStatus): number {
     case "due":
       return 1;
     case "dueSoon":
-    case "inspectionRequired":
       return 2;
     case "upcoming":
       return 3;
@@ -124,7 +122,7 @@ export function urgencyRank(status: MaintenanceStatus): number {
 
 /**
  * Sorts items by urgency (status rank, then remaining % ascending —
- * inspection items with no % sort last within their rank).
+ * items with no % sort last within their rank).
  */
 export function compareByUrgency(
   a: { status: MaintenanceStatus; remainingPercent: number | null },
@@ -140,6 +138,6 @@ export function compareByUrgency(
 /** Summary buckets for the dashboard (§30): overdue / due soon / ok. */
 export function summaryBucket(status: MaintenanceStatus): "overdue" | "dueSoon" | "ok" {
   if (status === "overdue") return "overdue";
-  if (status === "due" || status === "dueSoon" || status === "inspectionRequired") return "dueSoon";
+  if (status === "due" || status === "dueSoon") return "dueSoon";
   return "ok";
 }

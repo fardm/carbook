@@ -48,7 +48,7 @@ describe("resolvePrimaryMetric (§26)", () => {
     expect(resolvePrimaryMetric(kmCalc, "both")).toBe("km");
   });
 
-  it("inspection/no-metric items resolve to none", () => {
+  it("no-metric items resolve to none", () => {
     expect(resolvePrimaryMetric(calc({ remainingKm: null, remainingDays: null }), "auto")).toBe("none");
   });
 });
@@ -98,7 +98,7 @@ describe("formatRemainingTime (§23)", () => {
 
 describe("status labels and urgency (§29, §30)", () => {
   it("maps every status to a label and a rank", () => {
-    const statuses: MaintenanceStatus[] = ["ok", "upcoming", "dueSoon", "due", "overdue", "inspectionRequired"];
+    const statuses: MaintenanceStatus[] = ["ok", "upcoming", "dueSoon", "due", "overdue"];
     for (const status of statuses) {
       expect(statusLabel(status).length).toBeGreaterThan(0);
       expect(urgencyRank(status)).toBeGreaterThanOrEqual(0);
@@ -125,11 +125,10 @@ describe("status labels and urgency (§29, §30)", () => {
     expect(healthBand(50, thresholds)).toBe("high");
   });
 
-  it("orders overdue < due < dueSoon = inspection < upcoming < ok", () => {
+  it("orders overdue < due < dueSoon < upcoming < ok", () => {
     expect(urgencyRank("overdue")).toBeLessThan(urgencyRank("due"));
     expect(urgencyRank("due")).toBeLessThan(urgencyRank("dueSoon"));
-    expect(urgencyRank("dueSoon")).toBe(urgencyRank("inspectionRequired"));
-    expect(urgencyRank("inspectionRequired")).toBeLessThan(urgencyRank("upcoming"));
+    expect(urgencyRank("dueSoon")).toBeLessThan(urgencyRank("upcoming"));
     expect(urgencyRank("upcoming")).toBeLessThan(urgencyRank("ok"));
   });
 
@@ -143,17 +142,16 @@ describe("status labels and urgency (§29, §30)", () => {
     expect(compareByUrgency(dueLater, dueSooner)).toBeGreaterThan(0);
   });
 
-  it("puts inspection items (no percent) last within their rank", () => {
-    const inspection = { status: "dueSoon" as MaintenanceStatus, remainingPercent: null };
+  it("puts items without a percentage last within their rank", () => {
+    const noPercent = { status: "dueSoon" as MaintenanceStatus, remainingPercent: null };
     const dueSoon = { status: "dueSoon" as MaintenanceStatus, remainingPercent: 10 };
-    expect(compareByUrgency(inspection, dueSoon)).toBeGreaterThan(0);
+    expect(compareByUrgency(noPercent, dueSoon)).toBeGreaterThan(0);
   });
 
   it("buckets statuses for the dashboard summary (§30)", () => {
     expect(summaryBucket("overdue")).toBe("overdue");
     expect(summaryBucket("due")).toBe("dueSoon");
     expect(summaryBucket("dueSoon")).toBe("dueSoon");
-    expect(summaryBucket("inspectionRequired")).toBe("dueSoon");
     expect(summaryBucket("ok")).toBe("ok");
     expect(summaryBucket("upcoming")).toBe("ok");
   });

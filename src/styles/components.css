@@ -145,7 +145,7 @@
 }
 
 /* --- Forms: one consistent floating-label design system across vehicle,
- * service, replacement, and inspection forms. Text/number inputs float
+ * service, replacement, and record forms. Text/number inputs float
  * their label on focus/value (src/ui/floating-field.ts syncs the state);
  * date triggers behave the same way — the label rests inside while empty
  * and floats on focus/selection. Selects and textareas always show the
@@ -199,11 +199,14 @@
   color: var(--md-sys-color-on-surface-variant);
 }
 
-/* --- Floating label: rests centered inside the control, floats up small. */
+/* --- Floating label: rests centered inside the control, floats up small.
+ * z-index keeps the label above positioned wrappers (e.g. .date-field),
+ * whose relative stacking would otherwise paint over it. */
 .field:has(.field__input) .field__label {
   position: absolute;
   inset-inline-start: 14px;
   top: 32px; /* lines up with where typed values sit (14px top padding) */
+  z-index: 1;
   max-width: calc(100% - 28px);
   overflow: hidden;
   white-space: nowrap;
@@ -220,9 +223,12 @@
 }
 
 /* Text & number inputs float when focused or filled (JS adds the classes).
+ * Date fields also float while the text input, calendar button, or popover
+ * has focus (:focus-within), matching click/focus behavior of plain inputs.
  * Selects and textareas stay floated permanently. */
 .field:has(input.field__input).is-filled .field__label,
 .field:has(input.field__input).is-focused .field__label,
+.field:has(.date-field:focus-within) .field__label,
 .field:has(select.field__input) .field__label,
 .field:has(textarea.field__input) .field__label {
   top: 4px;
@@ -539,11 +545,6 @@ textarea.field__input {
   color: var(--md-status-on-overdue-container);
 }
 
-.status-chip--inspectionRequired {
-  background: var(--md-status-due-container);
-  color: var(--md-status-on-due-container);
-}
-
 .status-chip--inactive {
   background: var(--md-sys-color-surface-container-high);
   color: var(--md-sys-color-on-surface-variant);
@@ -592,7 +593,6 @@ textarea.field__input {
 .progress--dueSoon .progress__fill { background: var(--md-status-due-soon); }
 .progress--due .progress__fill { background: var(--md-status-due); }
 .progress--overdue .progress__fill { background: var(--md-status-overdue); }
-.progress--inspectionRequired .progress__fill { background: var(--md-status-due); }
 
 /* --- Dashboard summary chips (§30) --- */
 .summary-chips {
@@ -1014,7 +1014,7 @@ textarea.field__input {
   transform: rotate(90deg);
 }
 
-/* Secondary block heading inside a section (e.g. inspection history rows). */
+/* Secondary block heading inside a section (e.g. service history rows). */
 .service-detail__subtitle {
   font-size: var(--md-typescale-label-large);
   font-weight: 600;
@@ -1405,6 +1405,11 @@ textarea.field__input {
  * calendar button sitting inside it. */
 input.date-field__text {
   padding-inline-end: 44px;
+}
+
+/* Leave room for the calendar icon so the floated label never covers it. */
+.field:has(.date-field) .field__label {
+  max-width: calc(100% - 58px);
 }
 
 /* Only the calendar button opens the picker — the input itself is for

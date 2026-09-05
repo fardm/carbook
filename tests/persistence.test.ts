@@ -40,7 +40,7 @@ function populatedDataset(): Dataset {
       name: "روغن موتور",
       category: "engine",
       icon: "droplets",
-      rule: { intervalKm: 10000, intervalMonths: 6, trigger: "any", displayMode: "auto", inspectionBased: false },
+      rule: { intervalKm: 10000, intervalMonths: 6, trigger: "any", displayMode: "auto" },
       active: true,
       createdAt: "2026-09-04T10:00:00.000Z",
       updatedAt: "2026-09-04T10:00:00.000Z",
@@ -133,7 +133,6 @@ describe("loadFromString — defensive loading", () => {
     // Missing arrays are repaired; settings merge with defaults + theme + calendar.
     expect(migrated.maintenanceItems).toEqual([]);
     expect(migrated.serviceHistory).toEqual([]);
-    expect(migrated.inspectionHistory).toEqual([]);
     expect(migrated.settings.statusThresholds).toEqual({ dueSoonPercent: 30, duePercent: 5 });
     expect(migrated.settings.theme).toBe("system");
     expect(migrated.settings.calendar).toBe("jalali");
@@ -214,8 +213,13 @@ describe("loadFromString — defensive loading", () => {
     // Every item/record is linked to the vehicle (nothing shared, nothing dropped).
     expect(migrated.maintenanceItems[0].vehicleId).toBe("v1");
     expect(migrated.serviceHistory[0].vehicleId).toBe("v1");
-    expect(migrated.inspectionHistory[0].vehicleId).toBe("v1");
-    expect(migrated.inspectionHistory[0].condition).toBe("good");
+    // The legacy inspection record becomes a service record (v8 unification);
+    // condition/measurement are discarded and cost defaults to null.
+    expect(migrated.serviceHistory).toHaveLength(2);
+    expect(migrated.serviceHistory[1].vehicleId).toBe("v1");
+    expect(migrated.serviceHistory[1].date).toBe("2026-09-01");
+    expect(migrated.serviceHistory[1].odometer).toBe(104500);
+    expect(migrated.serviceHistory[1].cost).toBeNull();
     // Legacy collections are gone.
     expect((migrated as unknown as Record<string, unknown>).odometerHistory).toBeUndefined();
     expect((migrated as unknown as Record<string, unknown>).vehicle).toBeUndefined();

@@ -1,7 +1,7 @@
 import type { CatalogEntry, CatalogCategoryId } from "../catalog";
 import { createId } from "./ids";
 import { isIsoDate } from "./odometer";
-import type { DisplayMode, InspectionCondition, MaintenanceItem } from "./types";
+import type { DisplayMode, MaintenanceItem } from "./types";
 
 /**
  * Factories turning user configuration into ACTIVE maintenance items
@@ -16,7 +16,6 @@ export interface ItemDraft {
   icon: string;
   intervalKm: number | null;
   intervalMonths: number | null;
-  inspectionBased: boolean;
   displayMode: DisplayMode;
 }
 
@@ -42,7 +41,6 @@ export function buildItem(
       intervalMonths: draft.intervalMonths,
       trigger: "any",
       displayMode: draft.displayMode,
-      inspectionBased: draft.inspectionBased,
     },
     active: true,
     createdAt: opts.now,
@@ -59,7 +57,6 @@ export function itemFromCatalog(entry: CatalogEntry, now: string): MaintenanceIt
       icon: entry.icon,
       intervalKm: entry.suggestedKm,
       intervalMonths: entry.suggestedMonths,
-      inspectionBased: entry.inspectionBased,
       displayMode: entry.displayMode ?? "auto",
     },
     { catalogId: entry.id, now },
@@ -72,7 +69,6 @@ export interface CustomItemInput {
   icon: string;
   intervalKm: number | null;
   intervalMonths: number | null;
-  inspectionBased: boolean;
   displayMode?: DisplayMode;
 }
 
@@ -86,7 +82,7 @@ export function customItemFromInput(input: CustomItemInput, now: string): Mainte
 
 /**
  * Validation: name required; intervals must be positive integers; a tracking
- * rule is required (inspection, or at least one interval).
+ * rule is required (at least one interval).
  */
 export function validateItemDraft(draft: ItemDraft): ItemDraftError[] {
   const errors: ItemDraftError[] = [];
@@ -100,9 +96,7 @@ export function validateItemDraft(draft: ItemDraft): ItemDraftError[] {
   ) {
     errors.push("monthsInvalid");
   }
-  const hasRule =
-    draft.inspectionBased || draft.intervalKm != null || draft.intervalMonths != null;
-  if (!hasRule) errors.push("ruleRequired");
+  if (draft.intervalKm == null && draft.intervalMonths == null) errors.push("ruleRequired");
   return errors;
 }
 
@@ -110,7 +104,7 @@ export function validateCustomItem(input: CustomItemInput): CustomItemError[] {
   return validateItemDraft({ ...input, displayMode: input.displayMode ?? "auto" });
 }
 
-/** Errors for optional initial service/inspection data (§19). */
+/** Errors for optional initial service data (§19). */
 export type InitialDataError = "missingDate" | "invalidDate" | "futureDate" | "invalidOdometer";
 
 /**
@@ -130,24 +124,6 @@ export function validateInitialService(
   }
   if (entry.odometer != null && (!Number.isInteger(entry.odometer) || entry.odometer < 0)) {
     errors.push("invalidOdometer");
-  }
-  return errors;
-}
-
-/**
- * Validates the optional initial INSPECTION data. A record is created only
- * when a date is provided; a condition without a date is rejected.
- */
-export function validateInitialInspection(
-  entry: { date: string; condition: InspectionCondition | null },
-  today: string,
-): InitialDataError[] {
-  const errors: InitialDataError[] = [];
-  if (entry.date === "" && entry.condition != null) {
-    errors.push("missingDate");
-  } else if (entry.date !== "") {
-    if (!isIsoDate(entry.date)) errors.push("invalidDate");
-    else if (entry.date > today) errors.push("futureDate");
   }
   return errors;
 }

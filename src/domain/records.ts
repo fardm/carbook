@@ -1,8 +1,7 @@
 import { isIsoDate } from "./odometer";
-import type { InspectionCondition } from "./types";
 
 /**
- * Validation for recording/editing service and inspection EVENTS (§35–§36).
+ * Validation for recording/editing service EVENTS (§35).
  *
  * Language-independent error codes — the UI maps them to localized messages
  * (same pattern as odometer/vehicle validation). History records themselves
@@ -46,55 +45,6 @@ export function validateServiceRecordEntry(
   }
   if (entry.cost != null && (!Number.isFinite(entry.cost) || entry.cost < 0)) {
     errors.push("invalidCost");
-  }
-  return errors;
-}
-
-/* --- Inspection events (§36) --- */
-
-export type InspectionRecordError =
-  | "missingDate"
-  | "invalidDate"
-  | "futureDate"
-  | "invalidOdometer"
-  | "conditionRequired"
-  | "invalidMeasurement";
-
-export interface InspectionRecordEntry {
-  /** "yyyy-mm-dd". */
-  date: string;
-  /** km at inspection time; null when unknown (empty input). */
-  odometer: number | null;
-  /** Required for a recorded inspection event: it drives the status (§28). */
-  condition: InspectionCondition | null;
-  /** Optional measurement, e.g. pad thickness in mm. */
-  measurement: number | null;
-}
-
-/**
- * Validates an inspection event. Date rules match service events. Condition
- * is REQUIRED when recording an inspection — a condition-less event would
- * otherwise silently map to "ok" in the engine. Measurement is optional but
- * must be a non-negative number when provided.
- */
-export function validateInspectionRecordEntry(
-  entry: InspectionRecordEntry,
-  ctx: { today: string },
-): InspectionRecordError[] {
-  const errors: InspectionRecordError[] = [];
-  if (entry.date === "") errors.push("missingDate");
-  else if (!isIsoDate(entry.date)) errors.push("invalidDate");
-  else if (entry.date > ctx.today) errors.push("futureDate");
-
-  if (entry.odometer != null && (!Number.isInteger(entry.odometer) || entry.odometer < 0)) {
-    errors.push("invalidOdometer");
-  }
-  if (entry.condition == null) errors.push("conditionRequired");
-  if (
-    entry.measurement != null &&
-    (!Number.isFinite(entry.measurement) || entry.measurement < 0)
-  ) {
-    errors.push("invalidMeasurement");
   }
   return errors;
 }

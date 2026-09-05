@@ -1,7 +1,7 @@
 import type { Dataset, Settings } from "./types";
 
 /** Current schema version. Bump when the dataset shape changes (§40). */
-export const CURRENT_VERSION = 7;
+export const CURRENT_VERSION = 8;
 
 export function defaultSettings(): Settings {
   return {
@@ -27,7 +27,6 @@ export function defaultDataset(): Dataset {
     vehicles: [],
     maintenanceItems: [],
     serviceHistory: [],
-    inspectionHistory: [],
     settings: defaultSettings(),
   };
 }

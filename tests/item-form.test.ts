@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   buildItem,
-  validateInitialInspection,
   validateInitialService,
   validateItemDraft,
   type ItemDraft,
@@ -16,7 +15,6 @@ function draft(partial: Partial<ItemDraft> = {}): ItemDraft {
     icon: "droplets",
     intervalKm: 10000,
     intervalMonths: 6,
-    inspectionBased: false,
     displayMode: "auto",
     ...partial,
   };
@@ -38,14 +36,8 @@ describe("validateItemDraft (§19)", () => {
   });
 
   it("requires at least one tracking rule", () => {
-    const errors = validateItemDraft(
-      draft({ intervalKm: null, intervalMonths: null, inspectionBased: false }),
-    );
+    const errors = validateItemDraft(draft({ intervalKm: null, intervalMonths: null }));
     expect(errors).toContain("ruleRequired");
-  });
-
-  it("accepts an inspection-only draft", () => {
-    expect(validateItemDraft(draft({ intervalKm: null, intervalMonths: null, inspectionBased: true }))).toEqual([]);
   });
 });
 
@@ -98,21 +90,3 @@ describe("validateInitialService (§19)", () => {
   });
 });
 
-describe("validateInitialInspection (§19, §36)", () => {
-  it("accepts empty initial data", () => {
-    expect(validateInitialInspection({ date: "", condition: null }, "2026-09-04")).toEqual([]);
-  });
-
-  it("accepts a date with or without a condition", () => {
-    expect(validateInitialInspection({ date: "2026-08-20", condition: "good" }, "2026-09-04")).toEqual([]);
-    expect(validateInitialInspection({ date: "2026-08-20", condition: null }, "2026-09-04")).toEqual([]);
-  });
-
-  it("rejects a condition without a date", () => {
-    expect(validateInitialInspection({ date: "", condition: "watch" }, "2026-09-04")).toContain("missingDate");
-  });
-
-  it("rejects future dates", () => {
-    expect(validateInitialInspection({ date: "2026-09-05", condition: null }, "2026-09-04")).toContain("futureDate");
-  });
-});

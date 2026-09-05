@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   sortHistoryNewestFirst,
-  validateInspectionRecordEntry,
   validateServiceRecordEntry,
 } from "../src/domain/records";
 
@@ -35,42 +34,6 @@ describe("validateServiceRecordEntry (§35)", () => {
     expect(validateServiceRecordEntry({ ...valid, cost: 0 }, { today: TODAY })).toEqual([]);
     expect(validateServiceRecordEntry({ ...valid, cost: 1500.5 }, { today: TODAY })).toEqual([]);
     expect(validateServiceRecordEntry({ ...valid, cost: null }, { today: TODAY })).toEqual([]);
-  });
-});
-
-describe("validateInspectionRecordEntry (§36)", () => {
-  const valid = {
-    date: "2026-08-20",
-    odometer: 104500,
-    condition: "watch" as const,
-    measurement: null,
-  };
-
-  it("accepts a valid inspection event with a condition", () => {
-    expect(validateInspectionRecordEntry(valid, { today: TODAY })).toEqual([]);
-  });
-
-  it("rejects a missing condition (it drives the inspection status)", () => {
-    expect(
-      validateInspectionRecordEntry({ ...valid, condition: null }, { today: TODAY }),
-    ).toContain("conditionRequired");
-  });
-
-  it("applies the same date rules as service events", () => {
-    expect(validateInspectionRecordEntry({ ...valid, date: "" }, { today: TODAY })).toContain("missingDate");
-    expect(validateInspectionRecordEntry({ ...valid, date: "2026-09-10" }, { today: TODAY })).toContain("futureDate");
-  });
-
-  it("rejects negative/decimal odometers but allows null", () => {
-    expect(validateInspectionRecordEntry({ ...valid, odometer: -1 }, { today: TODAY })).toContain("invalidOdometer");
-    expect(validateInspectionRecordEntry({ ...valid, odometer: 100.4 }, { today: TODAY })).toContain("invalidOdometer");
-    expect(validateInspectionRecordEntry({ ...valid, odometer: null }, { today: TODAY })).toEqual([]);
-  });
-
-  it("accepts measurements (e.g. pad thickness in mm) only when non-negative", () => {
-    expect(validateInspectionRecordEntry({ ...valid, measurement: 8.2 }, { today: TODAY })).toEqual([]);
-    expect(validateInspectionRecordEntry({ ...valid, measurement: 0 }, { today: TODAY })).toEqual([]);
-    expect(validateInspectionRecordEntry({ ...valid, measurement: -2 }, { today: TODAY })).toContain("invalidMeasurement");
   });
 });
 

@@ -19,7 +19,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: [8000, 12000],
     suggestedMonths: 6,
     monthsRange: [6, 12],
-    inspectionBased: false,
   },
   {
     id: "oilFilter",
@@ -30,7 +29,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: [8000, 12000],
     suggestedMonths: 6,
     monthsRange: [6, 12],
-    inspectionBased: false,
   },
   {
     id: "sparkPlugs",
@@ -41,7 +39,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: [30000, 60000],
     suggestedMonths: null,
     monthsRange: null,
-    inspectionBased: false,
   },
   {
     id: "timingBelt",
@@ -52,7 +49,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: [60000, 100000],
     suggestedMonths: 60,
     monthsRange: [48, 72],
-    inspectionBased: false,
   },
   {
     id: "timingChain",
@@ -63,7 +59,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: null,
     suggestedMonths: 120,
     monthsRange: [96, 144],
-    inspectionBased: true,
   },
   {
     id: "pcvValve",
@@ -74,7 +69,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: [50000, 80000],
     suggestedMonths: null,
     monthsRange: null,
-    inspectionBased: false,
   },
 
   // --- Fluids ---
@@ -87,7 +81,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: [30000, 50000],
     suggestedMonths: 24,
     monthsRange: [24, 36],
-    inspectionBased: false,
   },
   {
     id: "brakeFluid",
@@ -98,7 +91,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: null,
     suggestedMonths: 24,
     monthsRange: [24, 36],
-    inspectionBased: false,
   },
   {
     id: "transmissionFluid",
@@ -109,7 +101,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: [40000, 80000],
     suggestedMonths: null,
     monthsRange: null,
-    inspectionBased: false,
   },
   {
     id: "powerSteeringFluid",
@@ -120,7 +111,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: [30000, 60000],
     suggestedMonths: null,
     monthsRange: null,
-    inspectionBased: false,
   },
   {
     id: "washerFluid",
@@ -131,7 +121,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: null,
     suggestedMonths: 3,
     monthsRange: [2, 6],
-    inspectionBased: false,
   },
 
   // --- Brakes ---
@@ -144,7 +133,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: [5000, 15000],
     suggestedMonths: 6,
     monthsRange: [6, 12],
-    inspectionBased: true,
   },
   {
     id: "brakePadsRear",
@@ -155,7 +143,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: [5000, 15000],
     suggestedMonths: 6,
     monthsRange: [6, 12],
-    inspectionBased: true,
   },
   {
     id: "brakeDiscsFront",
@@ -166,7 +153,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: [20000, 50000],
     suggestedMonths: 12,
     monthsRange: [12, 24],
-    inspectionBased: true,
   },
   {
     id: "brakeDiscsRear",
@@ -177,7 +163,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: [20000, 50000],
     suggestedMonths: 12,
     monthsRange: [12, 24],
-    inspectionBased: true,
   },
 
   // --- Tires & Wheels ---
@@ -190,7 +175,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: null,
     suggestedMonths: 60,
     monthsRange: [48, 72],
-    inspectionBased: true,
   },
   {
     id: "wheelAlignment",
@@ -201,7 +185,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: [8000, 15000],
     suggestedMonths: null,
     monthsRange: null,
-    inspectionBased: false,
   },
   {
     id: "wheelBalancing",
@@ -212,7 +195,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: [8000, 15000],
     suggestedMonths: null,
     monthsRange: null,
-    inspectionBased: false,
   },
 
   // --- Electrical ---
@@ -225,7 +207,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: null,
     suggestedMonths: 48,
     monthsRange: [36, 60],
-    inspectionBased: false,
   },
   {
     id: "headlights",
@@ -236,7 +217,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: null,
     suggestedMonths: 12,
     monthsRange: [12, 24],
-    inspectionBased: true,
   },
   {
     id: "brakeLights",
@@ -247,7 +227,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: null,
     suggestedMonths: 12,
     monthsRange: [12, 24],
-    inspectionBased: true,
   },
   {
     id: "turnSignals",
@@ -258,7 +237,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: null,
     suggestedMonths: 12,
     monthsRange: [12, 24],
-    inspectionBased: true,
   },
 
   // --- Filters ---
@@ -271,7 +249,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: [15000, 30000],
     suggestedMonths: 12,
     monthsRange: [12, 24],
-    inspectionBased: false,
   },
   {
     id: "cabinFilter",
@@ -282,7 +259,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: [10000, 20000],
     suggestedMonths: 12,
     monthsRange: [12, 24],
-    inspectionBased: false,
   },
   {
     id: "fuelFilter",
@@ -293,7 +269,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: [30000, 60000],
     suggestedMonths: null,
     monthsRange: null,
-    inspectionBased: false,
   },
 ];
 

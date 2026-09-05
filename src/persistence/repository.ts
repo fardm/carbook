@@ -202,6 +202,40 @@ const migrations: Record<number, (raw: Record<string, unknown>) => Record<string
     }
     return raw;
   },
+  // v7 → v8 (Unified services): the inspection workflow is removed. Every
+  // inspection record becomes a regular service record (cost defaults to
+  // null) and the separate inspection history is dropped; the condition /
+  // measurement fields are discarded. No item is inspection-based anymore.
+  7: (raw) => {
+    const services = Array.isArray(raw.serviceHistory) ? raw.serviceHistory : [];
+    const inspections = Array.isArray(raw.inspectionHistory) ? raw.inspectionHistory : [];
+    const converted = inspections.map((entry) => {
+      if (!isRecord(entry)) return entry;
+      return {
+        id: entry.id,
+        maintenanceItemId: entry.maintenanceItemId,
+        vehicleId: entry.vehicleId,
+        date: entry.date,
+        odometer: entry.odometer,
+        notes: typeof entry.notes === "string" ? entry.notes : "",
+        cost: null,
+        createdAt: entry.createdAt,
+      };
+    });
+    raw.serviceHistory = [...services, ...converted];
+    delete raw.inspectionHistory;
+    if (Array.isArray(raw.maintenanceItems)) {
+      raw.maintenanceItems = raw.maintenanceItems.map((item) => {
+        if (isRecord(item) && isRecord(item.rule)) {
+          const rule = { ...item.rule };
+          delete rule.inspectionBased;
+          return { ...item, rule };
+        }
+        return item;
+      });
+    }
+    return raw;
+  },
 };
 
 /** Sorts odometer readings for the v3→v4 migration by (date, createdAt). */
@@ -226,7 +260,6 @@ function normalize(raw: Record<string, unknown>): Dataset {
       : [],
     maintenanceItems: withVehicleId(Array.isArray(raw.maintenanceItems) ? raw.maintenanceItems : []) as Dataset["maintenanceItems"],
     serviceHistory: withVehicleId(Array.isArray(raw.serviceHistory) ? raw.serviceHistory : []) as Dataset["serviceHistory"],
-    inspectionHistory: withVehicleId(Array.isArray(raw.inspectionHistory) ? raw.inspectionHistory : []) as Dataset["inspectionHistory"],
     settings: normalizeSettings(raw.settings, fallback.settings),
   };
 }

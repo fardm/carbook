@@ -4,7 +4,7 @@
  * Only facts are persisted — derived values such as remaining life, status,
  * or the current odometer are computed elsewhere (§4, §10).
  *
- * Dates: user-facing events (services, inspections, odometer readings) use
+ * Dates: user-facing events (services, odometer readings) use
  * date-only ISO strings "yyyy-mm-dd". Creation timestamps use full ISO
  * datetime strings. ISO strings compare lexicographically, so sorting by
  * (date, createdAt) needs no date parsing.
@@ -45,8 +45,7 @@ export type TriggerLogic = "any";
 
 /**
  * Maintenance rule (§15–§16). Distance and time criteria are independent and
- * optional; `inspectionBased` items report condition/status instead of
- * fabricated remaining life (§16, §28).
+ * optional; every item is tracked the same way (§14).
  */
 export interface MaintenanceRule {
   /** Distance criterion in km; null when not applicable. */
@@ -57,8 +56,6 @@ export interface MaintenanceRule {
   trigger: TriggerLogic;
   /** Display preference (§26). */
   displayMode: DisplayMode;
-  /** True for inspection-based items (brake pads, discs, tires, belts …). */
-  inspectionBased: boolean;
 }
 
 /** An active maintenance item (§14). Separate from the catalog templates.
@@ -96,25 +93,6 @@ export interface ServiceRecord {
   notes: string;
   /** Optional cost. */
   cost: number | null;
-  createdAt: string; // ISO datetime
-}
-
-/** Inspection condition values (§36). */
-export type InspectionCondition = "good" | "watch" | "replaceSoon" | "replaceNow";
-
-/** An inspection event for an inspection-based item (§18, §36). */
-export interface InspectionRecord {
-  id: string;
-  maintenanceItemId: string;
-  /** Owning vehicle (the item's vehicle at record time); null for legacy. */
-  vehicleId: string | null;
-  /** "yyyy-mm-dd". */
-  date: string;
-  odometer: number | null;
-  condition: InspectionCondition | null;
-  /** Optional measurement, e.g. brake pad thickness in mm. */
-  measurement: number | null;
-  notes: string;
   createdAt: string; // ISO datetime
 }
 
@@ -163,6 +141,5 @@ export interface Dataset {
   vehicles: Vehicle[];
   maintenanceItems: MaintenanceItem[];
   serviceHistory: ServiceRecord[];
-  inspectionHistory: InspectionRecord[];
   settings: Settings;
 }

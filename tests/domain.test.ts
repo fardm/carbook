@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { defaultDataset } from "../src/domain/defaults";
 import { createId } from "../src/domain/ids";
-import { lastInspectionFor, lastServiceFor } from "../src/domain/baselines";
+import { lastServiceFor } from "../src/domain/baselines";
 import { validateMileage, isIsoDate } from "../src/domain/odometer";
 import { validateVehicle, type VehicleInput } from "../src/domain/vehicle";
-import type { Dataset, InspectionRecord, ServiceRecord } from "../src/domain/types";
+import type { Dataset, ServiceRecord } from "../src/domain/types";
 
 function vehicleInput(partial: Partial<VehicleInput> = {}): VehicleInput {
   return {
@@ -27,21 +27,6 @@ function service(partial: Partial<ServiceRecord>): ServiceRecord {
     odometer: 1000,
     notes: "",
     cost: null,
-    createdAt: "2026-01-01T00:00:00.000Z",
-    ...partial,
-  };
-}
-
-function inspection(partial: Partial<InspectionRecord>): InspectionRecord {
-  return {
-    id: createId(),
-    maintenanceItemId: "item-1",
-    vehicleId: "v1",
-    date: "2026-01-01",
-    odometer: 1000,
-    condition: "good",
-    measurement: null,
-    notes: "",
     createdAt: "2026-01-01T00:00:00.000Z",
     ...partial,
   };
@@ -94,13 +79,12 @@ describe("validateVehicle", () => {
   });
 });
 
-describe("lastServiceFor / lastInspectionFor", () => {
+describe("lastServiceFor", () => {
   const itemId = "item-1";
 
   it("returns null when the item has no records", () => {
     const dataset: Dataset = defaultDataset();
     expect(lastServiceFor(dataset.serviceHistory, itemId)).toBeNull();
-    expect(lastInspectionFor(dataset.inspectionHistory, itemId)).toBeNull();
   });
 
   it("picks the latest service by (date, createdAt) and ignores other items", () => {
@@ -114,13 +98,9 @@ describe("lastServiceFor / lastInspectionFor", () => {
     expect(lastServiceFor(dataset.serviceHistory, itemId)?.id).toBe("s3");
   });
 
-  it("keeps services and inspections fully separate (§18)", () => {
+  it("picks the latest by (date, createdAt)", () => {
     const dataset = defaultDataset();
     dataset.serviceHistory = [service({ id: "s1", date: "2026-01-10", odometer: 80000 })];
-    dataset.inspectionHistory = [inspection({ id: "i1", date: "2026-08-20", odometer: 103900 })];
-    const inspectionRecord: InspectionRecord = dataset.inspectionHistory[0];
-    const serviceRecord: ServiceRecord = dataset.serviceHistory[0];
-    expect(lastInspectionFor(dataset.inspectionHistory, itemId)?.id).toBe(inspectionRecord.id);
-    expect(lastServiceFor(dataset.serviceHistory, itemId)?.id).toBe(serviceRecord.id);
+    expect(lastServiceFor(dataset.serviceHistory, itemId)?.id).toBe("s1");
   });
 });

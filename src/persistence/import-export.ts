@@ -49,7 +49,6 @@ const FUEL_TYPES = [
 ] as const;
 const DISPLAY_MODES = ["auto", "km", "time", "both"] as const;
 const TRIGGERS = ["any"] as const;
-const INSPECTION_CONDITIONS = ["good", "watch", "replaceSoon", "replaceNow"] as const;
 const THEME_PREFERENCES = ["system", "light", "dark"] as const;
 const CALENDAR_PREFERENCES = ["jalali", "gregorian"] as const;
 const CURRENCIES = ["IRR", "USD", "EUR"] as const;
@@ -59,7 +58,6 @@ const TOP_LEVEL_FIELDS = [
   "vehicles",
   "maintenanceItems",
   "serviceHistory",
-  "inspectionHistory",
   "settings",
 ] as const;
 
@@ -155,7 +153,6 @@ export function validateImportText(text: string): ImportResult {
   validateMaintenanceItems(raw.maintenanceItems, vehicleIds, itemIds, issues);
 
   validateServiceHistory(raw.serviceHistory, vehicleIds, itemIds, issues);
-  validateInspectionHistory(raw.inspectionHistory, vehicleIds, itemIds, issues);
   validateSettings(raw.settings, vehicleIds, issues);
 
   if (issues.length > 0) return { ok: false, issues };
@@ -260,10 +257,9 @@ function validateMaintenanceItems(
     checkField(issues, rule, "displayMode", `${rulePath}.displayMode`, { type: "string", nonEmpty: true }, (v) =>
       (DISPLAY_MODES as readonly string[]).includes(v),
     );
-    checkField(issues, rule, "inspectionBased", `${rulePath}.inspectionBased`, { type: "boolean" });
     // A rule must actually track something (§16/§37) — the UI enforces this
     // at creation, so an imported item with no criterion is malformed.
-    if (rule.inspectionBased === false && rule.intervalKm == null && rule.intervalMonths == null) {
+    if (rule.intervalKm == null && rule.intervalMonths == null) {
       issues.push({ path: rulePath, kind: "invalidValue" });
     }
   });
@@ -288,32 +284,6 @@ function validateServiceHistory(
     );
     checkField(issues, row, "notes", `${path}.notes`, { type: "string" });
     checkField(issues, row, "cost", `${path}.cost`, { type: "number", allowNull: true }, (v) => v >= 0);
-    checkField(issues, row, "createdAt", `${path}.createdAt`, { type: "string", nonEmpty: true });
-  });
-}
-
-function validateInspectionHistory(
-  raw: unknown,
-  vehicleIds: Set<string>,
-  itemIds: Set<string>,
-  issues: ImportIssue[],
-): void {
-  const seenIds = new Set<string>();
-  forEachRow(raw, "inspectionHistory", issues, (row, path) => {
-    checkId(row, path, seenIds, issues);
-    checkItemReference(row, path, itemIds, issues);
-    checkVehicleField(row, path, vehicleIds, issues);
-    checkField(issues, row, "date", `${path}.date`, { type: "string", nonEmpty: true }, (v) =>
-      isIsoDate(v),
-    );
-    checkField(issues, row, "odometer", `${path}.odometer`, { type: "number", allowNull: true }, (v) =>
-      Number.isInteger(v) && v >= 0,
-    );
-    checkField(issues, row, "condition", `${path}.condition`, { type: "string", allowNull: true }, (v) =>
-      (INSPECTION_CONDITIONS as readonly string[]).includes(v),
-    );
-    checkField(issues, row, "measurement", `${path}.measurement`, { type: "number", allowNull: true }, (v) => v >= 0);
-    checkField(issues, row, "notes", `${path}.notes`, { type: "string" });
     checkField(issues, row, "createdAt", `${path}.createdAt`, { type: "string", nonEmpty: true });
   });
 }
@@ -462,7 +432,7 @@ function checkId(
   seenIds.add(value);
 }
 
-/** service/inspection rows must reference an item that exists in the file. */
+/** service rows must reference an item that exists in the file. */
 function checkItemReference(
   row: Record<string, unknown>,
   path: string,
@@ -501,7 +471,6 @@ function assembleDataset(raw: Record<string, unknown>): Dataset {
     vehicles: raw.vehicles as Dataset["vehicles"],
     maintenanceItems: raw.maintenanceItems as Dataset["maintenanceItems"],
     serviceHistory: raw.serviceHistory as Dataset["serviceHistory"],
-    inspectionHistory: raw.inspectionHistory as Dataset["inspectionHistory"],
     settings: raw.settings as Dataset["settings"],
   };
 }

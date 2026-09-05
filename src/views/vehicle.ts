@@ -24,7 +24,7 @@ import { applyIcons } from "../ui/icons";
  *   always reachable without scrolling (empty garage included).
  * - Add/Edit modal (ویرایش → انصراف / ثبت تغییرات / حذف خودرو) and a
  *   dedicated delete-confirm modal. Deleting a vehicle permanently removes
- *   the vehicle AND all of its maintenance items / service / inspection
+ *   the vehicle AND all of its maintenance items / service
  *   history (cascade delete) and clears the default preference.
  */
 
@@ -401,7 +401,6 @@ function deleteVehicle(vehicleId: string): void {
     draft.vehicles = draft.vehicles.filter((v) => v.id !== vehicleId);
     draft.maintenanceItems = draft.maintenanceItems.filter((item) => item.vehicleId !== vehicleId);
     draft.serviceHistory = draft.serviceHistory.filter((record) => record.vehicleId !== vehicleId);
-    draft.inspectionHistory = draft.inspectionHistory.filter((record) => record.vehicleId !== vehicleId);
     if (draft.settings.defaultVehicleId === vehicleId) {
       draft.settings.defaultVehicleId = null;
     }
