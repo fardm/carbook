@@ -220,10 +220,10 @@ function vehicleFormModalHtml(vehicle: Vehicle | null): string {
           <p class="field__error" id="vehicle-error-year" hidden></p>
         </div>
         <div class="field">
-          <label class="field__label" for="vehicle-average">${t("vehicle.averageDaily")}</label>
-          <input class="field__input" id="vehicle-average" name="averageDaily" type="number"
+          <label class="field__label" for="vehicle-average">${t("vehicle.averageAnnual")}</label>
+          <input class="field__input" id="vehicle-average" name="averageAnnual" type="number"
             inputmode="decimal" min="0" step="any"
-            value="${escHtml(field("averageDaily", () => (vehicle?.averageDailyDistance != null ? String(vehicle.averageDailyDistance) : null)))}" />
+            value="${escHtml(field("averageAnnual", () => (vehicle?.averageAnnualDistance != null ? String(vehicle.averageAnnualDistance) : null)))}" />
           <p class="field__hint">${t("vehicle.averageHint")}</p>
           <p class="field__error" id="vehicle-error-average" hidden></p>
         </div>
@@ -409,7 +409,7 @@ function submitVehicleForm(container: HTMLElement, form: HTMLFormElement): void 
   const data = new FormData(form);
   const name = String(data.get("name") ?? "").trim();
   const yearRaw = String(data.get("year") ?? "").trim();
-  const averageRaw = String(data.get("averageDaily") ?? "").trim();
+  const averageRaw = String(data.get("averageAnnual") ?? "").trim();
   const mileageRaw = String(data.get("mileage") ?? "").trim();
 
   const year = yearRaw === "" ? null : Number(toLatinDigits(yearRaw));
@@ -423,7 +423,7 @@ function submitVehicleForm(container: HTMLElement, form: HTMLFormElement): void 
     model: "",
     year,
     fuelType: null,
-    averageDailyDistance: average,
+    averageAnnualDistance: average,
   });
   const mileageErrors = mileage != null ? validateMileage(mileage) : [];
   if (errors.length > 0 || mileageErrors.length > 0) {
@@ -445,7 +445,7 @@ function submitVehicleForm(container: HTMLElement, form: HTMLFormElement): void 
       if (!vehicle) return;
       vehicle.name = name;
       vehicle.year = year;
-      vehicle.averageDailyDistance = average;
+      vehicle.averageAnnualDistance = average;
       vehicle.updatedAt = now;
       // Only treat the mileage as a new reading when it actually changed.
       if (mileage != null && mileage !== vehicle.currentOdometer) {
@@ -471,7 +471,7 @@ function submitVehicleForm(container: HTMLElement, form: HTMLFormElement): void 
       model: "",
       year,
       fuelType: null,
-      averageDailyDistance: average,
+      averageAnnualDistance: average,
       currentOdometer: mileage,
       odometerUpdatedAt: mileage != null ? now : null,
       createdAt: now,

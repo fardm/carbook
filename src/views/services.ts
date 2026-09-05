@@ -920,7 +920,7 @@ function calendarEventHref(
 }
 
 /** Lifetime row under the service name:
- * `عمر قطعه ≈ ۴۰٬۰۰۰ کیلومتر (تقریباً ۲ سال)` when daily mileage allows
+ * `عمر قطعه ≈ ۴۰٬۰۰۰ کیلومتر (تقریباً ۲ سال)` when annual mileage allows
  * an estimate; otherwise just the km line. */
 function detailLifetimeRowHtml(
   item: MaintenanceItem,
@@ -929,11 +929,11 @@ function detailLifetimeRowHtml(
   const { intervalKm } = item.rule;
   if (intervalKm == null) return "";
 
-  const averageDaily =
-    dataset.vehicles.find((vehicle) => vehicle.id === item.vehicleId)?.averageDailyDistance ?? null;
+  const averageAnnual =
+    dataset.vehicles.find((vehicle) => vehicle.id === item.vehicleId)?.averageAnnualDistance ?? null;
   const estimatedDays =
-    averageDaily != null && Number.isFinite(averageDaily) && averageDaily > 0
-      ? Math.round(intervalKm / averageDaily)
+    averageAnnual != null && Number.isFinite(averageAnnual) && averageAnnual > 0
+      ? Math.round((intervalKm * 365) / averageAnnual)
       : null;
   const duration =
     estimatedDays != null && estimatedDays > 0

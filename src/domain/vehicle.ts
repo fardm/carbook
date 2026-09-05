@@ -9,8 +9,8 @@ export interface VehicleInput {
    * Gregorian (1900–2100). */
   year: number | null;
   fuelType: FuelType | null;
-  /** km/day; null when unknown. Only used for date estimation (§11). */
-  averageDailyDistance: number | null;
+  /** Approximate km/year; null when unknown. Only used for date estimation (§11). */
+  averageAnnualDistance: number | null;
 }
 
 export type VehicleError = "nameRequired" | "yearInvalid" | "averageInvalid";
@@ -33,8 +33,8 @@ export function validateVehicle(input: VehicleInput): VehicleError[] {
     errors.push("yearInvalid");
   }
   if (
-    input.averageDailyDistance != null &&
-    (!Number.isFinite(input.averageDailyDistance) || input.averageDailyDistance < 0)
+    input.averageAnnualDistance != null &&
+    (!Number.isFinite(input.averageAnnualDistance) || input.averageAnnualDistance < 0)
   ) {
     errors.push("averageInvalid");
   }

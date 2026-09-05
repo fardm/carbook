@@ -10,7 +10,7 @@ function vehicleInput(partial: Partial<VehicleInput> = {}): VehicleInput {
     model: "207",
     year: 1390,
     fuelType: "gasoline",
-    averageDailyDistance: 40,
+    averageAnnualDistance: 14600,
     ...partial,
   };
 }
@@ -21,7 +21,7 @@ describe("validateVehicle", () => {
   });
 
   it("accepts a minimal input (name only)", () => {
-    expect(validateVehicle(vehicleInput({ make: "", model: "", year: null, fuelType: null, averageDailyDistance: null }))).toEqual([]);
+    expect(validateVehicle(vehicleInput({ make: "", model: "", year: null, fuelType: null, averageAnnualDistance: null }))).toEqual([]);
   });
 
   it("requires a non-empty name", () => {
@@ -44,9 +44,9 @@ describe("validateVehicle", () => {
     expect(validateVehicle(vehicleInput({ year: 2019.5 }))).toEqual(["yearInvalid"]);
   });
 
-  it("rejects negative or NaN average daily distance", () => {
-    expect(validateVehicle(vehicleInput({ averageDailyDistance: -1 }))).toEqual(["averageInvalid"]);
-    expect(validateVehicle(vehicleInput({ averageDailyDistance: Number.NaN }))).toEqual(["averageInvalid"]);
+  it("rejects negative or NaN average annual distance", () => {
+    expect(validateVehicle(vehicleInput({ averageAnnualDistance: -1 }))).toEqual(["averageInvalid"]);
+    expect(validateVehicle(vehicleInput({ averageAnnualDistance: Number.NaN }))).toEqual(["averageInvalid"]);
   });
 });
 

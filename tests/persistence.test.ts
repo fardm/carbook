@@ -25,7 +25,7 @@ function populatedDataset(): Dataset {
       model: "207",
       year: 1390,
       fuelType: "gasoline",
-      averageDailyDistance: 40,
+      averageAnnualDistance: 14600,
       currentOdometer: 103900,
       odometerUpdatedAt: "2026-09-04T10:00:00.000Z",
       createdAt: "2026-09-04T10:00:00.000Z",

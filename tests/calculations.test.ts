@@ -39,8 +39,8 @@ function service(date: string, odometer: number | null, id = `s-${date}`): Servi
 }
 
 /** The current odometer is a per-vehicle fact; a vehicle at `km`. */
-function vehicleAt(km: number | null, avg: number | null = 40): { averageDailyDistance: number | null; currentOdometer: number | null } {
-  return { averageDailyDistance: avg, currentOdometer: km };
+function vehicleAt(km: number | null, avg: number | null = 14600): { averageAnnualDistance: number | null; currentOdometer: number | null } {
+  return { averageAnnualDistance: avg, currentOdometer: km };
 }
 
 function makeCtx(overrides: Partial<CalculationContext> = {}): CalculationContext {
@@ -129,7 +129,7 @@ describe("calculateMaintenance — distance + time (§25)", () => {
     });
     const ctx = makeCtx({
       serviceHistory: [service("2025-12-01", 100000)],
-      vehicle: vehicleAt(104000), // 6,000 km left → 150 days @ 40/day
+      vehicle: vehicleAt(104000), // 6,000 km left → 150 days @ 14,600 km/year
     });
     const result = calculateMaintenance(item, ctx, "2026-04-01");
     expect(result.remainingKm).toBe(6000);
@@ -145,7 +145,7 @@ describe("calculateMaintenance — distance + time (§25)", () => {
     });
     const ctx = makeCtx({
       serviceHistory: [service("2025-09-01", 100000)],
-      vehicle: vehicleAt(107000), // 3,000 km left → 75 days @ 40/day
+      vehicle: vehicleAt(107000), // 3,000 km left → 75 days @ 14,600 km/year
     });
     const result = calculateMaintenance(item, ctx, "2026-01-01");
     expect(result.remainingKm).toBe(3000);
@@ -252,7 +252,7 @@ describe("calculateMaintenance — edge cases (§47)", () => {
     const item = makeItem({ rule: { ...makeItem().rule, intervalKm: 10000 } });
     const dataset = defaultDataset();
     dataset.vehicles = [
-      { id: "v1", name: "", make: "", model: "", year: null, fuelType: null, averageDailyDistance: 40, currentOdometer: 104000, odometerUpdatedAt: null, createdAt: "", updatedAt: "" },
+      { id: "v1", name: "", make: "", model: "", year: null, fuelType: null, averageAnnualDistance: 14600, currentOdometer: 104000, odometerUpdatedAt: null, createdAt: "", updatedAt: "" },
     ];
     dataset.serviceHistory = [service("2026-01-10", 100000)];
     const ctx = contextForVehicle(dataset, item.vehicleId);

@@ -34,8 +34,8 @@ function service(date: string, odometer: number | null): ServiceRecord {
 }
 
 /** The current odometer is a per-vehicle fact; a vehicle at `km`. */
-function vehicleAt(km: number | null): { averageDailyDistance: number | null; currentOdometer: number | null } {
-  return { averageDailyDistance: 40, currentOdometer: km };
+function vehicleAt(km: number | null): { averageAnnualDistance: number | null; currentOdometer: number | null } {
+  return { averageAnnualDistance: 14600, currentOdometer: km };
 }
 
 function makeCtx(overrides: Partial<CalculationContext> = {}): CalculationContext {

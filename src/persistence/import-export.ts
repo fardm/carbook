@@ -184,8 +184,8 @@ function validateVehicles(
     checkField(
       issues,
       row,
-      "averageDailyDistance",
-      `${path}.averageDailyDistance`,
+      "averageAnnualDistance",
+      `${path}.averageAnnualDistance`,
       { type: "number", allowNull: true },
       (v) => v >= 0,
     );

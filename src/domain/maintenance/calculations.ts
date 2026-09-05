@@ -10,11 +10,14 @@ import {
 /** Criterion types that can drive a maintenance rule (§16). */
 export type Criterion = "km" | "time";
 
+/** Calendar days used to convert approximate annual mileage into a daily rate. */
+const DAYS_PER_YEAR = 365;
+
 /** Everything the calculation needs for ONE vehicle (multi-vehicle: each
  * item is computed against its own vehicle's facts). */
 export interface CalculationContext {
   /** The item's vehicle facts; null for unassigned items / no vehicle. */
-  vehicle: { averageDailyDistance: number | null; currentOdometer: number | null } | null;
+  vehicle: { averageAnnualDistance: number | null; currentOdometer: number | null } | null;
   serviceHistory: readonly ServiceRecord[];
   settings: Pick<Settings, "statusThresholds">;
 }
@@ -36,7 +39,7 @@ export function contextForVehicle(
   return {
     vehicle: vehicle
       ? {
-          averageDailyDistance: vehicle.averageDailyDistance,
+          averageAnnualDistance: vehicle.averageAnnualDistance,
           currentOdometer: vehicle.currentOdometer,
         }
       : null,
@@ -55,8 +58,8 @@ export interface MaintenanceCalculation {
   remainingKm: number | null;
   /** Remaining calendar days for the time criterion (§23). */
   remainingDays: number | null;
-  /** Estimated days until the km criterion triggers, from average daily
-   * distance (§24); null when not estimable (no average distance). */
+  /** Estimated days until the km criterion triggers, from approximate annual
+   * mileage (§24); null when not estimable (no average distance). */
   estimatedKmDays: number | null;
   /** Estimated due date (ISO) of the PRIMARY criterion (§24). Estimate only. */
   estimatedDueDate: string | null;
@@ -93,8 +96,8 @@ export function calculateMaintenance(
   const remainingDays = calculateRemainingDays(dueDate, today);
   const intervalDays = totalIntervalDays(lastService?.date ?? null, dueDate);
 
-  const averageDaily = ctx.vehicle?.averageDailyDistance ?? null;
-  const estimatedKmDays = calculateEstimatedKmDays(remainingKm, averageDaily);
+  const averageAnnual = ctx.vehicle?.averageAnnualDistance ?? null;
+  const estimatedKmDays = calculateEstimatedKmDays(remainingKm, averageAnnual);
 
   const primaryCriterion = determinePrimaryTrigger(item.rule, {
     remainingKm,
@@ -157,23 +160,24 @@ export function calculateRemainingDays(
 }
 
 /**
- * Estimated days until the km criterion triggers: remainingKm / average daily
- * distance (§24), rounded UP so the estimate never understates. Null when the
- * average distance is missing or zero (§11) or km life is not computable.
+ * Estimated days until the km criterion triggers:
+ * remainingKm × 365 / averageAnnualDistance (§24), rounded UP so the estimate
+ * never understates. Null when annual mileage is missing or zero (§11) or km
+ * life is not computable.
  */
 export function calculateEstimatedKmDays(
   remainingKm: number | null,
-  averageDailyDistance: number | null,
+  averageAnnualDistance: number | null,
 ): number | null {
-  if (remainingKm == null || averageDailyDistance == null || averageDailyDistance <= 0) {
+  if (remainingKm == null || averageAnnualDistance == null || averageAnnualDistance <= 0) {
     return null;
   }
-  return Math.ceil(remainingKm / averageDailyDistance);
+  return Math.ceil((remainingKm * DAYS_PER_YEAR) / averageAnnualDistance);
 }
 
 /**
  * Estimated due date (ISO) of the primary criterion (§24). This is an
- * estimate driven by average daily distance — never an exact deadline.
+ * estimate driven by approximate annual mileage — never an exact deadline.
  */
 export function calculateEstimatedDueDate(
   primaryCriterion: Criterion | null,

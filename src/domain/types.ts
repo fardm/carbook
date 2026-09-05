@@ -25,8 +25,8 @@ export interface Vehicle {
    * (1900–2100). Null when unknown. */
   year: number | null;
   fuelType: FuelType | null;
-  /** km/day estimate used ONLY for estimating future dates (§11). */
-  averageDailyDistance: number | null;
+  /** Approximate km/year used ONLY for estimating future dates (§11). */
+  averageAnnualDistance: number | null;
   /** Current odometer in km; null until the user records one. */
   currentOdometer: number | null;
   /** ISO datetime of the last mileage update (بروزرسانی کیلومتر); null until

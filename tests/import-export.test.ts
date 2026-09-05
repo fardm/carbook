@@ -21,7 +21,7 @@ function validDataset(): Dataset {
       model: "207",
       year: 1390, // Solar Hijri production year is valid
       fuelType: "gasoline",
-      averageDailyDistance: 40,
+      averageAnnualDistance: 14600,
       currentOdometer: 104500,
       odometerUpdatedAt: "2026-09-01T08:00:00.000Z",
       createdAt: "2026-09-01T08:00:00.000Z",
@@ -247,10 +247,10 @@ describe("validateImportText — vehicles", () => {
     expectIssue(textOf(d), "vehicles[0].fuelType", "invalidValue");
   });
 
-  it("rejects a negative average daily distance", () => {
+  it("rejects a negative average annual distance", () => {
     const d = cloneValid();
-    d.vehicles[0].averageDailyDistance = -5;
-    expectIssue(textOf(d), "vehicles[0].averageDailyDistance", "invalidValue");
+    d.vehicles[0].averageAnnualDistance = -5;
+    expectIssue(textOf(d), "vehicles[0].averageAnnualDistance", "invalidValue");
   });
 
   it("rejects a negative or fractional current odometer", () => {

@@ -13,7 +13,7 @@ function vehicleInput(partial: Partial<VehicleInput> = {}): VehicleInput {
     model: "207",
     year: null,
     fuelType: "gasoline",
-    averageDailyDistance: null,
+    averageAnnualDistance: null,
     ...partial,
   };
 }

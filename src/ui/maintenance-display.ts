@@ -47,7 +47,7 @@ export function primaryMetricText(calc: MaintenanceCalculation, kind: PrimaryMet
 /** Secondary line: estimated time for km-primary, percentage for time-primary. */
 export function secondaryMetricText(calc: MaintenanceCalculation, kind: PrimaryMetricKind): string | null {
   if (kind === "km" && calc.estimatedKmDays != null) {
-    // The estimate comes from average daily distance (§24) — always "~".
+    // The estimate comes from approximate annual mileage (§24) — always "~".
     return `~${formatRemainingTime(calc.estimatedKmDays)}`;
   }
   if (kind === "days" && calc.remainingPercent != null) {
