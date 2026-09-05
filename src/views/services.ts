@@ -1807,4 +1807,6 @@ function redraw(container: HTMLElement): void {
   container.innerHTML = servicesViewHtml();
   bind(container);
   applyIcons();
-  b
+  bindFloatingFields(container);
+  alignFabBar();
+}
