@@ -1117,7 +1117,9 @@ function recordServiceFormModalHtml(): string {
           ${dateFieldHtml({
             fieldId: "record-date",
             name: "date",
-            value: record?.date ?? todayIso(),
+            // Never auto-fill today — the user records the actual service
+            // date (the record's own value still shows when editing).
+            value: record?.date ?? "",
             label: t("maintenance.record.dateLabel"),
           })}
           <p class="field__error" id="record-error-date" hidden></p>
@@ -1125,7 +1127,7 @@ function recordServiceFormModalHtml(): string {
         <div class="field">
           <label class="field__label" for="record-odometer">${t("maintenance.record.odometerLabel")}</label>
           <input class="field__input" id="record-odometer" name="odometer" type="number"
-            inputmode="numeric" min="0" step="1" value="${record?.odometer ?? defaultKm ?? ""}" />
+            inputmode="numeric" min="0" step="1" value="${record?.odometer ?? ""}" />
           <button type="button" class="btn btn--text field-action js-use-current-km"
             ${defaultKm == null ? "disabled" : ""}>
             <span data-lucide="download"></span>
