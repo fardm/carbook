@@ -152,7 +152,7 @@ export const fa = {
     vehicleLabel: "خودرو",
     pickTypeTitle: "انتخاب نوع سرویس",
     searchLabel: "جستجو",
-    searchPlaceholder: "مثلاً روغن موتور، فیلتر هوا یا لنت",
+    searchPlaceholder: "",
     searchClear: "پاک کردن جستجو",
     searchEmpty: "هیچ نوع سرویسی با این عبارت پیدا نشد.",
     customType: "دلخواه",
