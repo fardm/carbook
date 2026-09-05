@@ -1,4 +1,4 @@
-import { CATALOG, catalogEntry, categoryName } from "../catalog";
+import { CATALOG, catalogEntry, categoryName, recommendedLifespanKm } from "../catalog";
 import { lastServiceFor } from "../domain/baselines";
 import { diffDays } from "../domain/calendar/dates";
 import { createId } from "../domain/ids";
@@ -586,8 +586,14 @@ function serviceFormModalHtml(): string {
   const editing = form.mode === "edit";
   const item = editing ? (dataset.maintenanceItems.find((c) => c.id === form.itemId) ?? null) : null;
   const entry = !editing && form.catalogId ? catalogEntry(form.catalogId) : null;
+  // Recommendation follows the catalog template (add) or the item's linked
+  // catalog id (edit); custom services have none.
+  const catalogIdForHint = editing ? item?.catalogId ?? null : form.catalogId;
+  const recommendedKm = recommendedLifespanKm(catalogIdForHint);
 
-  const prefillKm = editing ? item?.rule.intervalKm ?? null : entry?.suggestedKm ?? null;
+  // Add mode: lifespan stays empty — user types it or applies the hint.
+  // Edit mode: show the item's saved interval only (not the recommendation).
+  const prefillKm = editing ? item?.rule.intervalKm ?? null : null;
   const prefillName = editing ? item?.name ?? "" : entry?.name.fa ?? "";
   const title = t(editing ? "maintenance.editTitle" : "services.addService");
   const vehicleId = resolveSelectedVehicleId(dataset);
@@ -674,6 +680,13 @@ function serviceFormModalHtml(): string {
             <input class="field__input" id="service-km" name="intervalKm" type="number"
               inputmode="numeric" min="1" step="1"
               value="${escHtml(fieldValue("intervalKm", prefillKm != null ? String(prefillKm) : ""))}" />
+            ${recommendedKm != null ? `
+            <p class="field__hint">${t("services.recommendedLifespanHint")} ${faNum(recommendedKm)} ${t("common.kmUnit")}</p>
+            <button type="button" class="btn btn--text field-action js-use-recommended-km"
+              data-recommended-km="${recommendedKm}">
+              <span data-lucide="download"></span>
+              <span>${t("services.useRecommendedLifespan")}</span>
+            </button>` : ""}
             <p class="field__error" id="service-error-km" hidden></p>
           </div>
           <p class="field__error" id="service-error-rule" hidden></p>
@@ -1565,6 +1578,19 @@ function bindFormEvents(container: HTMLElement): void {
       input.dispatchEvent(new Event("change", { bubbles: true }));
     });
   });
+  /* «استفاده از مقدار پیشنهادی»: fills عمر قطعه from the configured
+   * recommendation. Only on click — never overwrites typed values alone. */
+  container.querySelectorAll<HTMLButtonElement>(".js-use-recommended-km").forEach((button) => {
+    button.addEventListener("click", () => {
+      const km = Number(button.dataset.recommendedKm);
+      if (!Number.isFinite(km) || km <= 0) return;
+      const input = container.querySelector<HTMLInputElement>("#service-km");
+      if (!input) return;
+      input.value = String(km);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  });
 
   const serviceForm = container.querySelector<HTMLFormElement>("#service-form");
   serviceForm?.addEventListener("input", captureFormValue);
@@ -1781,6 +1807,4 @@ function redraw(container: HTMLElement): void {
   container.innerHTML = servicesViewHtml();
   bind(container);
   applyIcons();
-  bindFloatingFields(container);
-  alignFabBar();
-}
+  b

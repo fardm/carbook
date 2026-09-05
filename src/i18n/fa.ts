@@ -161,6 +161,8 @@ export const fa = {
     replacementKm: "کیلومتر آخرین تعویض",
     useCurrentKm: "استفاده از کیلومتر فعلی",
     lifeKm: "عمر قطعه",
+    recommendedLifespanHint: "عمر پیشنهادی این قطعه:",
+    useRecommendedLifespan: "استفاده از مقدار پیشنهادی",
     calculationMode: "نحوه محاسبه سلامت قطعه",
     healthModeKmHint:
       "سلامت قطعه بر اساس کیلومتر باقی‌مانده تا کیلومتر پیشنهادی تعویض محاسبه می‌شود.",
