@@ -264,7 +264,7 @@ export const CATALOG: readonly CatalogEntry[] = [
     id: "fuelFilter",
     category: "filters",
     icon: "fuel",
-    name: { fa: "فیلتر سوخت", en: "Fuel Filter" },
+    name: { fa: "صافی/فیلتر سوخت", en: "Fuel Filter" },
     suggestedKm: 40000,
     kmRange: [30000, 60000],
     suggestedMonths: null,
