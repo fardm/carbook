@@ -810,28 +810,42 @@ function itemDetailPageHtml(itemId: string): string {
     <span>${t("maintenance.detail.backToList")}</span>
   </a>`;
 
+  // ویرایش / حذف sit opposite the Back link and reuse the exact same
+  // handlers as the service cards' menus (js-service-menu-edit / delete).
+  const itemActions = `
+    <div class="detail-topbar__actions">
+      <button type="button" class="btn btn--text js-service-menu-edit" data-id="${escHtml(item.id)}">
+        <span data-lucide="pencil"></span>
+        ${t("maintenance.editItem")}
+      </button>
+      <button type="button" class="btn btn--text btn--danger-text js-service-menu-delete"
+        data-id="${escHtml(item.id)}">
+        <span data-lucide="trash-2"></span>
+        ${t("maintenance.detail.delete")}
+      </button>
+    </div>`;
+
   return `
-    ${backLink}
+    <div class="detail-topbar">
+      ${backLink}
+      ${itemActions}
+    </div>
     <section class="card service-detail-card">
       <div class="service-detail-card__sections">
         <section class="service-detail-card__header">
-          <button type="button" class="service-detail-card__header-hit js-edit-service-header"
-            data-id="${escHtml(item.id)}"
-            aria-label="${t("maintenance.editItem")}: ${escHtml(item.name)}">
-            <div class="service-detail-card__header-row">
-              <div class="service-info">
-                <span class="service-info__icon" data-lucide="${item.icon}"></span>
-                <div class="service-info__main">
-                  <div class="service-info__name">${escHtml(item.name)}</div>
-                  ${detailLifetimeRowHtml(item, dataset)}
-                </div>
+          <div class="service-detail-card__header-row">
+            <div class="service-info">
+              <span class="service-info__icon" data-lucide="${item.icon}"></span>
+              <div class="service-info__main">
+                <div class="service-info__name">${escHtml(item.name)}</div>
+                ${detailLifetimeRowHtml(item, dataset)}
               </div>
-              <span class="status-chip status-chip--${calc.status}">
-                <span data-lucide="${STATUS_ICONS[calc.status]}"></span>
-                ${statusLabel(calc.status)}
-              </span>
             </div>
-          </button>
+            <span class="status-chip status-chip--${calc.status}">
+              <span data-lucide="${STATUS_ICONS[calc.status]}"></span>
+              ${statusLabel(calc.status)}
+            </span>
+          </div>
           ${inactive ? `<div class="service-detail__actions">${detailActionRowHtml(item, inactive)}</div>` : ""}
         </section>
         ${detailOverviewSectionHtml(item, dataset)}
@@ -841,8 +855,8 @@ function itemDetailPageHtml(itemId: string): string {
   `;
 }
 
-/** Dropdown three-dot menu (ویرایش / حذف) pinned to the top corner of a
- * service card — the detail page's main card and every list-page card. */
+/** Dropdown three-dot menu (ویرایش / حذف) pinned to the top corner of
+ * every service card on the list page. */
 function serviceItemMenuHtml(itemId: string): string {
   const open = state.serviceMenuId === itemId;
   return `
@@ -1489,20 +1503,8 @@ function bindDetailEvents(container: HTMLElement): void {
     });
   });
 
-  /* The whole service header (icon + title + lifetime + status chip) opens
-   * the same edit form as the card menu's ویرایش action. */
-  container.querySelectorAll<HTMLButtonElement>(".js-edit-service-header").forEach((button) => {
-    button.addEventListener("click", () => {
-      const item = store.get().maintenanceItems.find((candidate) => candidate.id === button.dataset.id);
-      if (!item) return;
-      state.serviceMenuId = null;
-      openEditServiceForm(item);
-      redraw(container);
-    });
-  });
-
-  /* Three-dot menu on service cards (list page + detail page): toggle +
-   * click-away backdrop + ویرایش/حذف items. */
+  /* ویرایش/حذف on the detail page's top bar + the three-dot menu on list
+   * service cards: both share these actions (edit form, delete confirm). */
   container.querySelectorAll<HTMLButtonElement>(".js-service-menu-toggle").forEach((button) => {
     button.addEventListener("click", () => {
       const id = button.dataset.id ?? null;

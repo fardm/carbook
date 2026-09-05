@@ -932,37 +932,20 @@ textarea.field__input {
   flex-wrap: wrap;
 }
 
-/* The whole service header (icon + title + lifetime + status chip) is a
- * single hit target that opens the edit form. Reset the button chrome so
- * the visual design stays identical; only a whisper of hover/press
- * feedback hints at interactivity (no pencil, no chevron). */
-.service-detail-card__header-hit {
-  display: block;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: var(--md-shape-medium);
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: inherit;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+/* Detail page top row: the back link on one side, ویرایش/حذف actions on
+ * the other (wraps onto two lines on very narrow screens). */
+.detail-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--md-space-3);
+  flex-wrap: wrap;
 }
 
-.service-detail-card__header-hit:hover {
-  background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 6%, transparent);
-}
-
-/* Pressed state doubles as touch feedback on devices without hover. */
-.service-detail-card__header-hit:active {
-  background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
-}
-
-.service-detail-card__header-hit:focus-visible {
-  outline: 2px solid var(--md-sys-color-primary);
-  outline-offset: 2px;
+.detail-topbar__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-space-1);
 }
 
 .service-detail-card__history {
