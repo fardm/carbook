@@ -772,15 +772,6 @@ function serviceFormModalHtml(): string {
             <p class="field__error" id="service-error-cost" hidden></p>
           </div>` : ""}
 
-          ${!editing ? `
-          <div class="field">
-            <label class="field__label" for="service-cost">${t("maintenance.record.costLabel")}</label>
-            <input class="field__input" id="service-cost" name="serviceCost" type="number"
-              inputmode="decimal" min="0" step="any" value="${escHtml(fieldValue("serviceCost"))}"
-              placeholder="${faNum(0)} ${currencyLabel(store.get().settings.currency)}" />
-            <p class="field__error" id="service-error-cost" hidden></p>
-          </div>` : ""}
-
           <div class="form__actions">
             <button type="button" class="btn btn--text js-close-overlay">${t("common.cancel")}</button>
             <button type="submit" class="btn btn--filled">
@@ -1076,9 +1067,9 @@ function recordMenuHtml(recordId: string): string {
   `;
 }
 
-/** Single-row history entry: date first, mileage after, actions at the left. */
+/** Single-row history entry: date first, mileage after, cost when present, actions at the left. */
 function historyRecordRowHtml(
-  record: { id: string; date: string; odometer: number | null },
+  record: { id: string; date: string; odometer: number | null; cost: number | null },
 ): string {
   return `
     <li class="history__item">
@@ -1087,6 +1078,11 @@ function historyRecordRowHtml(
         ${
           record.odometer != null
             ? `<span class="history__km">${faNum(record.odometer)} ${t("common.kmUnit")}</span>`
+            : ""
+        }
+        ${
+          record.cost != null
+            ? `<span class="history__cost">${faNum(record.cost)} ${currencyLabel(store.get().settings.currency)}</span>`
             : ""
         }
       </div>
