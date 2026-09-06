@@ -339,7 +339,7 @@ function servicesToolbarHtml(dataset: ReturnType<typeof store.get>, selectedId: 
       <span data-lucide="plus"></span>
       ${t("services.addServiceNew")}
     </button>`;
-  return `<div class="services-toolbar"><div class="services-toolbar__controls">${vehicleMenuHtml(dataset, selectedId)}${sortMenuHtml()}</div>${addButton}</div>`;
+  return `<div class="services-toolbar"><div class="services-toolbar__controls">${vehicleMenuHtml(dataset, selectedId)}${sortMenuHtml(noVehicles)}</div>${addButton}</div>`;
 }
 
 /** Vehicle picker button + popover for the toolbar — mirrors sortMenuHtml(). */
@@ -385,7 +385,7 @@ function vehicleMenuHtml(dataset: ReturnType<typeof store.get>, selectedId: stri
 }
 
 /** Sort button + dropdown popover for the active-services list. */
-function sortMenuHtml(): string {
+function sortMenuHtml(disabled = false): string {
   type Group = {
     labelKey: MessageKey;
     options: Array<{ mode: SortMode; labelKey: MessageKey }>;
@@ -444,7 +444,8 @@ function sortMenuHtml(): string {
       ${state.sortMenuOpen ? `<div class="card-menu__backdrop js-sort-menu-close"></div>` : ""}
       <button type="button" class="btn btn--secondary sort-menu__trigger js-sort-menu-toggle"
         aria-haspopup="true" aria-expanded="${state.sortMenuOpen}"
-        aria-label="${t("maintenance.list.sortLabel")}">
+        aria-label="${t("maintenance.list.sortLabel")}"
+        ${disabled ? "disabled" : ""}>
         <span data-lucide="arrow-up-down" aria-hidden="true"></span>
         ${t("maintenance.list.sortLabel")}
       </button>
