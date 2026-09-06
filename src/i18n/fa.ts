@@ -339,6 +339,7 @@ export const fa = {
     currentOdometerHint: "کیلومتر فعلی خودرو:",
     notificationsLabel: "اعلان‌ها",
     notificationsHint: "فاصله‌های اعلان پیش از موعد یادآوری.",
+    notifyBeforeLabel: "اعلان پیش از موعد",
     addDateOffset: "افزودن فاصله زمانی",
     addKmOffset: "افزودن فاصله کیلومتری",
     daysBefore: "روز قبل",

@@ -263,8 +263,7 @@ export type ReminderDraftError =
   | "conditionRequired"
   | "repeatKmRequired"
   | "repeatKmInvalid"
-  | "offsetInvalid"
-  | "noOffsets";
+  | "offsetInvalid";
 
 /** Validates a reminder draft; empty result = valid (same pattern as records.ts). */
 export function validateReminderDraft(draft: ReminderDraft): ReminderDraftError[] {
@@ -302,7 +301,6 @@ export function validateReminderDraft(draft: ReminderDraft): ReminderDraftError[
       (offset.km != null && Number.isInteger(offset.km) && offset.km >= 0),
   );
   if (usableOffsets.length !== draft.notificationOffsets.length) errors.push("offsetInvalid");
-  if (draft.enabled && usableOffsets.length === 0) errors.push("noOffsets");
 
   return errors;
 }

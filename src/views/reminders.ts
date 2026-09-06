@@ -59,6 +59,8 @@ interface ReminderViewState {
   formType: Reminder["type"];
   /** Which repeat mode the form currently shows. */
   formRepeat: RepeatMode;
+  /** Whether the form's اعلان پیش از موعد section is on (Req 4). */
+  formNotifications: boolean;
   /** Reminder whose card menu is open. */
   menuReminderId: string | null;
   /** Filter dropdown popover is open. */
@@ -99,6 +101,7 @@ const state: ReminderViewState = {
   offsets: [],
   formType: "date",
   formRepeat: "none",
+  formNotifications: false,
   deleteConfirmId: null,
   menuReminderId: null,
   filterMenuOpen: false,
@@ -129,7 +132,6 @@ const ERROR_KEYS: Record<ReminderDraftError, Parameters<typeof t>[0]> = {
   repeatKmRequired: "reminders.errorRepeatKmRequired",
   repeatKmInvalid: "reminders.errorRepeatKmInvalid",
   offsetInvalid: "reminders.errorOffsetInvalid",
-  noOffsets: "reminders.errorNoOffsets",
 };
 
 /** Status chip styling reuses the existing maintenance status classes. */
@@ -246,6 +248,7 @@ function remindersViewHtml(): string {
         ? remindersNoVehicleHtml()
         : remindersListHtml(dataset, vehicleId);
   const overlay = reminderOverlayHtml(dataset, vehicleId);
+  const noVehicles = dataset.vehicles.length === 0;
 
   return `
     <div class="view-stack view-stack--fab">
@@ -255,6 +258,24 @@ function remindersViewHtml(): string {
       <div class="services-toolbar-row">${toolbar}</div>
       ${body}
       ${overlay}
+      ${fabBarHtml(noVehicles)}
+    </div>
+  `;
+}
+
+/**
+ * Floating add button — the SAME fab-bar--page pattern the Services page
+ * uses: the FAB renders here (mobile) and the inline toolbar button
+ * (.services-toolbar__add) takes over on desktop via CSS. One shared
+ * js-add-reminder class + handler, so there is no duplicated logic.
+ */
+function fabBarHtml(disabled: boolean): string {
+  return `
+    <div class="fab-bar fab-bar--page">
+      <button type="button" class="btn btn--filled js-add-reminder" ${disabled ? "disabled" : ""}>
+        <span data-lucide="plus"></span>
+        ${t("reminders.addReminder")}
+      </button>
     </div>
   `;
 }
@@ -624,13 +645,14 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
     }
   }
 
-  const addDaysButton = `<button type="button" class="btn btn--text js-add-offset" data-kind="days"><span data-lucide="plus"></span>${t("reminders.addDateOffset")}</button>`;
-  const addKmButton = `<button type="button" class="btn btn--text js-add-offset" data-kind="km"><span data-lucide="plus"></span>${t("reminders.addKmOffset")}</button>`;
+  const addDaysButton = `<button type="button" class="btn btn--text btn--fit-content js-add-offset" data-kind="days"><span data-lucide="plus"></span>${t("reminders.addDateOffset")}</button>`;
+  const addKmButton = `<button type="button" class="btn btn--text btn--fit-content js-add-offset" data-kind="km"><span data-lucide="plus"></span>${t("reminders.addKmOffset")}</button>`;
 
   // date_mileage mode: each add button heads its own group with its rows
   // directly beneath it, so a newly added row always appears immediately
   // after the button that created it. Single-kind modes keep the flat
-  // rows-then-button layout.
+  // rows-then-button layout. The .btn--fit-content utility keeps each add
+  // button at its natural width (flex children would otherwise stretch).
   const offsetsEditor =
     state.formType === "date_mileage"
       ? `<div class="reminder-offsets">
@@ -657,8 +679,6 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
       <p class="field__error" id="reminder-error-repeat-km" hidden></p>
     </div>`
       : "";
-
-  const enabled = fieldValue("enabled", "1") === "1";
 
   return `
     <div class="modal-overlay">
@@ -715,12 +735,24 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
           ${dateSection}
           ${kmSection}
 
-          <div class="field">
-            <span class="field__label">${t("reminders.notificationsLabel")}</span>
+          <div class="field field--static">
+            <label class="toggle-row">
+              <span class="toggle-row__label">${t("reminders.notifyBeforeLabel")}</span>
+              <span class="toggle">
+                <input type="checkbox" name="notifyBefore" value="1" class="js-notifications-toggle"
+                  role="switch" aria-label="${t("reminders.notifyBeforeLabel")}" ${state.formNotifications ? "checked" : ""} />
+                <span class="toggle__track" aria-hidden="true"><span class="toggle__thumb"></span></span>
+              </span>
+            </label>
             <p class="field__hint">${t("reminders.notificationsHint")}</p>
+          </div>
+
+          ${state.formNotifications ? `
+          <div class="field field--static">
+            <span class="field__label">${t("reminders.notificationsLabel")}</span>
             ${offsetsEditor}
             <p class="field__error" id="reminder-error-offsets" hidden></p>
-          </div>
+          </div>` : ""}
 
           <div class="field">
             <span class="field__label" id="reminder-repeat-label">${t("reminders.repeatLabel")}</span>
@@ -737,18 +769,6 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
             </div>
           </div>
           ${repeatKmField}
-
-          <div class="field">
-            <label class="toggle-row">
-              <span class="toggle-row__label">${t("reminders.enabledLabel")}</span>
-              <span class="toggle">
-                <input type="checkbox" name="enabled" value="1" class="js-enabled-toggle"
-                  role="switch" aria-label="${t("reminders.enabledLabel")}" ${enabled ? "checked" : ""} />
-                <span class="toggle__track" aria-hidden="true"><span class="toggle__thumb"></span></span>
-              </span>
-            </label>
-            <p class="field__hint">${t("reminders.enabledHint")}</p>
-          </div>
 
           <div class="form__actions">
             <button type="button" class="btn btn--text js-close-overlay">${t("common.cancel")}</button>
@@ -816,6 +836,7 @@ function closeForm(): void {
   state.offsets = [];
   state.formType = "date";
   state.formRepeat = "none";
+  state.formNotifications = false;
 }
 
 /**
@@ -829,8 +850,10 @@ function openAddForm(prefill: ReminderPrefill | null): void {
   state.form = { mode: "add", prefill };
   state.formType = prefill?.dueDate != null && prefill.dueMileage != null ? "date_mileage" : prefill?.dueMileage != null ? "mileage" : "date";
   state.formRepeat = "none";
-  // Default offsets: none — the user configures them; enabled by default.
-  state.offsets = [{ days: 1 }];
+  // Notifications are OFF by default (Req 4) — the user opts in; no
+  // offsets are pre-seeded.
+  state.formNotifications = false;
+  state.offsets = [];
   if (prefill != null) {
     if (prefill.title !== "") state.formValues.title = prefill.title;
     if (prefill.dueDate != null) state.formValues.dueDate = prefill.dueDate;
@@ -894,7 +917,8 @@ function bind(container: HTMLElement): void {
     });
   });
 
-  /* Add reminder — uses the currently selected vehicle (never asks again). */
+  /* Add reminder — uses the currently selected vehicle (never asks again).
+   * Both the toolbar button and the mobile FAB share this handler. */
   container.querySelectorAll<HTMLButtonElement>(".js-add-reminder").forEach((button) => {
     button.addEventListener("click", () => {
       const dataset = store.get();
@@ -931,6 +955,7 @@ function bind(container: HTMLElement): void {
       state.formType = reminder.type;
       state.formRepeat = reminder.repeat;
       state.offsets = reminder.notificationOffsets.map((offset) => ({ ...offset }));
+      state.formNotifications = reminder.notificationOffsets.length > 0;
       state.formValues = {
         title: reminder.title,
         description: reminder.description,
@@ -938,7 +963,6 @@ function bind(container: HTMLElement): void {
         dueDate: reminder.dueDate ?? "",
         dueMileage: reminder.dueMileage != null ? String(reminder.dueMileage) : "",
         repeatEveryKm: reminder.repeatEveryKm != null ? String(reminder.repeatEveryKm) : "",
-        enabled: reminder.enabled ? "1" : "0",
       };
       redraw(container);
     });
@@ -1010,6 +1034,14 @@ function bind(container: HTMLElement): void {
     button.addEventListener("click", () => {
       const repeat = button.dataset.repeat as RepeatMode | undefined;
       if (repeat) state.formRepeat = repeat;
+      redraw(container);
+    });
+  });
+
+  /* اعلان پیش از موعد toggle (Req 4): reveals/hides the offsets editor. */
+  container.querySelectorAll<HTMLInputElement>(".js-notifications-toggle").forEach((input) => {
+    input.addEventListener("change", () => {
+      state.formNotifications = input.checked;
       redraw(container);
     });
   });
@@ -1116,7 +1148,11 @@ function submitReminderForm(container: HTMLElement, form: HTMLFormElement): void
 
   const repeatEveryKmRaw = String(data.get("repeatEveryKm") ?? "").trim();
   const repeatEveryKm = state.formRepeat === "km" && repeatEveryKmRaw !== "" ? Number(toLatinDigits(repeatEveryKmRaw)) : null;
-  const enabled = data.get("enabled") === "1";
+
+  /* Reminders are saved ENABLED (Req 5) — the user toggles enable/disable
+   * later from the card in the list, which is the existing pattern. */
+  const enabled = true;
+  const notificationOffsets = state.formNotifications ? collectOffsets(container) : [];
 
   const draft = {
     vehicleId,
@@ -1126,7 +1162,7 @@ function submitReminderForm(container: HTMLElement, form: HTMLFormElement): void
     type: state.formType,
     dueDate,
     dueMileage,
-    notificationOffsets: collectOffsets(container),
+    notificationOffsets,
     repeat: state.formRepeat,
     repeatEveryKm,
     enabled,
@@ -1156,8 +1192,10 @@ function submitReminderForm(container: HTMLElement, form: HTMLFormElement): void
       };
 
   closeForm();
-  if (!editing && needsPermissionPrompt(dataset, enabled)) {
-    // First notification-enabled reminder: ask BEFORE saving (Phase 7).
+  if (!editing && needsPermissionPrompt(dataset, notificationOffsets.length > 0)) {
+    // First reminder with CONFIGURED notifications: ask BEFORE saving
+    // (Phase 7) — gated on the اعلان پیش از موعد toggle plus actual
+    // offsets, never on app start or plain browsing.
     state.permissionPrompt = { pendingReminder: { reminder, wantsNotifications: true } };
     redraw(container);
     return;
@@ -1201,7 +1239,6 @@ function showReminderErrors(container: HTMLElement, errors: [ReminderDraftError,
     repeatKmRequired: "reminder-error-repeat-km",
     repeatKmInvalid: "reminder-error-repeat-km",
     offsetInvalid: "reminder-error-offsets",
-    noOffsets: "reminder-error-offsets",
     conditionRequired: "reminder-error-date",
   };
   for (const [error, message] of errors) {

@@ -1442,6 +1442,50 @@ input.affix-field__input {
   white-space: nowrap;
 }
 
+/* --- Reminder form: static field sections ---
+ * Sections whose content is toggles/menus rather than a single text control
+ * (notifications toggle, offsets editor, type/repeat pickers). Without this
+ * the generic `.field:has(.field__input)` rule sees the dynamic offset
+ * inputs inside the section and floats the section's own label over the
+ * first row — mispositioning "اعلان‌ها" and shifting the layout as rows are
+ * added/removed. Making the label static keeps it a normal section heading
+ * no matter how many dynamic fields appear below it.
+ *
+ * Specificity note: the floating-label selectors include `:has()`, whose
+ * argument adds specificity, so each is restated here with the extra
+ * `.field--static` class — same shape, higher value, and later in source. */
+.field--static .field__label,
+.field.field--static:has(.field__input) .field__label,
+.field.field--static:has(input.field__input).is-filled .field__label,
+.field.field--static:has(input.field__input).is-focused .field__label,
+.field.field--static:has(.date-field:focus-within) .field__label,
+.field.field--static:has(select.field__input) .field__label,
+.field.field--static:has(textarea.field__input) .field__label,
+.field.field--static:has(.field__input):focus-within .field__label {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  max-width: none;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  font-size: var(--md-typescale-label-large);
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface-variant);
+  pointer-events: auto;
+  transform: none;
+  transition: none;
+}
+
+/* Inline text buttons that must hug their content (e.g. the add-offset
+ * buttons inside the notifications section): flex/grid children stretch to
+ * the container width by default, which visually detaches a text button
+ * from its label. */
+.btn--fit-content {
+  flex: 0 0 auto;
+  width: fit-content;
+}
+
 /* --- Reminder form: notification offsets editor ---
  * One offset per row: [input + unit suffix] [trash]. The delete button
  * comes AFTER the input in flex order, so in RTL it renders on the LEFT
