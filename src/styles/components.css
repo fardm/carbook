@@ -2463,6 +2463,128 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
   box-shadow: var(--md-elevation-3);
 }
 
+/* --- Operations action menu (detail-page FAB) ---
+ * Speed-dial style: the grouped action panel floats directly above the
+ * anchored Operations button and expands upward with a fade + rise. The
+ * panel and its click-away backdrop stay mounted; `.fab-menu--open`
+ * toggles their visibility via transitions, so expand AND collapse both
+ * animate. The panel centers on the trigger via a physical left: 50% + a
+ * translateX(-50%) folded into the animated transform, so it works in
+ * both LTR and RTL (see .fab-menu__panel below). */
+.fab-menu {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* The click-away backdrop is inert while the menu is closed. */
+.fab-menu .card-menu__backdrop {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--md-motion-duration-medium) var(--md-motion-easing),
+    visibility 0s linear var(--md-motion-duration-medium);
+}
+
+.fab-menu--open .card-menu__backdrop {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    opacity var(--md-motion-duration-medium) var(--md-motion-easing),
+    visibility 0s;
+}
+
+/* Cohesive action panel: one rounded, elevated container holding all four
+ * actions, centered above the trigger button. */
+.fab-menu__panel {
+  position: absolute;
+  bottom: calc(100% + var(--md-space-3));
+  /* Centered on the trigger with a physical left: 50% so it works in RTL;
+   * the translateX(-50%) is folded into the animated transform. */
+  left: 50%;
+  width: max-content;
+  min-width: 220px;
+  max-width: calc(100vw - 2 * var(--md-space-4));
+  z-index: 46;
+  padding: var(--md-space-1);
+  border-radius: var(--md-shape-large);
+  background-color: var(--md-sys-color-surface-container-low);
+  box-shadow: var(--md-elevation-3);
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, 10px);
+  pointer-events: none;
+  transition:
+    opacity var(--md-motion-duration-medium) var(--md-motion-easing),
+    transform var(--md-motion-duration-medium) var(--md-motion-easing),
+    visibility 0s linear var(--md-motion-duration-medium);
+}
+
+.fab-menu--open .fab-menu__panel {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+  transition:
+    opacity var(--md-motion-duration-medium) var(--md-motion-easing),
+    transform var(--md-motion-duration-medium) var(--md-motion-easing),
+    visibility 0s;
+}
+
+/* The anchored trigger stays above the click-away backdrop so it can
+ * collapse the menu; keep the FAB's elevated shadow (it's no longer a
+ * direct `.fab-bar` child) and show the expanded state via the icon swap
+ * below (gear → close ×). */
+.fab-menu__toggle {
+  position: relative;
+  z-index: 46;
+  box-shadow: var(--md-elevation-3);
+}
+
+.fab-menu__toggle-icon {
+  position: relative;
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+}
+
+/* The two toggle glyphs (settings-2 / x) stack and crossfade. */
+.fab-menu__toggle-ico {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    opacity var(--md-motion-duration-short) var(--md-motion-easing),
+    transform var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+.fab-menu__toggle-ico--closed {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+.fab-menu__toggle-ico--open {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.75);
+}
+
+.fab-menu--open .fab-menu__toggle-ico--closed {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.75);
+}
+
+.fab-menu--open .fab-menu__toggle-ico--open {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
 /* Two actions grouped (e.g. ثبت سرویس جدید + افزودن به تقویم گوگل): the
  * group keeps only a subtle border — no background, no own shadow. */
 .fab-bar__group {

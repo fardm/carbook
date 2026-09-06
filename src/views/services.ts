@@ -118,6 +118,8 @@ interface ServicesViewState {
   sortMenuOpen: boolean;
   /** Vehicle picker popover is open on the list page. */
   vehicleMenuOpen: boolean;
+  /** Operations dropdown on the detail page FAB is open. */
+  detailMenuOpen: boolean;
 }
 
 const state: ServicesViewState = {
@@ -140,6 +142,7 @@ const state: ServicesViewState = {
   sortMode: "healthBest",
   sortMenuOpen: false,
   vehicleMenuOpen: false,
+  detailMenuOpen: false,
 };
 
 /** Typed form-field value that survives re-renders (decision 31). */
@@ -255,12 +258,48 @@ function fabBarHtml(itemId: string | null): string {
   if (itemId) {
     const item = dataset.maintenanceItems.find((c) => c.id === itemId);
     if (!item || !item.active) return "";
+    const open = state.detailMenuOpen;
+    // Speed-dial style action menu: the grouped panel + click-away backdrop
+    // stay mounted and a `.fab-menu--open` class toggles their visibility
+    // with CSS transitions, so expand/collapse animate (fade + upward rise)
+    // instead of re-rendering. State keeps the class in sync on full redraws.
     return `
       <div class="fab-bar">
-        <button type="button" class="btn btn--filled js-record-service" data-id="${escHtml(item.id)}">
-          <span data-lucide="refresh-cw"></span>
-          ${t("maintenance.detail.replaceService")}
-        </button>
+        <div class="fab-menu${open ? " fab-menu--open" : ""}">
+          <div class="card-menu__backdrop js-detail-menu-close"></div>
+          <div class="fab-menu__panel" role="menu" aria-label="${t("services.operations")}">
+            <button type="button" class="card-menu__item js-record-service" role="menuitem"
+              data-id="${escHtml(item.id)}">
+              <span data-lucide="refresh-cw" aria-hidden="true"></span>
+              ${t("maintenance.detail.replaceService")}
+            </button>
+            <button type="button" class="card-menu__item js-detail-notification" role="menuitem"
+              aria-disabled="true">
+              <span data-lucide="bell" aria-hidden="true"></span>
+              ${t("services.notification")}
+            </button>
+            <button type="button" class="card-menu__item js-service-menu-edit" role="menuitem"
+              data-id="${escHtml(item.id)}">
+              <span data-lucide="pencil" aria-hidden="true"></span>
+              ${t("maintenance.editItem")}
+            </button>
+            <div class="card-menu__divider" role="separator"></div>
+            <button type="button" class="card-menu__item card-menu__item--danger js-service-menu-delete"
+              role="menuitem" data-id="${escHtml(item.id)}">
+              <span data-lucide="trash-2" aria-hidden="true"></span>
+              ${t("maintenance.detail.delete")}
+            </button>
+          </div>
+          <button type="button" class="btn btn--filled fab-menu__toggle js-detail-menu-toggle"
+            aria-haspopup="menu" aria-expanded="${open}"
+            aria-label="${t("services.operations")}">
+            <span class="fab-menu__toggle-icon" aria-hidden="true">
+              <span class="fab-menu__toggle-ico fab-menu__toggle-ico--open" data-lucide="x"></span>
+              <span class="fab-menu__toggle-ico fab-menu__toggle-ico--closed" data-lucide="settings-2"></span>
+            </span>
+            ${t("services.operations")}
+          </button>
+        </div>
       </div>`;
   }
   if (dataset.vehicles.length === 0) {
@@ -1042,20 +1081,8 @@ function itemDetailPageHtml(itemId: string): string {
     <span>${t("maintenance.detail.backToList")}</span>
   </a>`;
 
-  // ویرایش / حذف sit opposite the Back link and reuse the exact same
-  // handlers as the service cards' menus (js-service-menu-edit / delete).
-  const itemActions = `
-    <div class="detail-topbar__actions">
-      <button type="button" class="btn btn--text js-service-menu-edit" data-id="${escHtml(item.id)}">
-        <span data-lucide="pencil"></span>
-        ${t("maintenance.editItem")}
-      </button>
-      <button type="button" class="btn btn--text btn--danger-text js-service-menu-delete"
-        data-id="${escHtml(item.id)}">
-        <span data-lucide="trash-2"></span>
-        ${t("maintenance.detail.delete")}
-      </button>
-    </div>`;
+  // ویرایش / حذف moved into the FAB Operations dropdown.
+  const itemActions = "";
 
   return `
     <div class="detail-topbar">
@@ -1677,6 +1704,10 @@ function registerGlobalKeys(): void {
       redraw(container);
       return;
     }
+    if (state.detailMenuOpen) {
+      setDetailMenuOpen(container, false);
+      return;
+    }
     if (state.serviceMenuId) {
       state.serviceMenuId = null;
       redraw(container);
@@ -1738,6 +1769,20 @@ function closeModals(): void {
   state.deleteConfirmId = null;
   state.deleteArmedId = null;
   state.serviceMenuId = null;
+  state.detailMenuOpen = false;
+}
+
+/** Opens/closes the Operations FAB action menu by toggling the mounted
+ * panel's class (CSS transitions animate both directions); aria-expanded
+ * and state stay in sync so later full redraws render the same state. */
+function setDetailMenuOpen(container: HTMLElement, open: boolean): void {
+  state.detailMenuOpen = open;
+  container.querySelectorAll<HTMLElement>(".fab-menu").forEach((menu) => {
+    menu.classList.toggle("fab-menu--open", open);
+  });
+  container
+    .querySelector<HTMLButtonElement>(".js-detail-menu-toggle")
+    ?.setAttribute("aria-expanded", String(open));
 }
 
 /** Events on the detail page. */
@@ -1749,6 +1794,24 @@ function bindDetailEvents(container: HTMLElement): void {
     button.addEventListener("click", () => {
       state.historyOpen = !state.historyOpen;
       redraw(container);
+    });
+  });
+
+  /* Operations FAB menu: toggle, backdrop close, notification (UI-only).
+   * The mounted panel's class is flipped directly (no full redraw) so the
+   * CSS transitions animate both the expand and the collapse; state stays
+   * in sync so any later full redraw renders the same state. */
+  container.querySelectorAll<HTMLButtonElement>(".js-detail-menu-toggle").forEach((button) => {
+    button.addEventListener("click", () => {
+      setDetailMenuOpen(container, !state.detailMenuOpen);
+    });
+  });
+  container.querySelector<HTMLElement>(".js-detail-menu-close")?.addEventListener("click", () => {
+    setDetailMenuOpen(container, false);
+  });
+  container.querySelectorAll<HTMLButtonElement>(".js-detail-notification").forEach((button) => {
+    button.addEventListener("click", () => {
+      setDetailMenuOpen(container, false);
     });
   });
 
@@ -1771,6 +1834,7 @@ function bindDetailEvents(container: HTMLElement): void {
       const item = store.get().maintenanceItems.find((candidate) => candidate.id === button.dataset.id);
       if (!item) return;
       state.serviceMenuId = null;
+      state.detailMenuOpen = false;
       openEditServiceForm(item);
       redraw(container);
     });
@@ -1778,6 +1842,7 @@ function bindDetailEvents(container: HTMLElement): void {
   container.querySelectorAll<HTMLButtonElement>(".js-service-menu-delete").forEach((button) => {
     button.addEventListener("click", () => {
       state.serviceMenuId = null;
+      state.detailMenuOpen = false;
       state.deleteConfirmId = button.dataset.id ?? null;
       redraw(container);
     });
@@ -1789,6 +1854,7 @@ function bindDetailEvents(container: HTMLElement): void {
       state.recordMenu = null;
       state.recordDeleteConfirm = null;
       state.serviceMenuId = null;
+      state.detailMenuOpen = false;
       state.recordForm = { recordId: null, itemId: button.dataset.id ?? currentItemId ?? "" };
       redraw(container);
     });
