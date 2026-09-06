@@ -1548,18 +1548,56 @@ input.affix-field__input {
   align-items: center;
 }
 
-/* Reminder card: linked-service line under the title. */
+/* Reminder card: linked-service line under the title. When a valid related
+ * service exists the whole line is a hash link to its detail page; the
+ * colors follow the standard link affordance (brand ink + soft hover). */
 .reminder-card__service {
   display: inline-flex;
   align-items: center;
   gap: var(--md-space-1);
-  color: var(--md-sys-color-on-surface-variant);
+  color: var(--md-sys-color-primary);
   font-size: var(--md-typescale-body-small);
+  text-decoration: none;
+  border-radius: var(--md-shape-small);
+  transition: color var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+.reminder-card__service:hover {
+  color: color-mix(in srgb, var(--md-sys-color-primary) 82%, black);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .reminder-card__service svg {
   width: 14px;
   height: 14px;
+}
+
+/* Reminder cards keep the standard .card padding: unlike service cards
+ * (whose whole surface is one .service-card__link wrapper that supplies its
+ * own padding), a reminder card renders its content directly, so the base
+ * `.service-card { padding: 0 }` would hug the content to the edges. The
+ * two-class selector out-ranks that later rule at equal-ish specificity. */
+.reminder-card.service-card {
+  padding: var(--md-space-4);
+}
+
+/* Compact, minimalist overflow trigger: reminder cards are dense (chip,
+ * toggle, schedule lines), so the shared 40px .icon-btn is visually heavy
+ * here. 32px matches the project's other compact icon buttons; the hover
+ * wash stays but in a subtler tone. Touch target stays comfortable (32px). */
+.reminder-card .service-card-menu .icon-btn {
+  width: 32px;
+  height: 32px;
+}
+
+.reminder-card .service-card-menu .icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.reminder-card .service-card-menu .icon-btn:hover {
+  background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 6%, transparent);
 }
 
 .reminder-card--disabled .service-card__name,

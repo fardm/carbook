@@ -23,6 +23,7 @@ import type {
 } from "../domain/types";
 import { t } from "../i18n";
 import { store } from "../state/store";
+import { maintenanceDetailHash } from "../ui/router";
 import { faNum, toLatinDigits } from "../ui/format";
 import { bindDateFields, dateFieldHtml } from "../ui/date-field";
 import { escHtml } from "../ui/escape";
@@ -471,7 +472,7 @@ function reminderCardHtml(reminder: Reminder, vehicle: Vehicle | null, dataset: 
           <div class="service-card__name">${escHtml(reminder.title)}</div>
           ${
             service
-              ? `<div class="reminder-card__service"><span data-lucide="link"></span>${escHtml(service.name)}</div>`
+              ? `<a class="reminder-card__service" href="${maintenanceDetailHash(service.id)}"><span data-lucide="link"></span>${escHtml(service.name)}</a>`
               : ""
           }
         </div>
