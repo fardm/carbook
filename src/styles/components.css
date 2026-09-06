@@ -2588,7 +2588,7 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
  * in dark mode — it loses to this rule by order). */
 .fab-menu__action:hover {
   background-color: color-mix(in srgb, #1c1b19 6%, #ffffff);
-  border-color: rgb(6 6 6 / 35%);
+  border-color: #f2870d;
 }
 
 /* Delete's hover must keep the danger styling on white: red wash + reddened
@@ -2637,6 +2637,11 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
   .fab-menu--topbar .fab-menu__actions {
     bottom: auto;
     top: calc(100% + var(--md-space-3));
+    /* Expanding downward, the trigger-adjacent end of the stack is its
+     * TOP, so the shared DOM order must render reversed to keep the same
+     * visual action order (Record Replacement nearest the trigger, Delete
+     * farthest) and the stagger still cascades away from the trigger. */
+    flex-direction: column-reverse;
   }
 
   /* The rise direction flips to match: pills drop into place instead of

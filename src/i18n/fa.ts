@@ -187,7 +187,7 @@ export const fa = {
     menuLabel: "عملیات سرویس",
     editService: "ویرایش",
     operations: "عملیات",
-    notification: "اطلاع‌رسانی",
+    notification: "یادآوری",
   },
   settings: {
     backupTitle: "پشتیبان‌گیری",
