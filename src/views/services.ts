@@ -778,7 +778,6 @@ function serviceFormModalHtml(): string {
             <input class="field__input" id="service-cost" name="serviceCost" type="number"
               inputmode="decimal" min="0" step="any" value="${escHtml(fieldValue("serviceCost"))}"
               placeholder="${faNum(0)} ${currencyLabel(store.get().settings.currency)}" />
-            <p class="field__hint">${t("maintenance.record.costHint")} ${currencyLabel(store.get().settings.currency)}</p>
             <p class="field__error" id="service-error-cost" hidden></p>
           </div>` : ""}
 
