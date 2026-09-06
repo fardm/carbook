@@ -1804,20 +1804,52 @@ input.affix-field__input {
 /* --- Services page (سرویس ها) --- */
 .services-toolbar {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   flex-wrap: wrap;
   gap: var(--md-space-3);
   margin-bottom: var(--md-space-4);
 }
 
-.services-toolbar__select {
-  flex: 1;
-  min-width: 220px;
-  margin: 0;
-}
-
 .services-toolbar .btn {
   flex-shrink: 0;
+}
+
+/* --- Vehicle menu (toolbar dropdown) --- */
+.vehicle-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.vehicle-menu__trigger {
+  gap: var(--md-space-2);
+  white-space: nowrap;
+}
+
+.vehicle-menu__trigger svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.vehicle-menu__chevron {
+  /* Rotated 90° to point downward (chevron-right is the base icon). */
+  display: inline-flex;
+  transform: rotate(90deg);
+  transition: transform var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+.vehicle-menu--open .vehicle-menu__chevron {
+  transform: rotate(-90deg);
+}
+
+.vehicle-menu__popover {
+  /* Anchor to the right edge of the trigger so the popover opens flush
+   * below it regardless of RTL layout direction. */
+  right: 0;
+  left: auto;
+  min-width: 200px;
 }
 
 /* --- Sort menu (toolbar dropdown) --- */

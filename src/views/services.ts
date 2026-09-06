@@ -118,6 +118,8 @@ interface ServicesViewState {
   sortMode: SortMode;
   /** Sort dropdown popover is open on the list page. */
   sortMenuOpen: boolean;
+  /** Vehicle picker popover is open on the list page. */
+  vehicleMenuOpen: boolean;
 }
 
 const state: ServicesViewState = {
@@ -139,6 +141,7 @@ const state: ServicesViewState = {
   historyOpen: false,
   sortMode: "healthBest",
   sortMenuOpen: false,
+  vehicleMenuOpen: false,
 };
 
 /** Typed form-field value that survives re-renders (decision 31). */
@@ -332,24 +335,49 @@ function servicesListHtml(): string {
 }
 
 function servicesToolbarHtml(dataset: ReturnType<typeof store.get>, selectedId: string | null): string {
-  const options = dataset.vehicles
+  return `<div class="services-toolbar">${vehicleMenuHtml(dataset, selectedId)}${sortMenuHtml()}</div>`;
+}
+
+/** Vehicle picker button + popover for the toolbar — mirrors sortMenuHtml(). */
+function vehicleMenuHtml(dataset: ReturnType<typeof store.get>, selectedId: string | null): string {
+  const selectedVehicle = dataset.vehicles.find((v) => v.id === selectedId) ?? null;
+  const triggerLabel = selectedVehicle
+    ? escHtml(selectedVehicle.name)
+    : escHtml(t("services.vehicleLabel"));
+  const disabled = dataset.vehicles.length === 0;
+
+  const items = dataset.vehicles
     .map(
-      (vehicle) =>
-        `<option value="${escHtml(vehicle.id)}" ${vehicle.id === selectedId ? "selected" : ""}>${escHtml(vehicle.name)}</option>`,
+      (vehicle) => `
+        <button type="button" class="card-menu__item js-vehicle-option"
+          data-vehicle-id="${escHtml(vehicle.id)}"
+          aria-pressed="${vehicle.id === selectedId}">
+          ${escHtml(vehicle.name)}
+          ${vehicle.id === selectedId
+            ? `<span class="card-menu__check" aria-hidden="true" data-lucide="circle-check"></span>`
+            : ""}
+        </button>`,
     )
     .join("");
-  const select = `
-    <div class="field services-toolbar__select">
-      <label class="field__label" for="services-vehicle-select">${t("services.vehicleLabel")}</label>
-      <select class="field__input js-vehicle-select" id="services-vehicle-select"
-        ${dataset.vehicles.length === 0 ? "disabled" : ""}>
-        ${options}
-      </select>
+
+  return `
+    <div class="vehicle-menu${state.vehicleMenuOpen ? " vehicle-menu--open" : ""}">
+      ${state.vehicleMenuOpen ? `<div class="card-menu__backdrop js-vehicle-menu-close"></div>` : ""}
+      <button type="button" class="btn btn--secondary vehicle-menu__trigger js-vehicle-menu-toggle"
+        aria-haspopup="true" aria-expanded="${state.vehicleMenuOpen}"
+        aria-label="${escHtml(t("services.vehicleLabel"))}"
+        ${disabled ? "disabled" : ""}>
+        <span data-lucide="car" aria-hidden="true"></span>
+        ${triggerLabel}
+        <span class="vehicle-menu__chevron" data-lucide="chevron-right" aria-hidden="true"></span>
+      </button>
+      ${state.vehicleMenuOpen
+        ? `<div class="card-menu__popover vehicle-menu__popover" role="menu">
+            ${items}
+           </div>`
+        : ""}
     </div>
   `;
-  // The ثبت سرویس action lives in the floating bottom action bar (see
-  // fabBarHtml); the toolbar only carries the vehicle selector.
-  return `<div class="services-toolbar">${select}${sortMenuHtml()}</div>`;
 }
 
 /** Sort button + dropdown popover for the active-services list. */
@@ -1517,9 +1545,24 @@ function bind(container: HTMLElement): void {
 
 /** Events on the list page (vehicle select, add button, picker). */
 function bindListEvents(container: HTMLElement): void {
-  container.querySelectorAll<HTMLSelectElement>(".js-vehicle-select").forEach((select) => {
-    select.addEventListener("change", () => {
-      state.selectedVehicleId = select.value || null;
+  /* Vehicle menu: open/close and pick a vehicle. */
+  container.querySelectorAll<HTMLButtonElement>(".js-vehicle-menu-toggle").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.vehicleMenuOpen = !state.vehicleMenuOpen;
+      redraw(container);
+    });
+  });
+  container.querySelectorAll<HTMLElement>(".js-vehicle-menu-close").forEach((el) => {
+    el.addEventListener("click", () => {
+      state.vehicleMenuOpen = false;
+      redraw(container);
+    });
+  });
+  container.querySelectorAll<HTMLButtonElement>(".js-vehicle-option").forEach((button) => {
+    button.addEventListener("click", () => {
+      const id = button.dataset.vehicleId ?? null;
+      if (id) state.selectedVehicleId = id;
+      state.vehicleMenuOpen = false;
       redraw(container);
     });
   });
