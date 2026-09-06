@@ -2524,16 +2524,27 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
   pointer-events: auto;
 }
 
-/* Individual speed-dial action: a rounded, elevated pill that scales and
- * rises into place. `--fab-stagger` (0 = nearest the FAB) delays each
- * button's transition so the dial opens upward from the trigger; on close
- * the same delays cascade the buttons back down, nearest first. */
+/* Individual speed-dial action: a white, bordered pill that stays clearly
+ * separated from the page beneath it in BOTH themes — light mode's surfaces
+ * are near-white and dark mode's go near-black, so the background is pinned
+ * to white (never themed) and the ink colors are pinned with it: dark text
+ * for normal actions, the app's danger red for Delete.
+ * `--fab-stagger` (0 = nearest the FAB) delays each button's transition so
+ * the dial opens upward from the trigger; on close the same delays cascade
+ * the buttons back down, nearest first. */
 .fab-menu__action {
   min-height: 44px;
   padding-inline: var(--md-space-4);
+  border: 1px solid rgb(167 167 167);
   border-radius: var(--md-shape-full);
-  background-color: var(--md-sys-color-surface-container-low);
-  box-shadow: var(--md-elevation-2);
+  /* White in light AND dark: themed surface tokens would flip the pill
+   * dark in dark mode and it would melt into the page. */
+  background-color: #ffffff;
+  box-shadow: 0 4px 10px rgb(6 6 6 / 31%);
+  /* Pinned dark ink (icon inherits via currentColor): readable on the white
+   * pill in both themes — the shared .card-menu__item color is a theme var
+   * that turns near-white in dark mode and would disappear here. */
+  color: #1c1b19;
   opacity: 0;
   visibility: hidden;
   transform: translateY(12px) scale(0.9);
@@ -2563,10 +2574,42 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
     0s;
 }
 
-/* Danger action keeps the shared danger coloring on its own pill; the
- * discrete pills themselves provide the visual separation. */
+/* Delete keeps the danger red for icon + text. Pinned to the light-theme
+ * error red because the pill stays white in dark mode too — the themed
+ * --md-sys-color-error flips to a pale salmon there and would be illegible
+ * on white. (0,2,0) + later in the file beats .card-menu__item--danger. */
+.fab-menu__action.card-menu__item--danger {
+  color: #ba1a1a;
+}
+
+/* Hover on white: a soft neutral wash + a slightly stronger border for
+ * clear feedback; the wash mixes into WHITE, so it reads identically in
+ * both themes (the themed .card-menu__item:hover gray would turn near-black
+ * in dark mode — it loses to this rule by order). */
+.fab-menu__action:hover {
+  background-color: color-mix(in srgb, #1c1b19 6%, #ffffff);
+  border-color: rgb(6 6 6 / 35%);
+}
+
+/* Delete's hover must keep the danger styling on white: red wash + reddened
+ * border. Same specificity as the neutral hover, later in the file, so it
+ * wins — and both beat .card-menu__item--danger:hover via order. */
 .fab-menu__action.card-menu__item--danger:hover {
-  background-color: color-mix(in srgb, var(--md-sys-color-error) 10%, var(--md-sys-color-surface-container-low));
+  background-color: color-mix(in srgb, #ba1a1a 10%, #ffffff);
+  border-color: color-mix(in srgb, #ba1a1a 45%, rgb(167 167 167));
+}
+
+/* Notification is aria-disabled (UI-only): pinned ink, no pointer cursor. */
+.fab-menu__action[aria-disabled="true"] {
+  color: #1c1b19;
+  cursor: default;
+}
+
+/* …and it gets no hover feedback at all: this restates the resting look so
+ * the neutral hover rule cannot darken its border either. */
+.fab-menu__action[aria-disabled="true"]:hover {
+  background-color: #ffffff;
+  border-color: rgb(167 167 167);
 }
 
 /* --- Operations menu anchors (responsive) ---
