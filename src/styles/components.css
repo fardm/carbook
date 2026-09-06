@@ -1625,7 +1625,7 @@ input.affix-field__input {
 .vehicle-row__mileage {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: var(--md-space-1);
   flex-shrink: 0;
   /* Compact, divider-free separation from the vehicle info. */
@@ -1818,6 +1818,41 @@ input.affix-field__input {
 
 .services-toolbar .btn {
   flex-shrink: 0;
+}
+
+/* --- Sort menu (toolbar dropdown) --- */
+.sort-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sort-menu__trigger {
+  gap: var(--md-space-2);
+  white-space: nowrap;
+}
+
+.sort-menu__trigger svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.sort-menu__popover {
+  /* Override card-menu__popover positioning: anchor to the right edge of
+   * the trigger in RTL layouts so the popover doesn't overflow the viewport. */
+  left: auto;
+  right: 0;
+  min-width: 220px;
+}
+
+.sort-menu__group-label {
+  padding: var(--md-space-2) var(--md-space-3) var(--md-space-1);
+  font-size: var(--md-typescale-label-small);
+  font-weight: 600;
+  color: var(--md-sys-color-primary);
+  letter-spacing: 0.03em;
 }
 
 .services-empty {
