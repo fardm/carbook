@@ -117,10 +117,43 @@ export type CalendarPreference = "jalali" | "gregorian";
 /** Currency used for recording/displaying service costs (Settings). The
  * setting only picks the unit in which entered amounts are stored and shown;
  * no conversion ever happens. */
+
+/** Notification offsets in days or km. */
+export interface NotificationOffset {
+  daysBefore: number | null;
+  kmBefore: number | null;
+}
+
+/** Repeat options for recurring reminders. */
+export type ReminderRepeat = "none" | "yearly" | "monthly" | "km";
+
+/** A reminder. */
+export interface Reminder {
+  id: string;
+  vehicleId: string;
+  serviceId: string | null;
+  title: string;
+  description: string;
+  type: "date" | "mileage" | "both";
+  dueDate: string | null; // "yyyy-mm-dd"
+  dueMileage: number | null;
+  /** Custom thresholds to trigger notification. "0" means exactly on due date/mileage. */
+  notificationOffsets: NotificationOffset[];
+  repeat: ReminderRepeat;
+  /** Custom km repeat interval if repeat === 'km' */
+  repeatKm: number | null;
+  active: boolean;
+  /** Track last notification to prevent spamming */
+  lastNotifiedAt: string | null; // ISO datetime
+  createdAt: string; // ISO datetime
+  updatedAt: string; // ISO datetime
+}
+
 export type Currency = "IRR" | "USD" | "EUR";
 
 export interface Settings {
   statusThresholds: StatusThresholds;
+  notificationsEnabled: boolean;
   /** "system" follows the OS `prefers-color-scheme`; light/dark override it. */
   theme: ThemePreference;
   /** Calendar used for date display + date input throughout the app. */
@@ -141,5 +174,6 @@ export interface Dataset {
   vehicles: Vehicle[];
   maintenanceItems: MaintenanceItem[];
   serviceHistory: ServiceRecord[];
+  reminders: Reminder[];
   settings: Settings;
 }

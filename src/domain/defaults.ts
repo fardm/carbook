@@ -1,7 +1,7 @@
 import type { Dataset, Settings } from "./types";
 
 /** Current schema version. Bump when the dataset shape changes (§40). */
-export const CURRENT_VERSION = 9;
+export const CURRENT_VERSION = 10;
 
 export function defaultSettings(): Settings {
   return {
@@ -16,6 +16,7 @@ export function defaultSettings(): Settings {
     currency: "IRR",
     // No default vehicle until the user picks one (نقشه: انتخاب به عنوان پیشفرض).
     defaultVehicleId: null,
+    notificationsEnabled: false,
   };
 }
 
@@ -27,6 +28,7 @@ export function defaultDataset(): Dataset {
     vehicles: [],
     maintenanceItems: [],
     serviceHistory: [],
+    reminders: [],
     settings: defaultSettings(),
   };
 }

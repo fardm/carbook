@@ -1,3 +1,5 @@
+import { checkAllReminders } from "./domain/reminders";
+import { store } from "./state/store";
 import { t } from "./i18n";
 import { applyIcons } from "./ui/icons";
 import { routes, parseHash, type RouteId } from "./ui/router";
@@ -9,6 +11,39 @@ import "./styles/tokens.css";
 import "./styles/base.css";
 import "./styles/layout.css";
 import "./styles/components.css";
+
+
+function triggerNotifications(): void {
+  const dataset = store.get();
+  if (!dataset.settings.notificationsEnabled) return;
+
+  // We only run this if we have permission.
+  // Note: if user enabled in settings but browser permission changed,
+  // Notification.permission will tell us.
+  if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+    const { notifications, mutatedDataset } = checkAllReminders(dataset);
+
+    for (const notif of notifications) {
+      new Notification(notif.title, {
+         body: notif.body,
+         icon: "/favicon.svg",
+         tag: notif.reminderId // prevent duplicates on screen
+      });
+    }
+
+    if (mutatedDataset) {
+        store.update(draft => {
+           draft.reminders = mutatedDataset.reminders;
+        });
+    }
+  }
+}
+
+let notificationDebounce: number;
+function scheduleNotifications(): void {
+  window.clearTimeout(notificationDebounce);
+  notificationDebounce = window.setTimeout(triggerNotifications, 1000);
+}
 
 function renderNav(): void {
   const nav = document.getElementById("app-nav");
@@ -87,6 +122,15 @@ function boot(): void {
   render();
   window.addEventListener("hashchange", render);
   registerServiceWorker();
+
+  // Setup Reminder Checks
+  scheduleNotifications();
+  store.subscribe(scheduleNotifications);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+       scheduleNotifications();
+    }
+  });
 }
 
 /**

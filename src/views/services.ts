@@ -1,5 +1,4 @@
 import { CATALOG, catalogEntry, categoryName, recommendedLifespanKm } from "../catalog";
-import { lastServiceFor } from "../domain/baselines";
 import { diffDays } from "../domain/calendar/dates";
 import { createId } from "../domain/ids";
 import {
@@ -23,7 +22,6 @@ import type {
 } from "../domain/types";
 import { t, type MessageKey } from "../i18n";
 import { store } from "../state/store";
-import { googleCalendarUrl } from "../ui/calendar";
 import { bindDateFields, dateFieldHtml } from "../ui/date-field";
 import { currencyLabel } from "../ui/currency";
 import { escHtml } from "../ui/escape";
@@ -234,32 +232,35 @@ function servicesViewHtml(): string {
  * "افزودن به تقویم گوگل" link; legacy inactive items keep only the body
  * reactivate flow.
  */
+
 function fabBarHtml(itemId: string | null): string {
   const dataset = store.get();
   if (itemId) {
     const item = dataset.maintenanceItems.find((c) => c.id === itemId);
     if (!item || !item.active) return "";
-    const calc = calculateMaintenance(item, contextForVehicle(dataset, item.vehicleId));
+
     const recordLabel = t("maintenance.detail.replaceService");
     const recordClass = "js-record-service";
+
     const recordButtonHtml = `
       <button type="button" class="btn btn--filled ${recordClass}" data-id="${escHtml(item.id)}">
         <span data-lucide="refresh-cw"></span>
         ${recordLabel}
       </button>`;
-    const calendarHref = calendarEventHref(item, calc);
-    const calendarLink = calendarHref
-      ? `
-      <a class="btn btn--secondary" href="${escHtml(calendarHref)}" target="_blank" rel="noopener noreferrer">
+
+    // Switch to local reminders creation instead of google calendar
+    const createReminderHref = `#/reminders?serviceId=${encodeURIComponent(item.id)}&vehicle=${encodeURIComponent(state.selectedVehicleId!)}`;
+
+    const calendarLink = `
+      <a class="btn btn--secondary" href="${createReminderHref}">
         <span data-lucide="bell"></span>
         ${t("maintenance.detail.reminder")}
-      </a>`
-      : "";
-    const inner = calendarHref
-      ? `<div class="fab-bar__group">${recordButtonHtml}${calendarLink}</div>`
-      : recordButtonHtml;
+      </a>`;
+
+    const inner = `<div class="fab-bar__group">${recordButtonHtml}${calendarLink}</div>`;
     return `<div class="fab-bar">${inner}</div>`;
   }
+
   if (dataset.vehicles.length === 0) return "";
   return `
     <div class="fab-bar">
@@ -778,7 +779,6 @@ function serviceFormModalHtml(): string {
             <input class="field__input" id="service-cost" name="serviceCost" type="number"
               inputmode="decimal" min="0" step="any" value="${escHtml(fieldValue("serviceCost"))}"
               placeholder="${faNum(0)} ${currencyLabel(store.get().settings.currency)}" />
-            <p class="field__hint">${t("maintenance.record.costHint")} ${currencyLabel(store.get().settings.currency)}</p>
             <p class="field__error" id="service-error-cost" hidden></p>
           </div>` : ""}
 
@@ -914,29 +914,7 @@ function detailActionRowHtml(item: MaintenanceItem, inactive: boolean): string {
   `;
 }
 
-/** Google Calendar event link for a service (title + next computable date). */
-function calendarEventHref(
-  item: MaintenanceItem,
-  calc: ReturnType<typeof calculateMaintenance>,
-): string | null {
-  const date = calc.estimatedDueDate ?? calc.nextDueDate;
-  if (!date) return null;
-  const descriptionLines: string[] = [];
-  const last = lastServiceFor(store.get().serviceHistory, item.id);
-  if (last) {
-    descriptionLines.push(
-      `${t("maintenance.detail.lastService")}: ${formatDate(last.date)}${
-        last.odometer != null ? ` (${faNum(last.odometer)} ${t("common.kmUnit")})` : ""
-      }`,
-    );
-  }
-  descriptionLines.push(`${t("maintenance.detail.calendarEventNote")}: ${formatDate(date)}`);
-  return googleCalendarUrl({
-    title: item.name,
-    date,
-    details: descriptionLines.join("\n"),
-  });
-}
+
 
 /** Lifetime row under the service name:
  * `عمر قطعه ≈ ۴۰٬۰۰۰ کیلومتر (تقریباً ۲ سال)` when annual mileage allows

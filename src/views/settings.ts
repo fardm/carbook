@@ -84,6 +84,33 @@ export function renderSettings(container: HTMLElement): () => void {
   return store.subscribe(draw);
 }
 
+
+function notificationsCardHtml(dataset: Dataset): string {
+  const isEnabled = dataset.settings.notificationsEnabled;
+  // If native Notifications are denied, show warning
+  const isDenied = typeof Notification !== "undefined" && Notification.permission === "denied";
+  const notSupported = typeof Notification === "undefined";
+
+  return `
+    <section class="card">
+      <h2 class="card__title">${t("reminders.title" as any)}</h2>
+      <p class="card__text">${t("reminders.enableNotificationsHint" as any)}</p>
+
+      ${notSupported ? `
+        <div class="box box--error" style="margin-top: 1rem;">${t("reminders.notificationsNotSupported" as any)}</div>
+      ` : `
+        <div style="margin-top: 1rem; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center;">
+            <input type="checkbox" id="settings-notif" class="js-toggle-notif" ${isEnabled ? "checked" : ""} ${isDenied ? "disabled" : ""} style="margin-left: 0.5rem; width: 1.25rem; height: 1.25rem;">
+            <label for="settings-notif">${t("reminders.enableNotifications" as any)}</label>
+          </div>
+        </div>
+        ${isDenied ? `<div class="box box--warn" style="margin-top: 1rem;">${t("reminders.notificationsDenied" as any)}</div>` : ""}
+      `}
+    </section>
+  `;
+}
+
 function settingsViewHtml(): string {
   const dataset = store.get();
   return `
@@ -92,6 +119,7 @@ function settingsViewHtml(): string {
       ${calendarCardHtml(dataset)}
       ${currencyCardHtml(dataset)}
       ${appearanceCardHtml(dataset)}
+    ${notificationsCardHtml(dataset)}
       ${backupCardHtml(dataset)}
       ${restoreCardHtml()}
     </div>
@@ -276,6 +304,30 @@ function previewHtml(pending: { fileName: string; dataset: Dataset }): string {
 /* --- Events --- */
 
 function bind(container: HTMLElement): void {
+
+  container.querySelector<HTMLInputElement>(".js-toggle-notif")?.addEventListener("change", (e) => {
+    const el = e.target as HTMLInputElement;
+    if (el.checked) {
+       // Request permission if not already granted
+       if (typeof Notification !== "undefined" && Notification.permission !== "granted") {
+          Notification.requestPermission().then(permission => {
+             if (permission === "granted") {
+                store.update(draft => { draft.settings.notificationsEnabled = true; });
+             } else {
+                // Denied, revert checkbox and redraw to show warning
+                el.checked = false;
+                store.update(draft => { draft.settings.notificationsEnabled = false; });
+                redraw(container);
+             }
+          });
+       } else {
+          store.update(draft => { draft.settings.notificationsEnabled = true; });
+       }
+    } else {
+       store.update(draft => { draft.settings.notificationsEnabled = false; });
+    }
+  });
+
   container.querySelectorAll<HTMLButtonElement>(".js-calendar-option").forEach((button) => {
     button.addEventListener("click", () => {
       const calendar = (button.dataset.calendarValue as CalendarPreference) ?? "jalali";

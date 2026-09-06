@@ -20,7 +20,7 @@
 /** Matches `#/maintenance/<id>` (single path segment after the view). */
 const MAINTENANCE_DETAIL_RE = /^\/maintenance\/([^/]+)$/;
 
-export type RouteId = "maintenance" | "vehicle" | "settings";
+export type RouteId = "maintenance" | "vehicle" | "reminders" | "settings";
 
 export interface RouteDef {
   id: RouteId;
@@ -33,6 +33,7 @@ export interface RouteDef {
 export const routes: readonly RouteDef[] = [
   { id: "vehicle", hash: "/vehicle", icon: "car-front" },
   { id: "maintenance", hash: "/maintenance", icon: "wrench" },
+  { id: "reminders", hash: "/reminders", icon: "bell" },
   { id: "settings", hash: "/settings", icon: "settings" },
 ];
 
@@ -89,4 +90,17 @@ export function hashFor(id: RouteId): string {
 /** The detail hash for an item: `#/maintenance/<itemId>`. */
 export function maintenanceDetailHash(itemId: string): string {
   return `#/maintenance/${encodeURIComponent(itemId)}`;
+}
+
+/**
+ * Extracts reminder creation params from `#/reminders?serviceId=<id>&vehicle=<id>`.
+ */
+export function remindersCreateParamsFromHash(hash: string): { serviceId: string, vehicleId: string } | null {
+  const cleaned = hash.startsWith("#") ? hash.slice(1) : hash;
+  const [path, query] = cleaned.split("?");
+  if (path !== "/reminders") return null;
+  const s = query != null ? new URLSearchParams(query).get("serviceId") : null;
+  const v = query != null ? new URLSearchParams(query).get("vehicle") : null;
+  if (s && v) return { serviceId: decodeURIComponent(s), vehicleId: decodeURIComponent(v) };
+  return null;
 }

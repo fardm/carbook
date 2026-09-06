@@ -75,7 +75,7 @@ export function loadFromString(raw: string): Dataset {
     warnInvalid("missing numeric version");
     return defaultDataset();
   }
-  if (parsed.version !== CURRENT_VERSION) {
+  if (parsed.version !== CURRENT_VERSION && parsed.version !== 9) {
     console.warn(
       `[persistence] Stored data version ${parsed.version} is not supported (current: ${CURRENT_VERSION}); starting fresh.`,
     );
@@ -96,6 +96,7 @@ function normalize(raw: Record<string, unknown>): Dataset {
       : [],
     maintenanceItems: withVehicleId(Array.isArray(raw.maintenanceItems) ? raw.maintenanceItems : []) as Dataset["maintenanceItems"],
     serviceHistory: withVehicleId(Array.isArray(raw.serviceHistory) ? raw.serviceHistory : []) as Dataset["serviceHistory"],
+    reminders: withVehicleId(Array.isArray(raw.reminders) ? raw.reminders : []) as Dataset["reminders"],
     settings: normalizeSettings(raw.settings, fallback.settings),
   };
 }
@@ -150,6 +151,10 @@ function normalizeSettings(raw: unknown, fallback: Settings): Settings {
       typeof raw.defaultVehicleId === "string" && raw.defaultVehicleId !== ""
         ? raw.defaultVehicleId
         : null,
+    notificationsEnabled:
+      typeof raw.notificationsEnabled === "boolean"
+        ? raw.notificationsEnabled
+        : fallback.notificationsEnabled,
   };
 }
 

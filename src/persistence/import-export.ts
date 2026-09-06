@@ -465,5 +465,6 @@ function assembleDataset(raw: Record<string, unknown>): Dataset {
     maintenanceItems: raw.maintenanceItems as Dataset["maintenanceItems"],
     serviceHistory: raw.serviceHistory as Dataset["serviceHistory"],
     settings: raw.settings as Dataset["settings"],
+    reminders: (raw.reminders as Dataset["reminders"]) || [],
   };
 }
