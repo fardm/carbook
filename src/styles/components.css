@@ -1548,9 +1548,10 @@ input.affix-field__input {
   justify-content: center;
   width: 56px;
   height: 56px;
-  border-radius: var(--md-shape-medium);
-  background-color: var(--md-sys-color-primary-container);
-  color: var(--md-sys-color-on-primary-container);
+  border-radius: var(--md-shape-large);
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface-variant);
+  padding: 8px;
 }
 
 .vehicles-empty__icon svg {
