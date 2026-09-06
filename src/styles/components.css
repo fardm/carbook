@@ -2464,13 +2464,12 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
 }
 
 /* --- Operations action menu (detail-page FAB) ---
- * Speed-dial style: the grouped action panel floats directly above the
- * anchored Operations button and expands upward with a fade + rise. The
- * panel and its click-away backdrop stay mounted; `.fab-menu--open`
- * toggles their visibility via transitions, so expand AND collapse both
- * animate. The panel centers on the trigger via a physical left: 50% + a
- * translateX(-50%) folded into the animated transform, so it works in
- * both LTR and RTL (see .fab-menu__panel below). */
+ * Vertical speed dial: the action buttons stay mounted in a stack that
+ * sits directly ABOVE the anchored Operations FAB and expands upward
+ * (nearest button first) with a per-button staggered scale + translateY.
+ * `.fab-menu--open` toggles visibility, so expand AND collapse both
+ * animate. The stack centers on the trigger via a physical left: 50% +
+ * translateX(-50%), so it works in both LTR and RTL. */
 .fab-menu {
   position: relative;
   display: inline-flex;
@@ -2497,43 +2496,73 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
     visibility 0s;
 }
 
-/* Cohesive action panel: one rounded, elevated container holding all four
- * actions, centered above the trigger button. */
-.fab-menu__panel {
+/* Speed-dial stack: one column of discrete floating action pills, centered
+ * above the trigger button. The container is a transparent positioning
+ * box only — each button carries its own elevation and animation. */
+.fab-menu__actions {
   position: absolute;
   bottom: calc(100% + var(--md-space-3));
-  /* Centered on the trigger with a physical left: 50% so it works in RTL;
-   * the translateX(-50%) is folded into the animated transform. */
+  /* Centered on the trigger with a physical left: 50% so it works in RTL. */
   left: 50%;
+  transform: translateX(-50%);
   width: max-content;
   min-width: 220px;
   max-width: calc(100vw - 2 * var(--md-space-4));
   z-index: 46;
-  padding: var(--md-space-1);
-  border-radius: var(--md-shape-large);
-  background-color: var(--md-sys-color-surface-container-low);
-  box-shadow: var(--md-elevation-3);
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  gap: var(--md-space-2);
+  pointer-events: none;
+}
+
+.fab-menu--open .fab-menu__actions {
+  pointer-events: auto;
+}
+
+/* Individual speed-dial action: a rounded, elevated pill that scales and
+ * rises into place. `--fab-stagger` (0 = nearest the FAB) delays each
+ * button's transition so the dial opens upward from the trigger; on close
+ * the same delays cascade the buttons back down, nearest first. */
+.fab-menu__action {
+  min-height: 44px;
+  padding-inline: var(--md-space-4);
+  border-radius: var(--md-shape-full);
+  background-color: var(--md-sys-color-surface-container-low);
+  box-shadow: var(--md-elevation-2);
   opacity: 0;
   visibility: hidden;
-  transform: translate(-50%, 10px);
+  transform: translateY(12px) scale(0.9);
   pointer-events: none;
   transition:
     opacity var(--md-motion-duration-medium) var(--md-motion-easing),
     transform var(--md-motion-duration-medium) var(--md-motion-easing),
     visibility 0s linear var(--md-motion-duration-medium);
+  transition-delay:
+    calc(var(--fab-stagger, 0) * 40ms),
+    calc(var(--fab-stagger, 0) * 40ms),
+    calc(var(--md-motion-duration-medium) + var(--fab-stagger, 0) * 40ms);
 }
 
-.fab-menu--open .fab-menu__panel {
+.fab-menu--open .fab-menu__action {
   opacity: 1;
   visibility: visible;
-  transform: translate(-50%, 0);
+  transform: translateY(0) scale(1);
   pointer-events: auto;
   transition:
     opacity var(--md-motion-duration-medium) var(--md-motion-easing),
     transform var(--md-motion-duration-medium) var(--md-motion-easing),
     visibility 0s;
+  transition-delay:
+    calc(var(--fab-stagger, 0) * 40ms),
+    calc(var(--fab-stagger, 0) * 40ms),
+    0s;
+}
+
+/* Danger action keeps the shared danger coloring on its own pill; the
+ * discrete pills themselves provide the visual separation. */
+.fab-menu__action.card-menu__item--danger:hover {
+  background-color: color-mix(in srgb, var(--md-sys-color-error) 10%, var(--md-sys-color-surface-container-low));
 }
 
 /* The anchored trigger stays above the click-away backdrop so it can

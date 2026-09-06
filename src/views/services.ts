@@ -259,35 +259,37 @@ function fabBarHtml(itemId: string | null): string {
     const item = dataset.maintenanceItems.find((c) => c.id === itemId);
     if (!item || !item.active) return "";
     const open = state.detailMenuOpen;
-    // Speed-dial style action menu: the grouped panel + click-away backdrop
-    // stay mounted and a `.fab-menu--open` class toggles their visibility
-    // with CSS transitions, so expand/collapse animate (fade + upward rise)
-    // instead of re-rendering. State keeps the class in sync on full redraws.
+    // Vertical speed dial: the action buttons stay mounted in a stack that
+    // sits directly ABOVE the anchored Operations FAB; `.fab-menu--open`
+    // toggles their visibility so each button plays its own staggered
+    // scale + translateY transition (growing upward from the FAB) instead
+    // of re-rendering. --fab-stagger orders the stagger: 0 = nearest the
+    // FAB (appears first), higher = farther (appears later). State keeps
+    // the class in sync on full redraws.
     return `
       <div class="fab-bar">
         <div class="fab-menu${open ? " fab-menu--open" : ""}">
           <div class="card-menu__backdrop js-detail-menu-close"></div>
-          <div class="fab-menu__panel" role="menu" aria-label="${t("services.operations")}">
-            <button type="button" class="card-menu__item js-record-service" role="menuitem"
-              data-id="${escHtml(item.id)}">
-              <span data-lucide="refresh-cw" aria-hidden="true"></span>
-              ${t("maintenance.detail.replaceService")}
+          <div class="fab-menu__actions" role="menu" aria-label="${t("services.operations")}">
+            <button type="button" class="card-menu__item card-menu__item--danger fab-menu__action js-service-menu-delete"
+              role="menuitem" data-id="${escHtml(item.id)}" style="--fab-stagger: 3">
+              <span data-lucide="trash-2" aria-hidden="true"></span>
+              ${t("maintenance.detail.delete")}
             </button>
-            <button type="button" class="card-menu__item js-detail-notification" role="menuitem"
-              aria-disabled="true">
-              <span data-lucide="bell" aria-hidden="true"></span>
-              ${t("services.notification")}
-            </button>
-            <button type="button" class="card-menu__item js-service-menu-edit" role="menuitem"
-              data-id="${escHtml(item.id)}">
+            <button type="button" class="card-menu__item fab-menu__action js-service-menu-edit"
+              role="menuitem" data-id="${escHtml(item.id)}" style="--fab-stagger: 2">
               <span data-lucide="pencil" aria-hidden="true"></span>
               ${t("maintenance.editItem")}
             </button>
-            <div class="card-menu__divider" role="separator"></div>
-            <button type="button" class="card-menu__item card-menu__item--danger js-service-menu-delete"
-              role="menuitem" data-id="${escHtml(item.id)}">
-              <span data-lucide="trash-2" aria-hidden="true"></span>
-              ${t("maintenance.detail.delete")}
+            <button type="button" class="card-menu__item fab-menu__action js-detail-notification"
+              role="menuitem" aria-disabled="true" style="--fab-stagger: 1">
+              <span data-lucide="bell" aria-hidden="true"></span>
+              ${t("services.notification")}
+            </button>
+            <button type="button" class="card-menu__item fab-menu__action js-record-service"
+              role="menuitem" data-id="${escHtml(item.id)}" style="--fab-stagger: 0">
+              <span data-lucide="refresh-cw" aria-hidden="true"></span>
+              ${t("maintenance.detail.replaceService")}
             </button>
           </div>
           <button type="button" class="btn btn--filled fab-menu__toggle js-detail-menu-toggle"
