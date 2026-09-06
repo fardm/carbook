@@ -305,7 +305,7 @@ select.field__input {
 
 /* Multiline notes: floated label sits on top, text starts beneath it. */
 textarea.field__input {
-  min-height: 104px;
+  height: 72px;
   padding: 26px var(--md-space-3) var(--md-space-2);
   line-height: 1.7;
   resize: vertical;

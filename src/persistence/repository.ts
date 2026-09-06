@@ -1,5 +1,6 @@
 import { CURRENT_VERSION, defaultDataset } from "../domain/defaults";
 import type { Dataset, Settings } from "../domain/types";
+import { normalizeReminders } from "./reminder-normalize";
 
 /**
  * Centralized persistence layer (§39): the whole dataset lives under ONE
@@ -76,6 +77,15 @@ export function loadFromString(raw: string): Dataset {
     return defaultDataset();
   }
   if (parsed.version !== CURRENT_VERSION) {
+    // v9 → v10: reminders were added alongside the existing data. Existing
+    // datasets migrate in place (an empty reminders array is appended) so
+    // users never lose vehicles/services/settings across the update.
+    if (parsed.version === CURRENT_VERSION - 1) {
+      console.warn(
+        `[persistence] Migrating stored data v${parsed.version} → v${CURRENT_VERSION} (adding reminders).`,
+      );
+      return normalize({ ...parsed, reminders: [] });
+    }
     console.warn(
       `[persistence] Stored data version ${parsed.version} is not supported (current: ${CURRENT_VERSION}); starting fresh.`,
     );
@@ -85,7 +95,11 @@ export function loadFromString(raw: string): Dataset {
   return normalize(parsed);
 }
 
-/** Ensures the parsed object has the exact Dataset shape (§40 step 5). */
+/**
+ * Ensures the parsed object has the exact Dataset shape (§40 step 5).
+ * Reminders (v10) are defensively normalized per row so partially-shaped
+ * stored data never crashes the feature.
+ */
 function normalize(raw: Record<string, unknown>): Dataset {
   const fallback = defaultDataset();
   return {
@@ -96,6 +110,7 @@ function normalize(raw: Record<string, unknown>): Dataset {
       : [],
     maintenanceItems: withVehicleId(Array.isArray(raw.maintenanceItems) ? raw.maintenanceItems : []) as Dataset["maintenanceItems"],
     serviceHistory: withVehicleId(Array.isArray(raw.serviceHistory) ? raw.serviceHistory : []) as Dataset["serviceHistory"],
+    reminders: normalizeReminders(raw.reminders),
     settings: normalizeSettings(raw.settings, fallback.settings),
   };
 }

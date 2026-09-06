@@ -57,8 +57,12 @@ const TOP_LEVEL_FIELDS = [
   "vehicles",
   "maintenanceItems",
   "serviceHistory",
+  "reminders",
   "settings",
 ] as const;
+
+const REMINDER_TYPES = ["date", "mileage", "date_mileage"] as const;
+const REPEAT_MODES = ["none", "monthly", "yearly", "km"] as const;
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
@@ -146,6 +150,7 @@ export function validateImportText(text: string): ImportResult {
   validateMaintenanceItems(raw.maintenanceItems, vehicleIds, itemIds, issues);
 
   validateServiceHistory(raw.serviceHistory, vehicleIds, itemIds, issues);
+  validateReminders(raw.reminders, vehicleIds, itemIds, issues);
   validateSettings(raw.settings, vehicleIds, issues);
 
   if (issues.length > 0) return { ok: false, issues };
@@ -278,6 +283,75 @@ function validateServiceHistory(
     checkField(issues, row, "notes", `${path}.notes`, { type: "string" });
     checkField(issues, row, "cost", `${path}.cost`, { type: "number", allowNull: true }, (v) => v >= 0);
     checkField(issues, row, "createdAt", `${path}.createdAt`, { type: "string", nonEmpty: true });
+  });
+}
+
+function validateReminders(
+  raw: unknown,
+  vehicleIds: Set<string>,
+  itemIds: Set<string>,
+  issues: ImportIssue[],
+): void {
+  const seenIds = new Set<string>();
+  forEachRow(raw, "reminders", issues, (row, path) => {
+    checkId(row, path, seenIds, issues);
+    checkField(issues, row, "vehicleId", `${path}.vehicleId`, { type: "string", nonEmpty: true }, (v) =>
+      vehicleIds.has(v),
+    );
+    checkField(issues, row, "title", `${path}.title`, { type: "string", nonEmpty: true });
+    checkField(issues, row, "description", `${path}.description`, { type: "string" });
+    checkField(issues, row, "serviceId", `${path}.serviceId`, { type: "string", allowNull: true }, (v) =>
+      itemIds.has(v),
+    );
+    checkField(issues, row, "type", `${path}.type`, { type: "string", nonEmpty: true }, (v) =>
+      (REMINDER_TYPES as readonly string[]).includes(v),
+    );
+    checkField(issues, row, "dueDate", `${path}.dueDate`, { type: "string", allowNull: true }, (v) =>
+      isIsoDate(v),
+    );
+    checkField(issues, row, "dueMileage", `${path}.dueMileage`, { type: "number", allowNull: true }, (v) =>
+      Number.isInteger(v) && v >= 0,
+    );
+    // notificationOffsets: array of {days?, km?} objects (at least one unit).
+    if (!Array.isArray(row.notificationOffsets)) {
+      issues.push({ path: `${path}.notificationOffsets`, kind: "wrongType" });
+    } else {
+      row.notificationOffsets.forEach((offset, index) => {
+        const offsetPath = `${path}.notificationOffsets[${index}]`;
+        if (!isRecord(offset)) {
+          issues.push({ path: offsetPath, kind: "wrongType" });
+          return;
+        }
+        const hasDays = typeof offset.days === "number" && Number.isInteger(offset.days) && offset.days >= 0;
+        const hasKm = typeof offset.km === "number" && Number.isInteger(offset.km) && offset.km >= 0;
+        if (!hasDays && !hasKm) {
+          issues.push({ path: offsetPath, kind: "invalidValue" });
+        }
+      });
+    }
+    checkField(issues, row, "repeat", `${path}.repeat`, { type: "string", nonEmpty: true }, (v) =>
+      (REPEAT_MODES as readonly string[]).includes(v),
+    );
+    checkField(issues, row, "repeatEveryKm", `${path}.repeatEveryKm`, { type: "number", allowNull: true }, (v) =>
+      Number.isInteger(v) && v > 0,
+    );
+    checkField(issues, row, "enabled", `${path}.enabled`, { type: "boolean" });
+    checkField(issues, row, "lastCompletedDate", `${path}.lastCompletedDate`, { type: "string", allowNull: true }, (v) =>
+      isIsoDate(v),
+    );
+    checkField(issues, row, "lastCompletedMileage", `${path}.lastCompletedMileage`, { type: "number", allowNull: true }, (v) =>
+      Number.isInteger(v) && v >= 0,
+    );
+    checkField(issues, row, "createdAt", `${path}.createdAt`, { type: "string", nonEmpty: true });
+    checkField(issues, row, "updatedAt", `${path}.updatedAt`, { type: "string", nonEmpty: true });
+
+    // Type/condition coherence: a reminder must carry the data its type needs.
+    if (row.type === "date" || row.type === "date_mileage") {
+      if (row.dueDate == null) issues.push({ path: `${path}.dueDate`, kind: "invalidValue" });
+    }
+    if (row.type === "mileage" || row.type === "date_mileage") {
+      if (row.dueMileage == null) issues.push({ path: `${path}.dueMileage`, kind: "invalidValue" });
+    }
   });
 }
 
@@ -464,6 +538,7 @@ function assembleDataset(raw: Record<string, unknown>): Dataset {
     vehicles: raw.vehicles as Dataset["vehicles"],
     maintenanceItems: raw.maintenanceItems as Dataset["maintenanceItems"],
     serviceHistory: raw.serviceHistory as Dataset["serviceHistory"],
+    reminders: raw.reminders as Dataset["reminders"],
     settings: raw.settings as Dataset["settings"],
   };
 }

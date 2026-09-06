@@ -131,9 +131,60 @@ export interface Settings {
   defaultVehicleId: string | null;
 }
 
+/** What a reminder watches. "date_mileage" fires on whichever comes first. */
+export type ReminderType = "date" | "mileage" | "date_mileage";
+
+/** Recurrence policy (extensible union — add new members without reshaping). */
+export type RepeatMode = "none" | "monthly" | "yearly" | "km";
+
+/** A single notification lead time. Units are separated so each type stays
+ * machine-comparable: days for date triggers, km for mileage triggers. */
+export interface NotificationOffset {
+  /** Days BEFORE the due date (date/date_mileage reminders). */
+  days?: number;
+  /** Kilometers BEFORE the due mileage (mileage/date_mileage reminders). */
+  km?: number;
+}
+
+/**
+ * A user reminder (یادآوری). Facts only — remaining days/km and status are
+ * derived by the reminder engine, never persisted. Dates are Gregorian ISO
+ * "yyyy-mm-dd" (same convention as every other stored date).
+ */
+export interface Reminder {
+  id: string;
+  /** Owning vehicle — every reminder belongs to exactly one vehicle. */
+  vehicleId: string;
+  title: string;
+  /** Optional free-text note. */
+  description: string;
+  /** Linked maintenance item; null = standalone reminder. */
+  serviceId: string | null;
+  /** Which condition(s) the reminder watches. */
+  type: ReminderType;
+  /** Due date (date / date_mileage); null when the reminder has none. */
+  dueDate: string | null;
+  /** Due odometer in km (mileage / date_mileage); null when none. */
+  dueMileage: number | null;
+  /** Notification lead times (per reminder, user-configured). */
+  notificationOffsets: NotificationOffset[];
+  /** Recurrence policy. */
+  repeat: RepeatMode;
+  /** Repeat interval in km for repeat "km". */
+  repeatEveryKm: number | null;
+  /** False = the reminder is muted and shows as disabled everywhere. */
+  enabled: boolean;
+  /** ISO date of the LAST completed occurrence (base for the next repeat). */
+  lastCompletedDate: string | null;
+  /** Odometer of the LAST completed occurrence (base for repeat "km"). */
+  lastCompletedMileage: number | null;
+  createdAt: string; // ISO datetime
+  updatedAt: string; // ISO datetime
+}
+
 /** Versioned application dataset (§39). The single persisted structure. */
 export interface Dataset {
-  /** Schema version — v8 is the current baseline; older versions are not migrated. */
+  /** Schema version — v10 adds reminders; older versions are not migrated. */
   version: number;
   /** ISO datetime of the last JSON export; null until the first export (§41). */
   exportedAt: string | null;
@@ -141,5 +192,7 @@ export interface Dataset {
   vehicles: Vehicle[];
   maintenanceItems: MaintenanceItem[];
   serviceHistory: ServiceRecord[];
+  /** User reminders (یادآوری‌ها) — added in v10 alongside the existing data. */
+  reminders: Reminder[];
   settings: Settings;
 }

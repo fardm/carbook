@@ -20,7 +20,7 @@
 /** Matches `#/maintenance/<id>` (single path segment after the view). */
 const MAINTENANCE_DETAIL_RE = /^\/maintenance\/([^/]+)$/;
 
-export type RouteId = "maintenance" | "vehicle" | "settings";
+export type RouteId = "maintenance" | "vehicle" | "reminders" | "settings";
 
 export interface RouteDef {
   id: RouteId;
@@ -33,6 +33,7 @@ export interface RouteDef {
 export const routes: readonly RouteDef[] = [
   { id: "vehicle", hash: "/vehicle", icon: "car-front" },
   { id: "maintenance", hash: "/maintenance", icon: "wrench" },
+  { id: "reminders", hash: "/reminders", icon: "bell" },
   { id: "settings", hash: "/settings", icon: "settings" },
 ];
 
@@ -74,6 +75,50 @@ export function servicesVehicleIdFromHash(hash: string): string | null {
   if (path !== "/maintenance") return null;
   const id = query != null ? new URLSearchParams(query).get("vehicle") : null;
   return id ? decodeURIComponent(id) : null;
+}
+
+/** Generic query-param reader for view hashes like `#/reminders?vehicle=…`. */
+function hashQueryParam(hash: string, path: string, param: string): string | null {
+  const cleaned = hash.startsWith("#") ? hash.slice(1) : hash;
+  const [hashPath, query] = cleaned.split("?");
+  if (hashPath !== path) return null;
+  const value = query != null ? new URLSearchParams(query).get(param) : null;
+  return value ? decodeURIComponent(value) : null;
+}
+
+/**
+ * Extracts the vehicle id from `#/reminders?vehicle=<id>` (used by the
+ * service → reminder flow); null when absent.
+ */
+export function remindersVehicleIdFromHash(hash: string): string | null {
+  return hashQueryParam(hash, "/reminders", "vehicle");
+}
+
+/**
+ * Extracts the service (maintenance item) id from
+ * `#/reminders?service=<id>`; null when absent. Combined with `prefill=1`
+ * it opens the Add-Reminder form pre-filled from that service.
+ */
+export function remindersServiceIdFromHash(hash: string): string | null {
+  return hashQueryParam(hash, "/reminders", "service");
+}
+
+/** True when the reminders hash carries `prefill=1`. */
+export function remindersPrefillRequested(hash: string): boolean {
+  const cleaned = hash.startsWith("#") ? hash.slice(1) : hash;
+  const [hashPath, query] = cleaned.split("?");
+  if (hashPath !== "/reminders" || query == null) return false;
+  return new URLSearchParams(query).get("prefill") === "1";
+}
+
+/** The reminders-page hash with query params (skips null/empty values). */
+export function remindersHash(params: { vehicle?: string | null; service?: string | null; prefill?: boolean }): string {
+  const query = new URLSearchParams();
+  if (params.vehicle) query.set("vehicle", params.vehicle);
+  if (params.service) query.set("service", params.service);
+  if (params.prefill) query.set("prefill", "1");
+  const qs = query.toString();
+  return qs ? `#/reminders?${qs}` : "#/reminders";
 }
 
 export function routeFor(id: RouteId): RouteDef {
