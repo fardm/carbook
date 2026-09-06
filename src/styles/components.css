@@ -1428,6 +1428,117 @@ input.affix-field__input {
   padding-inline-end: 44px;
 }
 
+/* Unit suffix inside an affix input (e.g. "روز پیش از موعد"): parked at
+ * the inline-end edge, vertically centered, non-interactive so typing is
+ * unaffected. Inputs that host a suffix add extra padding-inline-end. */
+.affix-field__suffix {
+  position: absolute;
+  inset-inline-end: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-typescale-body-medium);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* --- Reminder form: notification offsets editor ---
+ * One offset per row: [input + unit suffix] [trash]. The delete button
+ * comes AFTER the input in flex order, so in RTL it renders on the LEFT
+ * side — outside the input box, same row, never overlapping it — and the
+ * input keeps the exact .field__input styling of every other form
+ * control. Rows stack with a small gap so adding rows never distorts
+ * surrounding sections. */
+.reminder-offsets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-2);
+}
+
+.reminder-offset {
+  display: flex;
+  align-items: center;
+  gap: var(--md-space-2);
+}
+
+/* Input fills the row; the trash button follows it (left side in RTL). */
+.reminder-offset__input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The unit suffix rides inside the input on the inline-end side (same
+ * pattern as .affix-field quick-fill buttons); extra padding keeps typed
+ * digits clear of it. */
+.reminder-offset__input .affix-field__input {
+  padding-inline-end: 74px;
+}
+
+.reminder-offset__remove {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+}
+
+.reminder-offset__remove svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* date_mileage mode: each add button heads its own group and the rows it
+ * creates render directly beneath it, so a new row always appears
+ * immediately after the button that triggered it. Rows stretch full
+ * width; the button keeps its natural size. */
+.reminder-offsets__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-2);
+}
+
+.reminder-offsets__group > .btn {
+  align-self: flex-start;
+}
+
+/* Soft post-save info note ("فعلاً نه" flow) — full-width status box. */
+.reminder-permission-notice {
+  align-items: center;
+}
+
+/* Reminder card: linked-service line under the title. */
+.reminder-card__service {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-space-1);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-typescale-body-small);
+}
+
+.reminder-card__service svg {
+  width: 14px;
+  height: 14px;
+}
+
+.reminder-card--disabled .service-card__name,
+.reminder-card--disabled .service-card__detail {
+  opacity: 0.6;
+}
+
+.reminder-card__description {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-typescale-body-small);
+  margin-top: var(--md-space-2);
+}
+
+.reminder-card__toggle {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* Reminder list reuses the services grid sizing. */
+.reminders-grid {
+  /* inherits .services-grid */
+}
+
 .date-field__popover {
   position: absolute;
   inset-block-start: calc(100% + var(--md-space-2));

@@ -358,6 +358,7 @@ export const fa = {
     filterUpcoming: "پیش‌رو",
     filterDue: "سررسید و گذشته",
     filterDisabled: "غیرفعال",
+    filterEmpty: "یادآوری‌ای با این فیلتر یافت نشد.",
     filterLabel: "فیلتر یادآوری‌ها",
     relatedService: "سرویس مرتبط",
     notRecorded: "ثبت نشده",

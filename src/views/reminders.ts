@@ -9,7 +9,6 @@ import {
 import {
   notificationsSupported,
   notificationPermission,
-  requestNotificationPermission,
   runReminderCheck,
   advanceRecurringReminders,
 } from "../domain/reminder-checker";
@@ -327,6 +326,7 @@ function filterMenuHtml(disabled: boolean): string {
   return `
     <div class="sort-menu${state.filterMenuOpen ? " sort-menu--open" : ""}">
       ${state.filterMenuOpen ? `<div class="card-menu__backdrop js-filter-menu-close"></div>` : ""}
+      <!-- filter -->
       <button type="button" class="btn btn--secondary sort-menu__trigger js-filter-menu-toggle"
         aria-haspopup="true" aria-expanded="${state.filterMenuOpen}"
         aria-label="${t("reminders.filterLabel")}"
@@ -533,9 +533,6 @@ function permissionNoticeHtml(): string {
 
 function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId: string | null): string {
   const editing = state.form?.mode === "edit";
-  const reminder = editing
-    ? (dataset.reminders.find((r) => r.id === (state.form as { reminderId: string }).reminderId) ?? null)
-    : null;
   const prefill = !editing && state.form?.mode === "add" ? state.form.prefill : null;
   const vehicle = vehicleId != null ? (dataset.vehicles.find((v) => v.id === vehicleId) ?? null) : null;
   const title = editing ? t("reminders.editTitle") : t("reminders.addTitle");
@@ -592,47 +589,63 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
     </div>`
     : "";
 
-  // Offsets editor: one row per offset. Date-type reminders edit days,
-  // mileage-type edit km; date_mileage shows both kinds together.
-  const offsetRows = state.offsets
-    .map((offset, index) => {
-      const showDays = watchesDate;
-      const showKm = watchesKm;
-      const daysInput = showDays
-        ? `
+  // Offsets editor: one offset per ROW. Each row holds ONE input (days OR
+  // km, matching the offset's own kind) plus a trash delete button OUTSIDE
+  // the input, on the same row (LEFT of the field in RTL). Removal is keyed
+  // by kind + per-kind index so the grouped layout below stays stable.
+  const offsetRowHtml = (offset: NotificationOffset, removeIndex: number, kind: "days" | "km"): string => {
+    const value = kind === "days" ? offset.days : offset.km;
+    const unit = kind === "days" ? t("reminders.daysBefore") : t("reminders.kmBefore");
+    return `
+      <div class="reminder-offset" data-offset-kind="${kind}">
         <div class="affix-field reminder-offset__input">
-          <input class="field__input affix-field__input" name="offset-days-${index}" type="number"
-            inputmode="numeric" min="0" step="1" value="${offset.days != null ? escHtml(String(offset.days)) : ""}" />
-          <span class="affix-field__suffix">${t("reminders.daysBefore")}</span>
-        </div>`
-        : "";
-      const kmInput = showKm
-        ? `
-        <div class="affix-field reminder-offset__input">
-          <input class="field__input affix-field__input" name="offset-km-${index}" type="number"
-            inputmode="numeric" min="0" step="1" value="${offset.km != null ? escHtml(String(offset.km)) : ""}" />
-          <span class="affix-field__suffix">${t("reminders.kmBefore")}</span>
-        </div>`
-        : "";
-      return `
-      <div class="reminder-offset" data-offset-index="${index}">
-        ${daysInput}
-        ${kmInput}
-        <button type="button" class="icon-btn js-remove-offset" data-index="${index}"
+          <input class="field__input affix-field__input" name="offset-${kind}-${removeIndex}" type="number"
+            inputmode="numeric" min="0" step="1" value="${value != null ? escHtml(String(value)) : ""}" />
+          <span class="affix-field__suffix">${unit}</span>
+        </div>
+        <button type="button" class="icon-btn icon-btn--danger reminder-offset__remove js-remove-offset"
+          data-kind="${kind}" data-index="${removeIndex}"
           aria-label="${t("reminders.removeOffset")}" title="${t("reminders.removeOffset")}">
-          <span data-lucide="x"></span>
+          <span data-lucide="trash-2"></span>
         </button>
       </div>`;
-    })
-    .join("");
+  };
 
-  const addOffsetButton =
-    state.formType === "date"
-      ? `<button type="button" class="btn btn--text js-add-offset" data-kind="days"><span data-lucide="plus"></span>${t("reminders.addDateOffset")}</button>`
-      : state.formType === "mileage"
-        ? `<button type="button" class="btn btn--text js-add-offset" data-kind="km"><span data-lucide="plus"></span>${t("reminders.addKmOffset")}</button>`
-        : `<button type="button" class="btn btn--text js-add-offset" data-kind="days"><span data-lucide="plus"></span>${t("reminders.addDateOffset")}</button>
-           <button type="button" class="btn btn--text js-add-offset" data-kind="km"><span data-lucide="plus"></span>${t("reminders.addKmOffset")}</button>`;
+  // Split rows by kind; per-kind counters keep names/indices contiguous.
+  const dayRows: string[] = [];
+  const kmRows: string[] = [];
+  let daysIndex = 0;
+  let kmIndex = 0;
+  for (const offset of state.offsets) {
+    if (offset.days != null) {
+      dayRows.push(offsetRowHtml(offset, daysIndex++, "days"));
+    } else if (offset.km != null) {
+      kmRows.push(offsetRowHtml(offset, kmIndex++, "km"));
+    }
+  }
+
+  const addDaysButton = `<button type="button" class="btn btn--text js-add-offset" data-kind="days"><span data-lucide="plus"></span>${t("reminders.addDateOffset")}</button>`;
+  const addKmButton = `<button type="button" class="btn btn--text js-add-offset" data-kind="km"><span data-lucide="plus"></span>${t("reminders.addKmOffset")}</button>`;
+
+  // date_mileage mode: each add button heads its own group with its rows
+  // directly beneath it, so a newly added row always appears immediately
+  // after the button that created it. Single-kind modes keep the flat
+  // rows-then-button layout.
+  const offsetsEditor =
+    state.formType === "date_mileage"
+      ? `<div class="reminder-offsets">
+          <div class="reminder-offsets__group">
+            ${addDaysButton}
+            ${dayRows.join("")}
+          </div>
+          <div class="reminder-offsets__group">
+            ${addKmButton}
+            ${kmRows.join("")}
+          </div>
+        </div>`
+      : state.formType === "date"
+        ? `<div class="reminder-offsets">${dayRows.join("")}</div>${addDaysButton}`
+        : `<div class="reminder-offsets">${kmRows.join("")}</div>${addKmButton}`;
 
   const repeatKmField =
     state.formRepeat === "km"
@@ -705,10 +718,7 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
           <div class="field">
             <span class="field__label">${t("reminders.notificationsLabel")}</span>
             <p class="field__hint">${t("reminders.notificationsHint")}</p>
-            <div class="reminder-offsets">
-              ${offsetRows || `<p class="empty-note">${t("reminders.errorNoOffsets")}</p>`}
-            </div>
-            <div class="reminder-offsets__add">${addOffsetButton}</div>
+            ${offsetsEditor}
             <p class="field__error" id="reminder-error-offsets" hidden></p>
           </div>
 
@@ -725,8 +735,8 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
                 )
                 .join("")}
             </div>
-            ${repeatKmField}
           </div>
+          ${repeatKmField}
 
           <div class="field">
             <label class="toggle-row">
@@ -988,7 +998,8 @@ function bind(container: HTMLElement): void {
       const type = button.dataset.type as Reminder["type"] | undefined;
       if (!type || type === state.formType) return;
       state.formType = type;
-      // Drop offsets that no longer apply to the chosen type.
+      // Drop offsets that no longer apply to the chosen type: date keeps
+      // only days rows, mileage only km rows, date_mileage keeps everything.
       state.offsets = state.offsets.filter((offset) =>
         type === "date" ? offset.days != null : type === "mileage" ? offset.km != null : true,
       );
@@ -1003,17 +1014,30 @@ function bind(container: HTMLElement): void {
     });
   });
 
-  /* Offsets editor. */
+  /* Offsets editor: each add button creates ONLY its own kind of row; the
+   * trash button on a row removes exactly that row. */
   container.querySelectorAll<HTMLButtonElement>(".js-add-offset").forEach((button) => {
     button.addEventListener("click", () => {
-      state.offsets.push(button.dataset.kind === "km" ? { km: 100 } : { days: 7 });
+      if (button.dataset.kind === "km") {
+        state.offsets.push({ km: 100 });
+      } else {
+        state.offsets.push({ days: 7 });
+      }
       redraw(container);
     });
   });
   container.querySelectorAll<HTMLButtonElement>(".js-remove-offset").forEach((button) => {
     button.addEventListener("click", () => {
-      const index = Number(button.dataset.index);
-      if (Number.isInteger(index)) state.offsets.splice(index, 1);
+      // Rows are keyed by kind + per-kind index (matching the grouped
+      // rendering), so translate that into the position in state.offsets.
+      const kind = button.dataset.kind === "km" ? "km" : "days";
+      const withinKind = Number(button.dataset.index);
+      const kindIndices = state.offsets
+        .map((offset, i) => ((kind === "km" ? offset.km != null : offset.days != null) ? i : -1))
+        .filter((i) => i >= 0);
+      if (Number.isInteger(withinKind) && withinKind >= 0 && withinKind < kindIndices.length) {
+        state.offsets.splice(kindIndices[withinKind], 1);
+      }
       redraw(container);
     });
   });
@@ -1053,24 +1077,20 @@ function bind(container: HTMLElement): void {
   });
 }
 
-/** Gathers offsets from the live form inputs into NotificationOffset rows. */
+/** Gathers offsets from the live form rows: each row is ONE offset of its
+ * own data-offset-kind (days or km) — never both. */
 function collectOffsets(container: HTMLElement): NotificationOffset[] {
-  const watchesDate = state.formType === "date" || state.formType === "date_mileage";
-  const watchesKm = state.formType === "mileage" || state.formType === "date_mileage";
   const offsets: NotificationOffset[] = [];
   container.querySelectorAll<HTMLElement>(".reminder-offset").forEach((row) => {
-    const offset: NotificationOffset = {};
-    if (watchesDate) {
-      const input = row.querySelector<HTMLInputElement>("input[name^='offset-days']");
-      const value = input?.value.trim() ?? "";
-      if (value !== "") offset.days = Number(toLatinDigits(value));
+    const kind = row.dataset.offsetKind;
+    const input = row.querySelector<HTMLInputElement>("input");
+    const value = input?.value.trim() ?? "";
+    if (value === "") return;
+    if (kind === "days") {
+      offsets.push({ days: Number(toLatinDigits(value)) });
+    } else if (kind === "km") {
+      offsets.push({ km: Number(toLatinDigits(value)) });
     }
-    if (watchesKm) {
-      const input = row.querySelector<HTMLInputElement>("input[name^='offset-km']");
-      const value = input?.value.trim() ?? "";
-      if (value !== "") offset.km = Number(toLatinDigits(value));
-    }
-    if (offset.days != null || offset.km != null) offsets.push(offset);
   });
   return offsets;
 }
