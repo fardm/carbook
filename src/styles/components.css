@@ -934,6 +934,10 @@ textarea.field__input {
 
 /* Detail page top row: the back link on one side, ویرایش/حذف actions on
  * the other (wraps onto two lines on very narrow screens). */
+/* Back link followed by the desktop Operations menu anchor — the menu
+ * button sits immediately after the back button (flex-start, not
+ * space-between). On mobile the menu anchor is hidden; the back link is
+ * then the only child, so this change affects mobile layout not at all. */
 .detail-topbar {
   display: flex;
   align-items: center;
@@ -2463,13 +2467,14 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
   box-shadow: var(--md-elevation-3);
 }
 
-/* --- Operations action menu (detail-page FAB) ---
+/* --- Operations action menu (detail page) ---
  * Vertical speed dial: the action buttons stay mounted in a stack that
- * sits directly ABOVE the anchored Operations FAB and expands upward
- * (nearest button first) with a per-button staggered scale + translateY.
- * `.fab-menu--open` toggles visibility, so expand AND collapse both
- * animate. The stack centers on the trigger via a physical left: 50% +
- * translateX(-50%), so it works in both LTR and RTL. */
+ * expands from the anchored Operations button — ABOVE it on mobile
+ * (.fab-bar anchor) and BELOW it on desktop (.detail-topbar anchor) —
+ * with a per-button staggered scale + translateY. `.fab-menu--open`
+ * toggles visibility, so expand AND collapse both animate. The stack
+ * centers on the trigger via a physical left: 50% + translateX(-50%),
+ * so it works in both LTR and RTL. */
 .fab-menu {
   position: relative;
   display: inline-flex;
@@ -2506,7 +2511,6 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
   left: 50%;
   transform: translateX(-50%);
   width: max-content;
-  min-width: 220px;
   max-width: calc(100vw - 2 * var(--md-space-4));
   z-index: 46;
   display: flex;
@@ -2563,6 +2567,45 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
  * discrete pills themselves provide the visual separation. */
 .fab-menu__action.card-menu__item--danger:hover {
   background-color: color-mix(in srgb, var(--md-sys-color-error) 10%, var(--md-sys-color-surface-container-low));
+}
+
+/* --- Operations menu anchors (responsive) ---
+ * The SAME menu markup is rendered into two anchors: the mobile FAB
+ * (.fab-bar--detail, expands upward) and the desktop top bar
+ * (.fab-menu--topbar, right after the back link, expands downward).
+ * Exactly one anchor is visible per breakpoint, so there is never more
+ * than one interactive copy of the menu and never a split state. */
+@media (max-width: 899.98px) {
+  /* Desktop top-bar anchor is mobile-invisible; the FAB owns the menu. */
+  .fab-menu--topbar {
+    display: none;
+  }
+}
+
+@media (min-width: 900px) {
+  /* On desktop the FAB anchor is replaced by the top-bar anchor. */
+  .fab-bar--detail {
+    display: none;
+  }
+
+  /* Desktop speed dial: same design, expanding DOWNWARD from the
+   * Operations button. Only the anchor edges flip — the stagger, pills,
+   * backdrop and state stay exactly as on mobile. */
+  .fab-menu--topbar .fab-menu__actions {
+    bottom: auto;
+    top: calc(100% + var(--md-space-3));
+  }
+
+  /* The rise direction flips to match: pills drop into place instead of
+   * lifting (translateY sign inverted on the closed keyframe only — the
+   * open keyframe is translateY(0) for both directions). */
+  .fab-menu--topbar .fab-menu__action {
+    transform: translateY(-12px) scale(0.9);
+  }
+
+  .fab-menu--topbar.fab-menu--open .fab-menu__action {
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* The anchored trigger stays above the click-away backdrop so it can

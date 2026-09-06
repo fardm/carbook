@@ -259,48 +259,18 @@ function fabBarHtml(itemId: string | null): string {
     const item = dataset.maintenanceItems.find((c) => c.id === itemId);
     if (!item || !item.active) return "";
     const open = state.detailMenuOpen;
-    // Vertical speed dial: the action buttons stay mounted in a stack that
-    // sits directly ABOVE the anchored Operations FAB; `.fab-menu--open`
-    // toggles their visibility so each button plays its own staggered
-    // scale + translateY transition (growing upward from the FAB) instead
-    // of re-rendering. --fab-stagger orders the stagger: 0 = nearest the
-    // FAB (appears first), higher = farther (appears later). State keeps
-    // the class in sync on full redraws.
+    // Mobile anchor for the Operations speed dial. The desktop anchor lives
+    // in the detail page's top bar (itemDetailPageHtml); the menu markup is
+    // built once by detailOperationsMenuHtml() and rendered into BOTH
+    // anchors. CSS shows exactly one per breakpoint, and on desktop the
+    // panel flips to expanding DOWNWARD from the trigger. The menu stays
+    // mounted and `.fab-menu--open` toggles visibility, so both directions
+    // animate (staggered scale + rise). State keeps the class in sync on
+    // full redraws.
     return `
-      <div class="fab-bar">
-        <div class="fab-menu${open ? " fab-menu--open" : ""}">
-          <div class="card-menu__backdrop js-detail-menu-close"></div>
-          <div class="fab-menu__actions" role="menu" aria-label="${t("services.operations")}">
-            <button type="button" class="card-menu__item card-menu__item--danger fab-menu__action js-service-menu-delete"
-              role="menuitem" data-id="${escHtml(item.id)}" style="--fab-stagger: 3">
-              <span data-lucide="trash-2" aria-hidden="true"></span>
-              ${t("maintenance.detail.delete")}
-            </button>
-            <button type="button" class="card-menu__item fab-menu__action js-service-menu-edit"
-              role="menuitem" data-id="${escHtml(item.id)}" style="--fab-stagger: 2">
-              <span data-lucide="pencil" aria-hidden="true"></span>
-              ${t("maintenance.editItem")}
-            </button>
-            <button type="button" class="card-menu__item fab-menu__action js-detail-notification"
-              role="menuitem" aria-disabled="true" style="--fab-stagger: 1">
-              <span data-lucide="bell" aria-hidden="true"></span>
-              ${t("services.notification")}
-            </button>
-            <button type="button" class="card-menu__item fab-menu__action js-record-service"
-              role="menuitem" data-id="${escHtml(item.id)}" style="--fab-stagger: 0">
-              <span data-lucide="refresh-cw" aria-hidden="true"></span>
-              ${t("maintenance.detail.replaceService")}
-            </button>
-          </div>
-          <button type="button" class="btn btn--filled fab-menu__toggle js-detail-menu-toggle"
-            aria-haspopup="menu" aria-expanded="${open}"
-            aria-label="${t("services.operations")}">
-            <span class="fab-menu__toggle-icon" aria-hidden="true">
-              <span class="fab-menu__toggle-ico fab-menu__toggle-ico--open" data-lucide="x"></span>
-              <span class="fab-menu__toggle-ico fab-menu__toggle-ico--closed" data-lucide="settings-2"></span>
-            </span>
-            ${t("services.operations")}
-          </button>
+      <div class="fab-bar fab-bar--detail">
+        <div class="fab-menu fab-menu--up${open ? " fab-menu--open" : ""}">
+          ${detailOperationsMenuHtml(item.id, open)}
         </div>
       </div>`;
   }
@@ -1076,6 +1046,7 @@ function itemDetailPageHtml(itemId: string): string {
     state.historyOpen = services.length <= 3;
   }
 
+  const open = state.detailMenuOpen;
   const inactive = !item.active;
   const calc = calculateMaintenance(item, contextForVehicle(dataset, item.vehicleId));
   const backLink = `<a class="btn btn--text detail-back" href="${back}">
@@ -1083,8 +1054,18 @@ function itemDetailPageHtml(itemId: string): string {
     <span>${t("maintenance.detail.backToList")}</span>
   </a>`;
 
-  // ویرایش / حذف moved into the FAB Operations dropdown.
-  const itemActions = "";
+  // ویرایش / حذف live in the Operations speed dial: the FAB anchor on
+  // mobile, and the top bar (right after the back link) on desktop. The
+  // same menu markup is rendered into both; CSS shows exactly one per
+  // breakpoint and flips the expansion direction (up on mobile, down on
+  // desktop) without duplicating state or handlers. Like the old FAB, the
+  // menu only applies to ACTIVE items — inactive ones keep the
+  // reactivate flow instead.
+  const itemActions = inactive
+    ? ""
+    : `<div class="fab-menu fab-menu--topbar${open ? " fab-menu--open" : ""}">
+        ${detailOperationsMenuHtml(item.id, open)}
+      </div>`;
 
   return `
     <div class="detail-topbar">
@@ -1185,11 +1166,53 @@ function detailLifetimeRowHtml(
 }
 
 /**
- * Status section inside the unified detail card: three equal cards — part
- * health (heart + percentage), recommended replacement date (calendar +
- * remaining days), recommended replacement mileage (gauge + remaining km).
- * Cards run side by side on desktop and stack on narrow screens.
+ * Operations speed dial markup, shared by the mobile FAB anchor (inside
+ * .fab-bar, expands upward) and the desktop top-bar anchor (inside
+ * .detail-topbar, right after the back link, expands downward). Rendered
+ * into both — CSS shows exactly one per breakpoint — so both anchors stay
+ * in one state (detailMenuOpen) with one set of handlers (the shared
+ * js-detail-menu-* / js-service-menu-* / js-record-service hooks).
+ *
+ * --fab-stagger orders the stagger: 0 = nearest the trigger (appears
+ * first), higher = farther (appears later). The DOM order keeps Delete
+ * first for the upward dial (danger farthest from the trigger).
  */
+function detailOperationsMenuHtml(itemId: string, open: boolean): string {
+  return `
+    <div class="card-menu__backdrop js-detail-menu-close"></div>
+    <div class="fab-menu__actions" role="menu" aria-label="${t("services.operations")}">
+      <button type="button" class="card-menu__item card-menu__item--danger fab-menu__action js-service-menu-delete"
+        role="menuitem" data-id="${escHtml(itemId)}" style="--fab-stagger: 3">
+        <span data-lucide="trash-2" aria-hidden="true"></span>
+        ${t("maintenance.detail.delete")}
+      </button>
+      <button type="button" class="card-menu__item fab-menu__action js-service-menu-edit"
+        role="menuitem" data-id="${escHtml(itemId)}" style="--fab-stagger: 2">
+        <span data-lucide="pencil" aria-hidden="true"></span>
+        ${t("maintenance.editItem")}
+      </button>
+      <button type="button" class="card-menu__item fab-menu__action js-detail-notification"
+        role="menuitem" aria-disabled="true" style="--fab-stagger: 1">
+        <span data-lucide="bell" aria-hidden="true"></span>
+        ${t("services.notification")}
+      </button>
+      <button type="button" class="card-menu__item fab-menu__action js-record-service"
+        role="menuitem" data-id="${escHtml(itemId)}" style="--fab-stagger: 0">
+        <span data-lucide="refresh-cw" aria-hidden="true"></span>
+        ${t("maintenance.detail.replaceService")}
+      </button>
+    </div>
+    <button type="button" class="btn btn--filled fab-menu__toggle js-detail-menu-toggle"
+      aria-haspopup="menu" aria-expanded="${open}"
+      aria-label="${t("services.operations")}">
+      <span class="fab-menu__toggle-icon" aria-hidden="true">
+        <span class="fab-menu__toggle-ico fab-menu__toggle-ico--open" data-lucide="x"></span>
+        <span class="fab-menu__toggle-ico fab-menu__toggle-ico--closed" data-lucide="settings-2"></span>
+      </span>
+      ${t("services.operations")}
+    </button>`;
+}
+
 function detailOverviewSectionHtml(item: MaintenanceItem, dataset: ReturnType<typeof store.get>): string {
   const calc = calculateMaintenance(item, contextForVehicle(dataset, item.vehicleId));
   const percent = calc.remainingPercent;
@@ -1779,12 +1802,15 @@ function closeModals(): void {
  * and state stay in sync so later full redraws render the same state. */
 function setDetailMenuOpen(container: HTMLElement, open: boolean): void {
   state.detailMenuOpen = open;
+  // Both menu anchors (mobile FAB + desktop top bar) exist in the DOM at
+  // once; keep every instance's class and aria-expanded in sync so the
+  // state is identical whichever one the user interacts with.
   container.querySelectorAll<HTMLElement>(".fab-menu").forEach((menu) => {
     menu.classList.toggle("fab-menu--open", open);
   });
-  container
-    .querySelector<HTMLButtonElement>(".js-detail-menu-toggle")
-    ?.setAttribute("aria-expanded", String(open));
+  container.querySelectorAll<HTMLButtonElement>(".js-detail-menu-toggle").forEach((button) => {
+    button.setAttribute("aria-expanded", String(open));
+  });
 }
 
 /** Events on the detail page. */
@@ -1808,8 +1834,10 @@ function bindDetailEvents(container: HTMLElement): void {
       setDetailMenuOpen(container, !state.detailMenuOpen);
     });
   });
-  container.querySelector<HTMLElement>(".js-detail-menu-close")?.addEventListener("click", () => {
-    setDetailMenuOpen(container, false);
+  container.querySelectorAll<HTMLElement>(".js-detail-menu-close").forEach((el) => {
+    el.addEventListener("click", () => {
+      setDetailMenuOpen(container, false);
+    });
   });
   container.querySelectorAll<HTMLButtonElement>(".js-detail-notification").forEach((button) => {
     button.addEventListener("click", () => {
