@@ -1811,7 +1811,21 @@ input.affix-field__input {
   margin-bottom: var(--md-space-4);
 }
 
+/* The add-service button lives inside the toolbar for desktop layout;
+ * on mobile the FAB handles it instead, so hide the toolbar copy. */
+.services-toolbar__add {
+  display: none;
+}
+
 .services-toolbar .btn {
+  flex-shrink: 0;
+}
+
+/* Groups vehicle-menu + sort-menu as a single visual unit. */
+.services-toolbar__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--md-space-2);
   flex-shrink: 0;
 }
 
@@ -2471,6 +2485,20 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
   background-color: color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
 }
 
+/* --- Page header (title + inline action on desktop) --- */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--md-space-3);
+  margin-bottom: var(--md-space-4);
+}
+
+/* Inline action slot: hidden on mobile — the FAB handles it there. */
+.page-header__actions {
+  display: none;
+}
+
 /* Pages with a floating bar reserve room so content ends above it. */
 .view-stack--fab {
   padding-bottom: 112px;
@@ -2480,5 +2508,38 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
   /* Float above the fixed bottom navigation bar + system safe area. */
   .fab-bar {
     bottom: calc(var(--md-nav-height) + var(--md-space-3) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (min-width: 900px) {
+  /* Show inline header action, hide the equivalent floating bar button. */
+  .page-header__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--md-space-2);
+    flex-shrink: 0;
+  }
+
+  /* fab-bar--page: used for the add-vehicle / add-service FABs that are
+   * replaced by the inline page-header button on desktop. */
+  .fab-bar--page {
+    display: none;
+  }
+
+  /* The services toolbar row on desktop: add button on the start side,
+   * vehicle selector + sort menu on the end side. */
+  .services-toolbar-row {
+    display: flex;
+  }
+
+  .services-toolbar-row .services-toolbar {
+    /* Stretch full-width so space-between pushes controls to opposite ends. */
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  /* Show the toolbar-embedded add button on desktop. */
+  .services-toolbar__add {
+    display: inline-flex;
   }
 }

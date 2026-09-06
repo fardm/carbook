@@ -263,9 +263,18 @@ function fabBarHtml(itemId: string | null): string {
         </button>
       </div>`;
   }
-  if (dataset.vehicles.length === 0) return "";
+  if (dataset.vehicles.length === 0) {
+    return `
+      <div class="fab-bar fab-bar--page">
+        <button type="button" class="btn btn--filled js-add-service" disabled>
+          <span data-lucide="plus"></span>
+          ${t("services.addServiceNew")}
+        </button>
+      </div>
+    `;
+  }
   return `
-    <div class="fab-bar">
+    <div class="fab-bar fab-bar--page">
       <button type="button" class="btn btn--filled js-add-service">
         <span data-lucide="plus"></span>
         ${t("services.addServiceNew")}
@@ -312,14 +321,25 @@ function servicesListHtml(): string {
       `;
 
   return `
-    <h1 class="view-title">${t("view.maintenance.title")}</h1>
-    ${toolbar}
+    <div class="page-header">
+      <h1 class="view-title">${t("view.maintenance.title")}</h1>
+    </div>
+    <div class="services-toolbar-row">
+      ${toolbar}
+    </div>
     ${body}
   `;
 }
 
 function servicesToolbarHtml(dataset: ReturnType<typeof store.get>, selectedId: string | null): string {
-  return `<div class="services-toolbar">${vehicleMenuHtml(dataset, selectedId)}${sortMenuHtml()}</div>`;
+  const noVehicles = dataset.vehicles.length === 0;
+  const addButton = `
+    <button type="button" class="btn btn--filled js-add-service services-toolbar__add"
+      ${noVehicles ? "disabled" : ""}>
+      <span data-lucide="plus"></span>
+      ${t("services.addServiceNew")}
+    </button>`;
+  return `<div class="services-toolbar"><div class="services-toolbar__controls">${vehicleMenuHtml(dataset, selectedId)}${sortMenuHtml()}</div>${addButton}</div>`;
 }
 
 /** Vehicle picker button + popover for the toolbar — mirrors sortMenuHtml(). */

@@ -81,9 +81,17 @@ function vehicleViewHtml(): string {
       : `<div class="vehicle-list">${vehicles.map((v) => vehicleRowHtml(v, dataset.settings.defaultVehicleId)).join("")}</div>`;
   return `
     <div class="view-stack view-stack--fab">
-      <h1 class="view-title">${t("view.vehicle.title")}</h1>
+      <div class="page-header">
+        <h1 class="view-title">${t("view.vehicle.title")}</h1>
+        <div class="page-header__actions">
+          <button type="button" class="btn btn--filled js-add-vehicle">
+            <span data-lucide="plus"></span>
+            ${t("vehicle.addVehicle")}
+          </button>
+        </div>
+      </div>
       ${body}
-      <div class="fab-bar">
+      <div class="fab-bar fab-bar--page">
         <button type="button" class="btn btn--filled js-add-vehicle">
           <span data-lucide="plus"></span>
           ${t("vehicle.addVehicle")}
