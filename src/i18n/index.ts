@@ -1,8 +1,9 @@
 import { fa, type Messages } from "./fa";
+import { en } from "./en";
 
 export { fa, type Messages } from "./fa";
 
-export type Locale = "fa";
+export type Locale = "fa" | "en";
 
 /** Dot-path to every leaf string in the message catalog, e.g. "nav.dashboard". */
 export type MessageKey = Paths<Messages>;
@@ -21,11 +22,49 @@ type MessageValue<T, P extends string> = P extends `${infer Head}.${infer Tail}`
     ? T[P]
     : never;
 
-const dictionaries: Record<Locale, Messages> = { fa };
+/** Deep-merge `override` onto `base`, returning a new object. Only plain
+ * objects are merged recursively; all other values are taken from `override`
+ * when present, otherwise from `base`. */
+function deepMerge<T extends Record<string, unknown>>(base: T, override: Record<string, unknown>): T {
+  const result = { ...base };
+  for (const key of Object.keys(override)) {
+    const bv = base[key];
+    const ov = override[key];
+    if (
+      ov !== null &&
+      typeof ov === "object" &&
+      !Array.isArray(ov) &&
+      bv !== null &&
+      typeof bv === "object" &&
+      !Array.isArray(bv)
+    ) {
+      (result as Record<string, unknown>)[key] = deepMerge(
+        bv as Record<string, unknown>,
+        ov as Record<string, unknown>,
+      );
+    } else {
+      (result as Record<string, unknown>)[key] = ov;
+    }
+  }
+  return result;
+}
 
-const currentLocale: Locale = "fa";
+const dictionaries: Record<Locale, Messages> = {
+  fa,
+  en: deepMerge(fa, en as Record<string, unknown>),
+};
 
-/** Returns the localized string for `key`. Persian is the only locale in the MVP. */
+let currentLocale: Locale = "fa";
+
+export function getLocale(): Locale {
+  return currentLocale;
+}
+
+export function setLocale(locale: Locale): void {
+  currentLocale = locale;
+}
+
+/** Returns the localized string for `key` in the active locale. */
 export function t<K extends MessageKey>(key: K): MessageValue<Messages, K> {
   return resolve(dictionaries[currentLocale], key) as MessageValue<Messages, K>;
 }

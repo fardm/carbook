@@ -6,7 +6,7 @@
  */
 export const fa = {
   app: {
-    title: "CarBook",
+    title: "کاربوک",
     subtitle: "دفترچه نگهداری خودرو",
   },
   nav: {
