@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   ArrowRight,
+  ArrowUpDown,
   Battery,
   Bell,
   Calculator,
@@ -66,6 +67,7 @@ import {
 export const iconRegistry = {
   ArrowLeftRight,
   ArrowRight,
+  ArrowUpDown,
   Battery,
   Bell,
   Calculator,

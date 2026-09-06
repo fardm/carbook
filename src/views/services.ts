@@ -32,7 +32,6 @@ import { faNum, formatDate, toLatinDigits } from "../ui/format";
 import { bindFloatingFields } from "../ui/floating-field";
 import { applyIcons, CUSTOM_ICON_CHOICES, STATUS_ICONS } from "../ui/icons";
 import {
-  compareByUrgency,
   dueDateText,
   formatLifespanDuration,
   formatRemainingCountdown,
@@ -72,6 +71,17 @@ interface RecordFormState {
   itemId: string;
 }
 
+/** Sort order for the active-services list. */
+export type SortMode =
+  | "healthBest"
+  | "healthWorst"
+  | "dueDateNearest"
+  | "dueDateFarthest"
+  | "remainingKmLeast"
+  | "remainingKmMost"
+  | "serviceDateNewest"
+  | "serviceDateOldest";
+
 interface ServicesViewState {
   /** Vehicle selected on the list page (default/param fallbacks apply). */
   selectedVehicleId: string | null;
@@ -104,6 +114,10 @@ interface ServicesViewState {
   serviceMenuId: string | null;
   /** Service History section on the detail page is expanded. */
   historyOpen: boolean;
+  /** Current sort order for the active-services list. */
+  sortMode: SortMode;
+  /** Sort dropdown popover is open on the list page. */
+  sortMenuOpen: boolean;
 }
 
 const state: ServicesViewState = {
@@ -123,6 +137,8 @@ const state: ServicesViewState = {
   deleteArmedId: null,
   serviceMenuId: null,
   historyOpen: false,
+  sortMode: "healthBest",
+  sortMenuOpen: false,
 };
 
 /** Typed form-field value that survives re-renders (decision 31). */
@@ -333,8 +349,82 @@ function servicesToolbarHtml(dataset: ReturnType<typeof store.get>, selectedId: 
   `;
   // The ثبت سرویس action lives in the floating bottom action bar (see
   // fabBarHtml); the toolbar only carries the vehicle selector.
-  return `<div class="services-toolbar">${select}</div>`;
+  return `<div class="services-toolbar">${select}${sortMenuHtml()}</div>`;
 }
+
+/** Sort button + dropdown popover for the active-services list. */
+function sortMenuHtml(): string {
+  type Group = {
+    labelKey: MessageKey;
+    options: Array<{ mode: SortMode; labelKey: MessageKey }>;
+  };
+  const groups: Group[] = [
+    {
+      labelKey: "maintenance.list.sortGroupHealth",
+      options: [
+        { mode: "healthBest",  labelKey: "maintenance.list.sortHealthBest" },
+        { mode: "healthWorst", labelKey: "maintenance.list.sortHealthWorst" },
+      ],
+    },
+    {
+      labelKey: "maintenance.list.sortGroupDueDate",
+      options: [
+        { mode: "dueDateNearest",  labelKey: "maintenance.list.sortDueDateNearest" },
+        { mode: "dueDateFarthest", labelKey: "maintenance.list.sortDueDateFarthest" },
+      ],
+    },
+    {
+      labelKey: "maintenance.list.sortGroupRemainingKm",
+      options: [
+        { mode: "remainingKmLeast", labelKey: "maintenance.list.sortRemainingKmLeast" },
+        { mode: "remainingKmMost",  labelKey: "maintenance.list.sortRemainingKmMost" },
+      ],
+    },
+    {
+      labelKey: "maintenance.list.sortGroupServiceDate",
+      options: [
+        { mode: "serviceDateNewest", labelKey: "maintenance.list.sortServiceDateNewest" },
+        { mode: "serviceDateOldest", labelKey: "maintenance.list.sortServiceDateOldest" },
+      ],
+    },
+  ];
+
+  const groupItems = groups
+    .map(
+      (group, gi) => `
+        <div class="sort-menu__group-label">${t(group.labelKey)}</div>
+        ${group.options
+          .map(
+            (opt) => `
+          <button type="button" class="card-menu__item js-sort-option" data-sort="${opt.mode}"
+            aria-pressed="${state.sortMode === opt.mode}">
+            ${escHtml(t(opt.labelKey))}
+            ${state.sortMode === opt.mode ? `<span class="card-menu__check" aria-hidden="true" data-lucide="circle-check"></span>` : ""}
+          </button>`,
+          )
+          .join("")}
+        ${gi < groups.length - 1 ? `<div class="card-menu__divider"></div>` : ""}`,
+    )
+    .join("");
+
+  return `
+    <div class="sort-menu${state.sortMenuOpen ? " sort-menu--open" : ""}">
+      ${state.sortMenuOpen ? `<div class="card-menu__backdrop js-sort-menu-close"></div>` : ""}
+      <button type="button" class="btn btn--secondary sort-menu__trigger js-sort-menu-toggle"
+        aria-haspopup="true" aria-expanded="${state.sortMenuOpen}"
+        aria-label="${t("maintenance.list.sortLabel")}">
+        <span data-lucide="arrow-up-down" aria-hidden="true"></span>
+        ${t("maintenance.list.sortLabel")}
+      </button>
+      ${state.sortMenuOpen
+        ? `<div class="card-menu__popover sort-menu__popover" role="menu">
+            ${groupItems}
+           </div>`
+        : ""}
+    </div>
+  `;
+}
+
 
 function servicesNoVehicleHtml(): string {
   return `
@@ -355,18 +445,118 @@ function servicesEmptyHtml(): string {
   `;
 }
 
-/** Active services ordered by urgency (overdue first), then by name. */
+/** Active services sorted by the current sort mode. Null values for the
+ * sorted field always sort last so items with incomplete data don't crowd
+ * the top of the list. */
 function sortedActive(items: MaintenanceItem[], dataset: ReturnType<typeof store.get>): MaintenanceItem[] {
-  return [...items].sort((a, b) => {
-    const calcA = calculateMaintenance(a, contextForVehicle(dataset, a.vehicleId));
-    const calcB = calculateMaintenance(b, contextForVehicle(dataset, b.vehicleId));
-    const diff = compareByUrgency(
-      { status: calcA.status, remainingPercent: calcA.remainingPercent },
-      { status: calcB.status, remainingPercent: calcB.remainingPercent },
-    );
-    if (diff !== 0) return diff;
-    return a.name.localeCompare(b.name, "fa");
-  });
+  type Calc = ReturnType<typeof calculateMaintenance>;
+  const pairs: Array<{ item: MaintenanceItem; calc: Calc }> = items.map((item) => ({
+    item,
+    calc: calculateMaintenance(item, contextForVehicle(dataset, item.vehicleId)),
+  }));
+
+  const nameAsc = (a: MaintenanceItem, b: MaintenanceItem) =>
+    a.name.localeCompare(b.name, "fa");
+
+  switch (state.sortMode) {
+    case "healthBest":
+      // Highest remainingPercent first (سالم‌ترین); null last.
+      return pairs
+        .sort((a, b) => {
+          const pA = a.calc.remainingPercent ?? -Infinity;
+          const pB = b.calc.remainingPercent ?? -Infinity;
+          return pB !== pA ? pB - pA : nameAsc(a.item, b.item);
+        })
+        .map((p) => p.item);
+
+    case "healthWorst":
+      // Lowest remainingPercent first (ناسالم‌ترین); null last.
+      return pairs
+        .sort((a, b) => {
+          const pA = a.calc.remainingPercent ?? Infinity;
+          const pB = b.calc.remainingPercent ?? Infinity;
+          return pA !== pB ? pA - pB : nameAsc(a.item, b.item);
+        })
+        .map((p) => p.item);
+
+    case "dueDateNearest": {
+      // Earliest estimatedDueDate/nextDueDate first (نزدیک‌ترین); null last.
+      const dateOf = (c: Calc) => c.estimatedDueDate ?? c.nextDueDate ?? null;
+      return pairs
+        .sort((a, b) => {
+          const dA = dateOf(a.calc);
+          const dB = dateOf(b.calc);
+          if (dA === null && dB === null) return nameAsc(a.item, b.item);
+          if (dA === null) return 1;
+          if (dB === null) return -1;
+          return dA < dB ? -1 : dA > dB ? 1 : nameAsc(a.item, b.item);
+        })
+        .map((p) => p.item);
+    }
+
+    case "dueDateFarthest": {
+      // Latest estimatedDueDate/nextDueDate first (دورترین); null last.
+      const dateOf = (c: Calc) => c.estimatedDueDate ?? c.nextDueDate ?? null;
+      return pairs
+        .sort((a, b) => {
+          const dA = dateOf(a.calc);
+          const dB = dateOf(b.calc);
+          if (dA === null && dB === null) return nameAsc(a.item, b.item);
+          if (dA === null) return 1;
+          if (dB === null) return -1;
+          return dA > dB ? -1 : dA < dB ? 1 : nameAsc(a.item, b.item);
+        })
+        .map((p) => p.item);
+    }
+
+    case "remainingKmLeast":
+      // Smallest remainingKm first, including negatives (کمترین); null last.
+      return pairs
+        .sort((a, b) => {
+          const kA = a.calc.remainingKm ?? Infinity;
+          const kB = b.calc.remainingKm ?? Infinity;
+          return kA !== kB ? kA - kB : nameAsc(a.item, b.item);
+        })
+        .map((p) => p.item);
+
+    case "remainingKmMost":
+      // Largest remainingKm first (بیشترین); null last.
+      return pairs
+        .sort((a, b) => {
+          const kA = a.calc.remainingKm ?? -Infinity;
+          const kB = b.calc.remainingKm ?? -Infinity;
+          return kA !== kB ? kB - kA : nameAsc(a.item, b.item);
+        })
+        .map((p) => p.item);
+
+    case "serviceDateNewest": {
+      // Most-recent lastService.date first (جدیدترین); null last.
+      return pairs
+        .sort((a, b) => {
+          const dA = a.calc.lastService?.date ?? null;
+          const dB = b.calc.lastService?.date ?? null;
+          if (dA === null && dB === null) return nameAsc(a.item, b.item);
+          if (dA === null) return 1;
+          if (dB === null) return -1;
+          return dA > dB ? -1 : dA < dB ? 1 : nameAsc(a.item, b.item);
+        })
+        .map((p) => p.item);
+    }
+
+    case "serviceDateOldest": {
+      // Oldest lastService.date first (قدیمی‌ترین); null last.
+      return pairs
+        .sort((a, b) => {
+          const dA = a.calc.lastService?.date ?? null;
+          const dB = b.calc.lastService?.date ?? null;
+          if (dA === null && dB === null) return nameAsc(a.item, b.item);
+          if (dA === null) return 1;
+          if (dB === null) return -1;
+          return dA < dB ? -1 : dA > dB ? 1 : nameAsc(a.item, b.item);
+        })
+        .map((p) => p.item);
+    }
+  }
 }
 
 /* --- Service card (list page) --- */
@@ -1375,6 +1565,28 @@ function bindListEvents(container: HTMLElement): void {
       input.value = "";
       input.dispatchEvent(new Event("input"));
       input.focus();
+    });
+  });
+
+  /* Sort menu: toggle open/close and pick a sort mode. */
+  container.querySelectorAll<HTMLButtonElement>(".js-sort-menu-toggle").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.sortMenuOpen = !state.sortMenuOpen;
+      redraw(container);
+    });
+  });
+  container.querySelectorAll<HTMLElement>(".js-sort-menu-close").forEach((el) => {
+    el.addEventListener("click", () => {
+      state.sortMenuOpen = false;
+      redraw(container);
+    });
+  });
+  container.querySelectorAll<HTMLButtonElement>(".js-sort-option").forEach((button) => {
+    button.addEventListener("click", () => {
+      const mode = button.dataset.sort as SortMode | undefined;
+      if (mode) state.sortMode = mode;
+      state.sortMenuOpen = false;
+      redraw(container);
     });
   });
 }
