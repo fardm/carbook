@@ -974,17 +974,18 @@ textarea.field__input {
   gap: var(--md-space-2);
 }
 
-/* Reminder status label on the service detail page: small, visually
- * secondary, clickable — navigates to the reminder's card (focus deep
- * link). Not underlined like a plain link; dims on hover. */
+/* Reminder status label on the service detail page: small pill marking
+ * an ACTIVE reminder, clickable — navigates to the reminder's card
+ * (focus deep link). Filled with the primary color like a filled button;
+ * darkens on hover. */
 .reminder-status-label {
   display: inline-flex;
   align-items: center;
   gap: var(--md-space-1);
   padding: 3px 10px;
   border-radius: 999px;
-  color: var(--md-sys-color-on-surface-variant);
-  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-primary);
+  background-color: var(--md-sys-color-primary);
   font-size: var(--md-typescale-label-large);
   font-weight: 500;
   text-decoration: none;
@@ -994,8 +995,8 @@ textarea.field__input {
 }
 .reminder-status-label:hover {
   text-decoration: none;
-  color: var(--md-sys-color-primary);
-  background-color: color-mix(in srgb, var(--md-sys-color-primary) 10%, var(--md-sys-color-surface-container-high));
+  color: var(--md-sys-color-on-primary);
+  background-color: color-mix(in srgb, var(--md-sys-color-primary) 88%, black);
 }
 .reminder-status-label svg {
   width: 14px;

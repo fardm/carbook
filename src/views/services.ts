@@ -211,6 +211,13 @@ const SERVICE_ICON_CHOICES: readonly string[] = [
 ];
 
 export function renderServices(container: HTMLElement): () => void {
+  // Fresh navigation into this view: the module state survives across
+  // routes, so a modal or menu left open during a previous visit would
+  // otherwise re-render stale on return. Close every transient overlay
+  // and popover so the Services page always comes back clean.
+  closeModals();
+  state.sortMenuOpen = false;
+  state.vehicleMenuOpen = false;
   const draw = (): void => {
     activeContainer = container;
     container.innerHTML = servicesViewHtml();
