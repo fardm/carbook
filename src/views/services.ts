@@ -1056,9 +1056,8 @@ function itemDetailPageHtml(itemId: string): string {
 
   const open = state.detailMenuOpen;
   const inactive = !item.active;
-  const calc = calculateMaintenance(item, contextForVehicle(dataset, item.vehicleId));
   // Existing reminder for this service (synced preferred): drives the
-  // status label and the یادآوری menu's "already exists" state.
+  // یادآوری bell link and the menu's "already exists" state.
   const reminder = reminderForService(item, dataset);
   const backLink = `<a class="btn btn--text detail-back" href="${back}">
     <span data-lucide="arrow-right" aria-hidden="true"></span>
@@ -1103,10 +1102,6 @@ function itemDetailPageHtml(itemId: string): string {
                 </a>`
                   : ""
               }
-              <span class="status-chip status-chip--${calc.status}">
-                <span data-lucide="${STATUS_ICONS[calc.status]}"></span>
-                ${statusLabel(calc.status)}
-              </span>
             </div>
           </div>
           ${inactive ? `<div class="service-detail__actions">${detailActionRowHtml(item, inactive)}</div>` : ""}

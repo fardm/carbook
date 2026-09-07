@@ -957,8 +957,8 @@ textarea.field__input {
   padding-block: var(--md-space-4);
 }
 
-/* Header row: service info on the right (RTL start), the compact status
- * chip on the left — wraps onto its own line on narrow screens. */
+/* Header row: service info on the right (RTL start), the header actions
+ * on the left — wraps onto its own line on narrow screens. */
 .service-detail-card__header-row {
   display: flex;
   align-items: center;
@@ -967,8 +967,7 @@ textarea.field__input {
   flex-wrap: wrap;
 }
 
-/* Header actions: the reminder status label + the status chip sit together
- * at the row's end. */
+/* Header actions: the reminder status label sits at the row's end. */
 .service-detail-card__header-actions {
   display: inline-flex;
   align-items: center;
