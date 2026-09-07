@@ -1849,6 +1849,14 @@ input.affix-field__input {
   background-color: var(--md-sys-color-surface-container-high);
 }
 
+/* The یادآوری item is a deep-link ANCHOR while the other items are
+   buttons — neutralize the global a:hover underline (base.css) so it
+   renders identically to its button siblings. */
+a.card-menu__item,
+a.card-menu__item:hover {
+  text-decoration: none;
+}
+
 .card-menu__item--danger {
   color: var(--md-sys-color-error);
 }
