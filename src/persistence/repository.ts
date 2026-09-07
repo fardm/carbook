@@ -77,14 +77,15 @@ export function loadFromString(raw: string): Dataset {
     return defaultDataset();
   }
   if (parsed.version !== CURRENT_VERSION) {
-    // v9 → v10: reminders were added alongside the existing data. Existing
-    // datasets migrate in place (an empty reminders array is appended) so
-    // users never lose vehicles/services/settings across the update.
+    // v10 → v11: reminders gain repeat "weekly"/repeatWeekday and advance
+    // intervals collapse to one per kind. Existing datasets migrate in
+    // place — normalizeReminders repairs every row, so users never lose
+    // vehicles/services/settings/reminders across the update.
     if (parsed.version === CURRENT_VERSION - 1) {
       console.warn(
-        `[persistence] Migrating stored data v${parsed.version} → v${CURRENT_VERSION} (adding reminders).`,
+        `[persistence] Migrating stored data v${parsed.version} → v${CURRENT_VERSION} (reminder repeat/advance normalization).`,
       );
-      return normalize({ ...parsed, reminders: [] });
+      return normalize(parsed);
     }
     console.warn(
       `[persistence] Stored data version ${parsed.version} is not supported (current: ${CURRENT_VERSION}); starting fresh.`,

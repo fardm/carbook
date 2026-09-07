@@ -1,7 +1,9 @@
 import type { Dataset, Settings } from "./types";
 
-/** Current schema version. Bump when the dataset shape changes (§40). */
-export const CURRENT_VERSION = 10;
+/** Current schema version. Bump when the dataset shape changes (§40).
+ * v11: repeat gains "weekly" + per-reminder repeatWeekday; notification
+ * offsets become at most one per kind (normalized defensively on load). */
+export const CURRENT_VERSION = 11;
 
 export function defaultSettings(): Settings {
   return {

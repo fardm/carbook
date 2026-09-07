@@ -62,7 +62,7 @@ const TOP_LEVEL_FIELDS = [
 ] as const;
 
 const REMINDER_TYPES = ["date", "mileage", "date_mileage"] as const;
-const REPEAT_MODES = ["none", "monthly", "yearly", "km"] as const;
+const REPEAT_MODES = ["none", "weekly", "monthly", "yearly", "km"] as const;
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
@@ -331,6 +331,9 @@ function validateReminders(
     }
     checkField(issues, row, "repeat", `${path}.repeat`, { type: "string", nonEmpty: true }, (v) =>
       (REPEAT_MODES as readonly string[]).includes(v),
+    );
+    checkField(issues, row, "repeatWeekday", `${path}.repeatWeekday`, { type: "number", allowNull: true }, (v) =>
+      Number.isInteger(v) && v >= 0 && v <= 6,
     );
     checkField(issues, row, "repeatEveryKm", `${path}.repeatEveryKm`, { type: "number", allowNull: true }, (v) =>
       Number.isInteger(v) && v > 0,

@@ -12,7 +12,7 @@ import {
   runReminderCheck,
   advanceRecurringReminders,
 } from "../domain/reminder-checker";
-import { todayIso } from "../domain/calendar";
+import { isValidIso, todayIso, weekdayOf } from "../domain/calendar";
 import { formatDate } from "../domain/calendar/format";
 import { createId } from "../domain/ids";
 import type {
@@ -54,12 +54,13 @@ interface ReminderViewState {
   form: { mode: "add"; prefill: ReminderPrefill | null } | { mode: "edit"; reminderId: string } | null;
   /** Typed form values keyed by input name — survive re-renders (decision 31). */
   formValues: Record<string, string>;
-  /** Configured notification offsets while the form is open. */
-  offsets: NotificationOffset[];
   /** Which reminder type the form currently shows. */
   formType: Reminder["type"];
   /** Which repeat mode the form currently shows. */
   formRepeat: RepeatMode;
+  /** Day-of-week for repeat "weekly" while the form is open
+   * (0 = Saturday … 6 = Friday, the domain/calendar weekdayOf convention). */
+  formWeekday: number | null;
   /** Whether the form's اعلان پیش از موعد section is on (Req 4). */
   formNotifications: boolean;
   /** Reminder whose card menu is open. */
@@ -99,9 +100,9 @@ const state: ReminderViewState = {
   filter: "all",
   form: null,
   formValues: {},
-  offsets: [],
   formType: "date",
   formRepeat: "none",
+  formWeekday: null,
   formNotifications: false,
   deleteConfirmId: null,
   menuReminderId: null,
@@ -130,10 +131,34 @@ const ERROR_KEYS: Record<ReminderDraftError, Parameters<typeof t>[0]> = {
   dueMileageRequired: "reminders.errorDueMileageRequired",
   dueMileageInvalid: "reminders.errorDueMileageInvalid",
   conditionRequired: "reminders.errorConditionRequired",
+  repeatWeekdayInvalid: "reminders.errorRepeatWeekday",
   repeatKmRequired: "reminders.errorRepeatKmRequired",
   repeatKmInvalid: "reminders.errorRepeatKmInvalid",
   offsetInvalid: "reminders.errorOffsetInvalid",
 };
+
+/** Persian weekday names, Saturday-first (matches weekdayOf/weekday select). */
+const WEEKDAY_KEYS = [
+  "reminders.weekday0",
+  "reminders.weekday1",
+  "reminders.weekday2",
+  "reminders.weekday3",
+  "reminders.weekday4",
+  "reminders.weekday5",
+  "reminders.weekday6",
+] as const;
+
+/** Localized weekday name for a Saturday-first weekday number (0 = Saturday … 6 = Friday). */
+function weekdayLabel(weekday: number): string {
+  return t(WEEKDAY_KEYS[weekday] ?? WEEKDAY_KEYS[0]);
+}
+
+/** Default weekday for the weekly repeat: the due date's own weekday when
+ * valid, otherwise Saturday (0) — the start of the Persian week. */
+function defaultWeekdayFor(dueDate: string | null): number {
+  if (dueDate != null && isValidIso(dueDate)) return weekdayOf(dueDate);
+  return 0;
+}
 
 /** Status chip styling reuses the existing maintenance status classes. */
 const STATUS_CHIP_CLASS: Record<ReminderStatus, string> = {
@@ -462,7 +487,11 @@ function reminderCardHtml(reminder: Reminder, vehicle: Vehicle | null, dataset: 
         ? t("reminders.repeatYearly")
         : reminder.repeat === "km"
           ? `${t("reminders.repeatKm")}: ${faNum(reminder.repeatEveryKm ?? 0)} ${t("common.kmUnit")}`
-          : null;
+          : reminder.repeat === "weekly"
+            ? reminder.repeatWeekday != null
+              ? `${t("reminders.repeatWeekly")} (${weekdayLabel(reminder.repeatWeekday)})`
+              : t("reminders.repeatWeekly")
+            : null;
 
   return `
     <article class="card service-card reminder-card${reminder.enabled ? "" : " reminder-card--disabled"}">
@@ -575,12 +604,19 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
     date_mileage: "reminders.typeDateMileageHint",
   };
 
+  // Repeat dropdown (Req 3): a date-based concept, so the section only
+  // renders for date/date_mileage reminders. "هر چند کیلومتر" stays listed
+  // ONLY for date_mileage — the km recurrence advances the due mileage
+  // there; a pure-date reminder has no mileage to advance.
   const repeatOptions: Array<{ value: RepeatMode; key: Parameters<typeof t>[0] }> = [
     { value: "none", key: "reminders.repeatNone" },
+    { value: "weekly", key: "reminders.repeatWeekly" },
     { value: "monthly", key: "reminders.repeatMonthly" },
     { value: "yearly", key: "reminders.repeatYearly" },
-    { value: "km", key: "reminders.repeatKm" },
   ];
+  if (state.formType === "date_mileage") {
+    repeatOptions.push({ value: "km", key: "reminders.repeatKm" });
+  }
 
   const watchesDate = state.formType === "date" || state.formType === "date_mileage";
   const watchesKm = state.formType === "mileage" || state.formType === "date_mileage";
@@ -611,73 +647,60 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
     </div>`
     : "";
 
-  // Offsets editor: one offset per ROW. Each row holds ONE input (days OR
-  // km, matching the offset's own kind) plus a trash delete button OUTSIDE
-  // the input, on the same row (LEFT of the field in RTL). Removal is keyed
-  // by kind + per-kind index so the grouped layout below stays stable.
-  const offsetRowHtml = (offset: NotificationOffset, removeIndex: number, kind: "days" | "km"): string => {
-    const value = kind === "days" ? offset.days : offset.km;
-    const unit = kind === "days" ? t("reminders.daysBefore") : t("reminders.kmBefore");
-    return `
-      <div class="reminder-offset" data-offset-kind="${kind}">
-        <div class="affix-field reminder-offset__input">
-          <input class="field__input affix-field__input" name="offset-${kind}-${removeIndex}" type="number"
-            inputmode="numeric" min="0" step="1" value="${value != null ? escHtml(String(value)) : ""}" />
-          <span class="affix-field__suffix">${unit}</span>
-        </div>
-        <button type="button" class="icon-btn icon-btn--danger reminder-offset__remove js-remove-offset"
-          data-kind="${kind}" data-index="${removeIndex}"
-          aria-label="${t("reminders.removeOffset")}" title="${t("reminders.removeOffset")}">
-          <span data-lucide="trash-2"></span>
-        </button>
-      </div>`;
-  };
+  // Advance-reminder fields (Req 1): at most ONE per kind, and they are
+  // part of the form the moment the اعلان پیش از موعد toggle is on — no
+  // add-interval buttons. An empty field simply means no advance for that
+  // kind (notifications remain optional). Reuses the Services form's
+  // affix-field input pattern (label + input + unit suffix inside).
+  const advanceDaysField = watchesDate
+    ? `
+    <div class="field">
+      <label class="field__label" for="reminder-advance-days">${t("reminders.advanceDaysLabel")}</label>
+      <div class="affix-field">
+        <input class="field__input affix-field__input" id="reminder-advance-days" name="advanceDays" type="number"
+          inputmode="numeric" min="0" step="1" value="${escHtml(fieldValue("advanceDays"))}" />
+        <span class="affix-field__suffix">${t("reminders.daysBefore")}</span>
+      </div>
+    </div>`
+    : "";
 
-  // Split rows by kind; per-kind counters keep names/indices contiguous.
-  const dayRows: string[] = [];
-  const kmRows: string[] = [];
-  let daysIndex = 0;
-  let kmIndex = 0;
-  for (const offset of state.offsets) {
-    if (offset.days != null) {
-      dayRows.push(offsetRowHtml(offset, daysIndex++, "days"));
-    } else if (offset.km != null) {
-      kmRows.push(offsetRowHtml(offset, kmIndex++, "km"));
-    }
-  }
-
-  const addDaysButton = `<button type="button" class="btn btn--text btn--fit-content js-add-offset" data-kind="days"><span data-lucide="plus"></span>${t("reminders.addDateOffset")}</button>`;
-  const addKmButton = `<button type="button" class="btn btn--text btn--fit-content js-add-offset" data-kind="km"><span data-lucide="plus"></span>${t("reminders.addKmOffset")}</button>`;
-
-  // date_mileage mode: each add button heads its own group with its rows
-  // directly beneath it, so a newly added row always appears immediately
-  // after the button that created it. Single-kind modes keep the flat
-  // rows-then-button layout. The .btn--fit-content utility keeps each add
-  // button at its natural width (flex children would otherwise stretch).
-  const offsetsEditor =
-    state.formType === "date_mileage"
-      ? `<div class="reminder-offsets">
-          <div class="reminder-offsets__group">
-            ${addDaysButton}
-            ${dayRows.join("")}
-          </div>
-          <div class="reminder-offsets__group">
-            ${addKmButton}
-            ${kmRows.join("")}
-          </div>
-        </div>`
-      : state.formType === "date"
-        ? `<div class="reminder-offsets">${dayRows.join("")}</div>${addDaysButton}`
-        : `<div class="reminder-offsets">${kmRows.join("")}</div>${addKmButton}`;
+  const advanceKmField = watchesKm
+    ? `
+    <div class="field">
+      <label class="field__label" for="reminder-advance-km">${t("reminders.advanceKmLabel")}</label>
+      <div class="affix-field">
+        <input class="field__input affix-field__input" id="reminder-advance-km" name="advanceKm" type="number"
+          inputmode="numeric" min="0" step="1" value="${escHtml(fieldValue("advanceKm"))}" />
+        <span class="affix-field__suffix">${t("reminders.kmBefore")}</span>
+      </div>
+    </div>`
+    : "";
 
   const repeatKmField =
-    state.formRepeat === "km"
+    state.formRepeat === "km" && watchesDate
       ? `
     <div class="field">
       <label class="field__label" for="reminder-repeat-km">${t("reminders.repeatEveryKmLabel")}</label>
       <input class="field__input" id="reminder-repeat-km" name="repeatEveryKm" type="number"
         inputmode="numeric" min="1" step="1" value="${escHtml(fieldValue("repeatEveryKm"))}" />
       <p class="field__error" id="reminder-error-repeat-km" hidden></p>
+    </div>`
+      : "";
+
+  // Day-of-week select — visible ONLY while repeat is "weekly" (Req 4);
+  // switching away hides it and clears the stored weekday.
+  const weekdayField =
+    state.formRepeat === "weekly" && watchesDate
+      ? `
+    <div class="field">
+      <label class="field__label" for="reminder-weekday">${t("reminders.weekdayLabel")}</label>
+      <select class="field__input js-reminder-weekday" id="reminder-weekday">
+        ${WEEKDAY_KEYS.map(
+          (key, index) => `
+        <option value="${index}" ${state.formWeekday === index ? "selected" : ""}>${t(key)}</option>`,
+        ).join("")}
+      </select>
+      <p class="field__error" id="reminder-error-repeat-weekday" hidden></p>
     </div>`
       : "";
 
@@ -745,30 +768,28 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
                 <span class="toggle__track" aria-hidden="true"><span class="toggle__thumb"></span></span>
               </span>
             </label>
-            <p class="field__hint">${t("reminders.notificationsHint")}</p>
           </div>
 
           ${state.formNotifications ? `
           <div class="field field--static">
-            <span class="field__label">${t("reminders.notificationsLabel")}</span>
-            ${offsetsEditor}
+            ${advanceDaysField}
+            ${advanceKmField}
             <p class="field__error" id="reminder-error-offsets" hidden></p>
           </div>` : ""}
 
+          ${watchesDate ? `
           <div class="field">
-            <span class="field__label" id="reminder-repeat-label">${t("reminders.repeatLabel")}</span>
-            <div class="settings-theme segmented" role="radiogroup" aria-labelledby="reminder-repeat-label">
+            <label class="field__label" for="reminder-repeat">${t("reminders.repeatLabel")}</label>
+            <select class="field__input js-reminder-repeat" id="reminder-repeat">
               ${repeatOptions
                 .map(
                   (option) => `
-                <button type="button" class="segmented__option js-reminder-repeat ${state.formRepeat === option.value ? "segmented__option--active" : ""}"
-                  data-repeat="${option.value}" role="radio" aria-checked="${state.formRepeat === option.value}">
-                  ${t(option.key)}
-                </button>`,
+              <option value="${option.value}" ${state.formRepeat === option.value ? "selected" : ""}>${t(option.key)}</option>`,
                 )
                 .join("")}
-            </div>
-          </div>
+            </select>
+          </div>` : ""}
+          ${weekdayField}
           ${repeatKmField}
 
           <div class="form__actions">
@@ -834,9 +855,9 @@ function permissionPromptModalHtml(): string {
 function closeForm(): void {
   state.form = null;
   state.formValues = {};
-  state.offsets = [];
   state.formType = "date";
   state.formRepeat = "none";
+  state.formWeekday = null;
   state.formNotifications = false;
 }
 
@@ -851,10 +872,10 @@ function openAddForm(prefill: ReminderPrefill | null): void {
   state.form = { mode: "add", prefill };
   state.formType = prefill?.dueDate != null && prefill.dueMileage != null ? "date_mileage" : prefill?.dueMileage != null ? "mileage" : "date";
   state.formRepeat = "none";
-  // Notifications are OFF by default (Req 4) — the user opts in; no
-  // offsets are pre-seeded.
+  state.formWeekday = null;
+  // Notifications are OFF by default (Req 4) — the user opts in; the
+  // advance fields prefill sensible defaults the moment the toggle is on.
   state.formNotifications = false;
-  state.offsets = [];
   if (prefill != null) {
     if (prefill.title !== "") state.formValues.title = prefill.title;
     if (prefill.dueDate != null) state.formValues.dueDate = prefill.dueDate;
@@ -954,8 +975,16 @@ function bind(container: HTMLElement): void {
       state.menuReminderId = null;
       state.form = { mode: "edit", reminderId: reminder.id };
       state.formType = reminder.type;
-      state.formRepeat = reminder.repeat;
-      state.offsets = reminder.notificationOffsets.map((offset) => ({ ...offset }));
+      // Legacy guard: a pure-date reminder cannot have a km recurrence
+      // (no due mileage to advance) — edit it as one-time.
+      state.formRepeat = reminder.repeat === "km" && reminder.type === "date" ? "none" : reminder.repeat;
+      // Weekly needs a day: fall back to the due date's weekday / Saturday
+      // for legacy rows stored without one.
+      state.formWeekday = reminder.repeatWeekday ?? defaultWeekdayFor(reminder.dueDate);
+      // Single advance value per kind: take the FIRST days/km entry of any
+      // legacy multi-interval data (normalize collapses those on load too).
+      const firstDays = reminder.notificationOffsets.find((offset) => offset.days != null);
+      const firstKm = reminder.notificationOffsets.find((offset) => offset.km != null);
       state.formNotifications = reminder.notificationOffsets.length > 0;
       state.formValues = {
         title: reminder.title,
@@ -963,6 +992,8 @@ function bind(container: HTMLElement): void {
         serviceId: reminder.serviceId ?? "",
         dueDate: reminder.dueDate ?? "",
         dueMileage: reminder.dueMileage != null ? String(reminder.dueMileage) : "",
+        advanceDays: firstDays?.days != null ? String(firstDays.days) : "",
+        advanceKm: firstKm?.km != null ? String(firstKm.km) : "",
         repeatEveryKm: reminder.repeatEveryKm != null ? String(reminder.repeatEveryKm) : "",
       };
       redraw(container);
@@ -1017,59 +1048,50 @@ function bind(container: HTMLElement): void {
     });
   });
 
-  /* Type + repeat segmented controls. */
+  /* Type segmented control + repeat/weekday selects. */
   container.querySelectorAll<HTMLButtonElement>(".js-reminder-type").forEach((button) => {
     button.addEventListener("click", () => {
       const type = button.dataset.type as Reminder["type"] | undefined;
       if (!type || type === state.formType) return;
       state.formType = type;
-      // Drop offsets that no longer apply to the chosen type: date keeps
-      // only days rows, mileage only km rows, date_mileage keeps everything.
-      state.offsets = state.offsets.filter((offset) =>
-        type === "date" ? offset.days != null : type === "mileage" ? offset.km != null : true,
-      );
-      redraw(container);
-    });
-  });
-  container.querySelectorAll<HTMLButtonElement>(".js-reminder-repeat").forEach((button) => {
-    button.addEventListener("click", () => {
-      const repeat = button.dataset.repeat as RepeatMode | undefined;
-      if (repeat) state.formRepeat = repeat;
-      redraw(container);
-    });
-  });
-
-  /* اعلان پیش از موعد toggle (Req 4): reveals/hides the offsets editor. */
-  container.querySelectorAll<HTMLInputElement>(".js-notifications-toggle").forEach((input) => {
-    input.addEventListener("change", () => {
-      state.formNotifications = input.checked;
-      redraw(container);
-    });
-  });
-
-  /* Offsets editor: each add button creates ONLY its own kind of row; the
-   * trash button on a row removes exactly that row. */
-  container.querySelectorAll<HTMLButtonElement>(".js-add-offset").forEach((button) => {
-    button.addEventListener("click", () => {
-      if (button.dataset.kind === "km") {
-        state.offsets.push({ km: 100 });
-      } else {
-        state.offsets.push({ days: 7 });
+      // Repeat is a date-based concept (Req 2): a pure mileage reminder
+      // has no repeat section, and the km recurrence only exists for
+      // date_mileage — clear the in-progress choice accordingly.
+      if (type === "mileage" || (type === "date" && state.formRepeat === "km")) {
+        state.formRepeat = "none";
+        state.formWeekday = null;
       }
       redraw(container);
     });
   });
-  container.querySelectorAll<HTMLButtonElement>(".js-remove-offset").forEach((button) => {
-    button.addEventListener("click", () => {
-      // Rows are keyed by kind + per-kind index (matching the grouped
-      // rendering), so translate that into the position in state.offsets.
-      const kind = button.dataset.kind === "km" ? "km" : "days";
-      const withinKind = Number(button.dataset.index);
-      const kindIndices = state.offsets
-        .map((offset, i) => ((kind === "km" ? offset.km != null : offset.days != null) ? i : -1))
-        .filter((i) => i >= 0);
-      if (Number.isInteger(withinKind) && withinKind >= 0 && withinKind < kindIndices.length) {
-        state.offsets.splice(kindIndices[withinKind], 1);
+  container.querySelectorAll<HTMLSelectElement>(".js-reminder-repeat").forEach((select) => {
+    select.addEventListener("change", () => {
+      const repeat = select.value as RepeatMode;
+      state.formRepeat = repeat;
+      // Weekly needs a day: default to the due date's weekday, else
+      // Saturday. Switching away hides the selector and clears the value.
+      state.formWeekday =
+        repeat === "weekly" ? (state.formWeekday ?? defaultWeekdayFor(fieldValue("dueDate") || null)) : null;
+      redraw(container);
+    });
+  });
+  container.querySelectorAll<HTMLSelectElement>(".js-reminder-weekday").forEach((select) => {
+    select.addEventListener("change", () => {
+      const weekday = Number(select.value);
+      state.formWeekday = Number.isInteger(weekday) && weekday >= 0 && weekday <= 6 ? weekday : null;
+      redraw(container);
+    });
+  });
+
+  /* اعلان پیش از موعد toggle (Req 4): reveals/hides the advance fields. */
+  container.querySelectorAll<HTMLInputElement>(".js-notifications-toggle").forEach((input) => {
+    input.addEventListener("change", () => {
+      state.formNotifications = input.checked;
+      // The advance fields are part of the form the moment the toggle is
+      // on (Req 1) — prefill sensible defaults so they are ready to edit.
+      if (input.checked) {
+        if (fieldValue("advanceDays") === "") state.formValues.advanceDays = "7";
+        if (fieldValue("advanceKm") === "") state.formValues.advanceKm = "100";
       }
       redraw(container);
     });
@@ -1110,24 +1132,6 @@ function bind(container: HTMLElement): void {
   });
 }
 
-/** Gathers offsets from the live form rows: each row is ONE offset of its
- * own data-offset-kind (days or km) — never both. */
-function collectOffsets(container: HTMLElement): NotificationOffset[] {
-  const offsets: NotificationOffset[] = [];
-  container.querySelectorAll<HTMLElement>(".reminder-offset").forEach((row) => {
-    const kind = row.dataset.offsetKind;
-    const input = row.querySelector<HTMLInputElement>("input");
-    const value = input?.value.trim() ?? "";
-    if (value === "") return;
-    if (kind === "days") {
-      offsets.push({ days: Number(toLatinDigits(value)) });
-    } else if (kind === "km") {
-      offsets.push({ km: Number(toLatinDigits(value)) });
-    }
-  });
-  return offsets;
-}
-
 /** Builds a Reminder from the form, validates, then saves (Phase 5+7). */
 function submitReminderForm(container: HTMLElement, form: HTMLFormElement): void {
   const dataset = store.get();
@@ -1153,7 +1157,16 @@ function submitReminderForm(container: HTMLElement, form: HTMLFormElement): void
   /* Reminders are saved ENABLED (Req 5) — the user toggles enable/disable
    * later from the card in the list, which is the existing pattern. */
   const enabled = true;
-  const notificationOffsets = state.formNotifications ? collectOffsets(container) : [];
+
+  // Advance reminders: AT MOST ONE per kind (Req 1) — built straight from
+  // the two fixed fields; an empty field = no advance for that kind.
+  const notificationOffsets: NotificationOffset[] = [];
+  if (state.formNotifications) {
+    const daysRaw = String(data.get("advanceDays") ?? "").trim();
+    const kmRaw = String(data.get("advanceKm") ?? "").trim();
+    if (watchesDate() && daysRaw !== "") notificationOffsets.push({ days: Number(toLatinDigits(daysRaw)) });
+    if (watchesKm() && kmRaw !== "") notificationOffsets.push({ km: Number(toLatinDigits(kmRaw)) });
+  }
 
   const draft = {
     vehicleId,
@@ -1165,6 +1178,8 @@ function submitReminderForm(container: HTMLElement, form: HTMLFormElement): void
     dueMileage,
     notificationOffsets,
     repeat: state.formRepeat,
+    // The weekday only applies to repeat "weekly" — cleared otherwise.
+    repeatWeekday: state.formRepeat === "weekly" ? state.formWeekday : null,
     repeatEveryKm,
     enabled,
   };
@@ -1237,6 +1252,7 @@ function showReminderErrors(container: HTMLElement, errors: [ReminderDraftError,
     dueDateInvalid: "reminder-error-date",
     dueMileageRequired: "reminder-error-km",
     dueMileageInvalid: "reminder-error-km",
+    repeatWeekdayInvalid: "reminder-error-repeat-weekday",
     repeatKmRequired: "reminder-error-repeat-km",
     repeatKmInvalid: "reminder-error-repeat-km",
     offsetInvalid: "reminder-error-offsets",

@@ -135,7 +135,7 @@ export interface Settings {
 export type ReminderType = "date" | "mileage" | "date_mileage";
 
 /** Recurrence policy (extensible union — add new members without reshaping). */
-export type RepeatMode = "none" | "monthly" | "yearly" | "km";
+export type RepeatMode = "none" | "weekly" | "monthly" | "yearly" | "km";
 
 /** A single notification lead time. Units are separated so each type stays
  * machine-comparable: days for date triggers, km for mileage triggers. */
@@ -170,6 +170,10 @@ export interface Reminder {
   notificationOffsets: NotificationOffset[];
   /** Recurrence policy. */
   repeat: RepeatMode;
+  /** Day-of-week for repeat "weekly": 0 = Saturday … 6 = Friday
+   * (Saturday-first, the same convention as domain/calendar weekdayOf and
+   * the Persian week). Null for every other repeat mode. */
+  repeatWeekday: number | null;
   /** Repeat interval in km for repeat "km". */
   repeatEveryKm: number | null;
   /** False = the reminder is muted and shows as disabled everywhere. */

@@ -5,6 +5,7 @@ import {
   diffDays,
   isValidIso,
   todayIso,
+  weekdayOf,
 } from "./calendar";
 import type { NotificationOffset, Reminder } from "./types";
 
@@ -212,6 +213,16 @@ export function nextOccurrence(
   completedMileage: number | null,
 ): { dueDate: string | null; dueMileage: number | null } | null {
   switch (reminder.repeat) {
+    case "weekly": {
+      if (reminder.type === "mileage") return null;
+      const weekday = reminder.repeatWeekday;
+      if (weekday == null || !Number.isInteger(weekday) || weekday < 0 || weekday > 6) return null;
+      // Next occurrence of the chosen weekday STRICTLY after the completed
+      // day (same day → a full week later). Weekday convention: 0 = Saturday
+      // … 6 = Friday (domain/calendar weekdayOf, Persian week).
+      const ahead = (weekday - weekdayOf(completedDate) + 7) % 7;
+      return { dueDate: addDays(completedDate, ahead === 0 ? 7 : ahead), dueMileage: reminder.dueMileage };
+    }
     case "monthly":
       if (reminder.type === "mileage") return null;
       return { dueDate: addMonths(completedDate, 1), dueMileage: reminder.dueMileage };
@@ -250,6 +261,8 @@ export interface ReminderDraft {
   dueMileage: number | null;
   notificationOffsets: NotificationOffset[];
   repeat: Reminder["repeat"];
+  /** Day-of-week (0 = Saturday … 6 = Friday) for repeat "weekly". */
+  repeatWeekday: number | null;
   repeatEveryKm: number | null;
   enabled: boolean;
 }
@@ -261,6 +274,7 @@ export type ReminderDraftError =
   | "dueMileageRequired"
   | "dueMileageInvalid"
   | "conditionRequired"
+  | "repeatWeekdayInvalid"
   | "repeatKmRequired"
   | "repeatKmInvalid"
   | "offsetInvalid";
@@ -285,6 +299,10 @@ export function validateReminderDraft(draft: ReminderDraft): ReminderDraftError[
     }
   }
   if (!watchesDate && !watchesKm) errors.push("conditionRequired");
+
+  if (draft.repeat === "weekly" && (draft.repeatWeekday == null || !Number.isInteger(draft.repeatWeekday) || draft.repeatWeekday < 0 || draft.repeatWeekday > 6)) {
+    errors.push("repeatWeekdayInvalid");
+  }
 
   if (draft.repeat === "km" && draft.repeatEveryKm == null) errors.push("repeatKmRequired");
   if (
