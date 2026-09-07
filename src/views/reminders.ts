@@ -189,13 +189,7 @@ export function renderReminders(container: HTMLElement): () => void {
   consumeReminderHash();
   const draw = (): void => {
     activeContainer = container;
-    container.innerHTML = remindersViewHtml();
-    bind(container);
-    applyIcons();
-    bindFloatingFields(container);
-    bindDateFields(container);
-    alignFabBar();
-    applyFocusHighlight(container);
+    paintView(container);
   };
   registerGlobalKeys();
   draw();
@@ -731,11 +725,14 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
     </div>`
       : "";
 
-  // Day-of-week select — part of the WEEKLY recurrence config (Req 4);
-  // switching away hides it and clears the stored weekday. Disabled with
-  // the rest of the repeat group while the toggle is OFF.
+  // Day-of-week select — part of the WEEKLY recurrence config (Req 4). It
+  // stays in the DOM for every date-based form: while the تکرار toggle is
+  // OFF it renders visible-but-disabled (matching the repeat select), so
+  // the layout never jumps on toggle; it only hides for non-weekly
+  // recurrences, where a weekday is meaningless. Switching away from
+  // weekly clears the stored weekday.
   const weekdayField =
-    state.formRepeat === "weekly" && watchesDate
+    watchesDate && (state.formRepeat === "weekly" || repeatDisabled)
       ? `
     <div class="field">
       <label class="field__label" for="reminder-weekday">${t("reminders.weekdayLabel")}</label>
@@ -1522,8 +1519,18 @@ function showReminderErrors(container: HTMLElement, errors: [ReminderDraftError,
   }
 }
 
-/** Re-renders without notifying the store (view-local transitions). */
-function redraw(container: HTMLElement): void {
+/**
+ * Paints the view into the container and re-binds events. The innerHTML
+ * swap destroys the open modal's scroll container, so both the modal
+ * overlay's scrollTop and the window's scrollY are captured first and
+ * restored after — toggling any switch in the form never jumps the view
+ * back to the top.
+ */
+function paintView(container: HTMLElement): void {
+  const pageScroll = window.scrollY;
+  const overlay = container.querySelector<HTMLElement>(".modal-overlay");
+  const overlayScroll = overlay?.scrollTop ?? null;
+
   container.innerHTML = remindersViewHtml();
   bind(container);
   applyIcons();
@@ -1531,6 +1538,17 @@ function redraw(container: HTMLElement): void {
   bindDateFields(container);
   alignFabBar();
   applyFocusHighlight(container);
+
+  if (overlayScroll != null) {
+    const freshOverlay = container.querySelector<HTMLElement>(".modal-overlay");
+    if (freshOverlay) freshOverlay.scrollTop = overlayScroll;
+  }
+  window.scrollTo(0, pageScroll);
+}
+
+/** Re-renders without notifying the store (view-local transitions). */
+function redraw(container: HTMLElement): void {
+  paintView(container);
 }
 
 /**

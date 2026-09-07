@@ -1523,15 +1523,18 @@ input.affix-field__input {
  *
  * Specificity note: the floating-label selectors include `:has()`, whose
  * argument adds specificity, so each is restated here with the extra
- * `.field--static` class — same shape, higher value, and later in source. */
-.field--static .field__label,
-.field.field--static:has(.field__input) .field__label,
-.field.field--static:has(input.field__input).is-filled .field__label,
-.field.field--static:has(input.field__input).is-focused .field__label,
-.field.field--static:has(.date-field:focus-within) .field__label,
-.field.field--static:has(select.field__input) .field__label,
-.field.field--static:has(textarea.field__input) .field__label,
-.field.field--static:has(.field__input):focus-within .field__label {
+ * `.field--static` class — same shape, higher value, and later in source.
+ *
+ * These rules only target DIRECT-child labels (>) of the section wrapper:
+ * fields nested inside the section keep their own floating labels. */
+.field--static > .field__label,
+.field.field--static:has(.field__input) > .field__label,
+.field.field--static:has(input.field__input).is-filled > .field__label,
+.field.field--static:has(input.field__input).is-focused > .field__label,
+.field.field--static:has(.date-field:focus-within) > .field__label,
+.field.field--static:has(select.field__input) > .field__label,
+.field.field--static:has(textarea.field__input) > .field__label,
+.field.field--static:has(.field__input):focus-within > .field__label {
   position: static;
   inset: auto;
   z-index: auto;
