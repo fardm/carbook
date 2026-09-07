@@ -325,6 +325,7 @@ export const fa = {
     titlePlaceholder: "مثلاً بیمه بدنه",
     descriptionLabel: "توضیحات (اختیاری)",
     descriptionPlaceholder: "مثلاً تماس با نمایندگی برای دریافت پوشش",
+    syncToggleLabel: "همگام با تعویض پیشنهادی",
     syncHint: "این یادآوری با سرویس همگام است؛ تاریخ و کیلومتر آن از موعد پیشنهادی سرویس گرفته می‌شود و با ثبت سرویس جدید به‌روز می‌شود.",
     syncDateUnavailableHint: "این سرویس هنوز تاریخ پیشنهادی ندارد.",
     syncKmUnavailableHint: "این سرویس هنوز کیلومتر پیشنهادی ندارد.",

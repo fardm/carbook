@@ -764,12 +764,20 @@ respect. The section documents the CURRENT (v12) state in full.
   synced reminders — the service schedule IS their recurrence.
 - **Reminders form** (`views/reminders.ts`): two creation flows. Manual
   (Reminders page): NO service relationship (`serviceId` null — the old
-  related-service select was removed from the form). Service-synchronized
-  (service page): title + due date/km render READ-ONLY from the service's
-  current recommendation (with a همگام hint; per-side "service has no
-  recommendation" hints), repeat is hidden (repeat "none"), and the submit
-  path RE-RESOLVES values from the service at save time — a stale form
-  value can never be persisted. Validator maps missing synced values to
+  related-service select was removed from the form; the sync toggle does
+  NOT appear). Service-based (service page, or editing any reminder with
+  a serviceId): a **همگام با تعویض پیشنهادی toggle** (before the type
+  control, default ON) decides the flow. ON: title + due date/km render
+  READ-ONLY from the service's current recommendation (title mirrors the
+  service's current name), repeat is hidden (repeat "none"), and the
+  submit path RE-RESOLVES values from the service at save time — a stale
+  form value can never be persisted. OFF: the fields keep the resolved
+  values but become EDITABLE (the toggle handler seeds the editable
+  fields from the live recommendation so nothing is lost), repeat returns,
+  and the reminder saves as a MANUAL reminder that KEEPS its serviceId
+  reference (the service page's یادآوری action still routes to its edit
+  form; future service changes never move it). Re-toggling ON re-resolves
+  everything read-only again. Validator maps missing synced values to
   dedicated errors (`syncDateUnavailable`/`syncKmUnavailable`). The
   draft's form-level `synced` flag is stripped before persisting (only
   `syncWithService` is stored).

@@ -67,6 +67,10 @@ interface ReminderViewState {
   formWeekday: number | null;
   /** Whether the form's اعلان پیش از موعد section is on (Req 4). */
   formNotifications: boolean;
+  /** LIVE state of the همگام با تعویض پیشنهادی toggle (service-based
+   * forms only): true = due values resolve from the service; false = the
+   * displayed values become editable and the reminder is saved manual. */
+  formSynced: boolean;
   /** Reminder whose card menu is open. */
   menuReminderId: string | null;
   /** Filter dropdown popover is open. */
@@ -113,6 +117,7 @@ const state: ReminderViewState = {
   formRepeat: "none",
   formWeekday: null,
   formNotifications: false,
+  formSynced: false,
   deleteConfirmId: null,
   menuReminderId: null,
   filterMenuOpen: false,
@@ -568,24 +573,29 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
   const vehicle = vehicleId != null ? (dataset.vehicles.find((v) => v.id === vehicleId) ?? null) : null;
   const title = editing ? t("reminders.editTitle") : t("reminders.addTitle");
 
-  // Service-synchronized mode (service page entry point, or editing an
-  // existing synced reminder): the SERVICE is the source of truth — title
-  // and due values render read-only from its current recommendation and
-  // repeat is hidden (the service schedule IS the recurrence).
+  // Service-based forms (service page entry point, or editing any reminder
+  // that has a serviceId): the همگام با تعویض پیشنهادی toggle decides
+  // whether the SERVICE is the source of truth (values resolve live and
+  // render read-only) or the user owns the values (editable, saved as a
+  // manual reminder that keeps its serviceId reference).
   const editingReminder = editing
     ? (dataset.reminders.find((r) => r.id === (state.form as { reminderId: string }).reminderId) ?? null)
     : null;
-  const synced = editing
-    ? (editingReminder?.syncWithService ?? false)
-    : (prefill?.synced ?? false);
-  const syncServiceId = synced
-    ? (editing ? editingReminder?.serviceId ?? null : prefill?.serviceId ?? null)
-    : null;
+  const serviceLinked = editing
+    ? (editingReminder?.serviceId ?? null)
+    : (prefill?.serviceId ?? null);
+  const synced = serviceLinked != null && state.formSynced;
   const syncSource = (() => {
-    if (syncServiceId == null) return null;
-    const item = dataset.maintenanceItems.find((candidate) => candidate.id === syncServiceId);
+    if (serviceLinked == null) return null;
+    const item = dataset.maintenanceItems.find((candidate) => candidate.id === serviceLinked);
     return item ? recommendedDueForService(item, dataset) : null;
   })();
+  // While synced, the title mirrors the service's current name (same rule
+  // the submit path applies); the editable/manual value comes from state.
+  const syncedServiceName =
+    synced && serviceLinked != null
+      ? (dataset.maintenanceItems.find((candidate) => candidate.id === serviceLinked)?.name ?? null)
+      : null;
 
   const typeOptions: Array<{ value: Reminder["type"]; key: Parameters<typeof t>[0] }> = [
     { value: "date", key: "reminders.typeDate" },
@@ -733,7 +743,7 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
             <label class="field__label" for="reminder-title">${t("reminders.titleLabel")}</label>
             <input class="field__input" id="reminder-title" name="title" type="text"
               ${synced ? "readonly" : ""}
-              value="${escHtml(fieldValue("title"))}"
+              value="${escHtml(syncedServiceName ?? fieldValue("title"))}"
               placeholder="${t("reminders.titlePlaceholder")}" />
             <p class="field__error" id="reminder-error-title" hidden></p>
           </div>
@@ -743,6 +753,19 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
             <textarea class="field__input" id="reminder-description" name="description" rows="2"
               placeholder="${t("reminders.descriptionPlaceholder")}">${escHtml(fieldValue("description"))}</textarea>
           </div>
+
+          ${serviceLinked != null ? `
+          <div class="field field--static">
+            <label class="toggle-row">
+              <span class="toggle-row__label">${t("reminders.syncToggleLabel")}</span>
+              <span class="toggle">
+                <input type="checkbox" class="js-reminder-sync-toggle" role="switch"
+                  aria-label="${t("reminders.syncToggleLabel")}" ${state.formSynced ? "checked" : ""} />
+                <span class="toggle__track" aria-hidden="true"><span class="toggle__thumb"></span></span>
+              </span>
+            </label>
+            ${synced ? `<p class="field__hint reminder-sync-hint">${t("reminders.syncHint")}</p>` : ""}
+          </div>` : ""}
 
           <div class="field">
             <span class="field__label" id="reminder-type-label">${t("reminders.typeLabel")}</span>
@@ -759,8 +782,6 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
             </div>
             <p class="field__hint">${t(typeHintKey[state.formType])}</p>
           </div>
-
-          ${synced ? `<p class="field__hint reminder-sync-hint">${t("reminders.syncHint")}</p>` : ""}
 
           ${dateSection}
           ${kmSection}
@@ -865,6 +886,7 @@ function closeForm(): void {
   state.formRepeat = "none";
   state.formWeekday = null;
   state.formNotifications = false;
+  state.formSynced = false;
 }
 
 /**
@@ -882,6 +904,9 @@ function openAddForm(prefill: ReminderPrefill | null): void {
   // Notifications are OFF by default (Req 4) — the user opts in; the
   // advance fields prefill sensible defaults the moment the toggle is on.
   state.formNotifications = false;
+  // Service-based forms start SYNCHRONIZED (toggle ON): the service's
+  // current recommendation fills both fields read-only.
+  state.formSynced = prefill?.synced ?? false;
   if (prefill != null) {
     if (prefill.title !== "") state.formValues.title = prefill.title;
     if (prefill.dueDate != null) state.formValues.dueDate = prefill.dueDate;
@@ -968,6 +993,9 @@ function openEditForm(reminderId: string): void {
   state.form = { mode: "edit", reminderId: stored.id };
   const reminder = resolveReminder(stored, dataset);
   state.formType = reminder.type;
+  // The toggle reflects the STORED sync state; when ON the resolved values
+  // display read-only, when OFF the stored snapshot values are editable.
+  state.formSynced = stored.syncWithService;
   // Synced reminders follow the service schedule — no repeat control.
   state.formRepeat = reminder.syncWithService
     ? "none"
@@ -1178,6 +1206,40 @@ function bind(container: HTMLElement): void {
     });
   });
 
+  /* همگام با تعویض پیشنهادی toggle (service-based forms): ON keeps the
+   * service as the source of truth (fields read-only from its live
+   * recommendation); OFF seeds the editable fields with the CURRENT
+   * resolved values so nothing is lost, and the reminder saves manual. */
+  container.querySelectorAll<HTMLInputElement>(".js-reminder-sync-toggle").forEach((input) => {
+    input.addEventListener("change", () => {
+      state.formSynced = input.checked;
+      if (!input.checked) {
+        // Seed the editable fields from the service's current
+        // recommendation (what the user saw while synced) — only the
+        // sides the service actually provides; missing sides stay empty.
+        const dataset = store.get();
+        const form = state.form;
+        const serviceId =
+          form == null
+            ? null
+            : form.mode === "edit"
+              ? (dataset.reminders.find((r) => r.id === form.reminderId)?.serviceId ?? null)
+              : (form.prefill?.serviceId ?? null);
+        if (serviceId != null) {
+          const item = dataset.maintenanceItems.find((candidate) => candidate.id === serviceId);
+          if (item) {
+            const recommended = recommendedDueForService(item, dataset);
+            if (recommended.dueDate != null) state.formValues.dueDate = recommended.dueDate;
+            if (recommended.dueMileage != null) {
+              state.formValues.dueMileage = String(recommended.dueMileage);
+            }
+          }
+        }
+      }
+      redraw(container);
+    });
+  });
+
   /* Permission prompt (Phase 7). */
   container.querySelector<HTMLButtonElement>(".js-permission-enable")?.addEventListener("click", () => {
     const pending = state.permissionPrompt?.pendingReminder;
@@ -1225,18 +1287,27 @@ function submitReminderForm(container: HTMLElement, form: HTMLFormElement): void
   const editingReminder = editing
     ? (dataset.reminders.find((r) => r.id === formState.reminderId) ?? null)
     : null;
-  // Two creation flows (req 1): manual reminders have NO service
-  // relationship at all; service-synchronized reminders keep their
-  // serviceId and resolve values from the service.
+  // The toggle's LIVE state decides the flow: ON = service-synchronized
+  // (values re-resolve from the service at save); OFF = manual reminder
+  // that KEEPS its serviceId reference (بررسی یادآوری still finds it) and
+  // uses the editable field values. A manual form never sets serviceId.
   const synced = editing
-    ? (editingReminder?.syncWithService ?? false)
-    : (formState.prefill?.synced ?? false);
+    ? (editingReminder?.serviceId != null && state.formSynced)
+    : (formState.prefill?.synced ?? false) && state.formSynced;
   const serviceId = synced
     ? (editing ? editingReminder?.serviceId ?? null : formState.prefill?.serviceId ?? null)
-    : null;
+    : editing
+      ? (editingReminder?.serviceId ?? null)
+      : (formState.prefill?.serviceId ?? null);
 
   const data = new FormData(form);
-  const title = String(data.get("title") ?? "").trim();
+  // A synced reminder mirrors the service's current name; an unsynced one
+  // uses whatever the (editable) title field holds.
+  const title = synced
+    ? (serviceId != null
+        ? (dataset.maintenanceItems.find((candidate) => candidate.id === serviceId)?.name ?? String(data.get("title") ?? "").trim())
+        : String(data.get("title") ?? "").trim())
+    : String(data.get("title") ?? "").trim();
   const description = String(data.get("description") ?? "").trim();
 
   // Service-synchronized saves re-resolve the due values from the service
@@ -1260,6 +1331,9 @@ function submitReminderForm(container: HTMLElement, form: HTMLFormElement): void
     : watchesKm() && kmRaw !== ""
       ? Number(toLatinDigits(kmRaw))
       : null;
+  // Manual (unsynced) reminders own their recurrence — synced ones follow
+  // the service schedule, so repeat stays "none" there (draft fields
+  // below already gate on `synced`).
 
   const repeatEveryKmRaw = String(data.get("repeatEveryKm") ?? "").trim();
   const repeatEveryKm = !synced && state.formRepeat === "km" && repeatEveryKmRaw !== "" ? Number(toLatinDigits(repeatEveryKmRaw)) : null;
