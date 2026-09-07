@@ -73,8 +73,6 @@ interface ReminderViewState {
    * forms only): true = due values resolve from the service; false = the
    * displayed values become editable and the reminder is saved manual. */
   formSynced: boolean;
-  /** Reminder whose card menu is open. */
-  menuReminderId: string | null;
   /** Filter dropdown popover is open. */
   filterMenuOpen: boolean;
   /** Reminder whose card the index should scroll to + temporarily
@@ -125,7 +123,6 @@ const state: ReminderViewState = {
   formSynced: false,
   focusReminderId: null,
   deleteConfirmId: null,
-  menuReminderId: null,
   filterMenuOpen: false,
   permissionPrompt: null,
   permissionNotice: null,
@@ -217,18 +214,18 @@ function registerGlobalKeys(): void {
       redraw(container);
       return;
     }
-    if (state.form || state.deleteConfirmId) {
+    if (state.deleteConfirmId) {
+      state.deleteConfirmId = null;
+      redraw(container);
+      return;
+    }
+    if (state.form) {
       closeForm();
       redraw(container);
       return;
     }
     if (state.vehicleMenuOpen) {
       state.vehicleMenuOpen = false;
-      redraw(container);
-      return;
-    }
-    if (state.menuReminderId) {
-      state.menuReminderId = null;
       redraw(container);
       return;
     }
@@ -490,7 +487,8 @@ function reminderCardHtml(reminder: Reminder, vehicle: Vehicle | null, dataset: 
             : null;
 
   return `
-    <article class="card service-card reminder-card${reminder.enabled ? "" : " reminder-card--disabled"}" data-id="${escHtml(reminder.id)}">
+    <article class="card service-card reminder-card js-reminder-card${reminder.enabled ? "" : " reminder-card--disabled"}" data-id="${escHtml(reminder.id)}"
+      tabindex="0" role="button" aria-label="${escHtml(t("reminders.editTitle"))}">
       <div class="service-card__head">
         <div class="service-card__info">
           <div class="service-card__name">${escHtml(reminder.title)}</div>
@@ -512,39 +510,7 @@ function reminderCardHtml(reminder: Reminder, vehicle: Vehicle | null, dataset: 
           <span class="toggle__track" aria-hidden="true"><span class="toggle__thumb"></span></span>
         </label>
       </div>
-      ${reminderMenuHtml(reminder.id)}
     </article>
-  `;
-}
-
-/** Three-dot menu (ویرایش / حذف) — the same dropdown used on service cards. */
-function reminderMenuHtml(reminderId: string): string {
-  const open = state.menuReminderId === reminderId;
-  return `
-    <div class="card-menu service-card-menu">
-      <button type="button" class="icon-btn js-reminder-menu-toggle" data-id="${escHtml(reminderId)}"
-        aria-haspopup="menu" aria-expanded="${open}"
-        aria-label="${t("reminders.menuLabel")}" title="${t("reminders.menuLabel")}">
-        <span data-lucide="more-vertical"></span>
-      </button>
-      ${
-        open
-          ? `
-        <div class="card-menu__backdrop js-reminder-menu-backdrop"></div>
-        <div class="card-menu__popover" role="menu" aria-label="${t("reminders.menuLabel")}">
-          <button type="button" class="card-menu__item js-reminder-menu-edit" role="menuitem" data-id="${escHtml(reminderId)}">
-            <span data-lucide="pencil"></span>
-            ${t("reminders.editTitle")}
-          </button>
-          <div class="card-menu__divider" role="separator"></div>
-          <button type="button" class="card-menu__item card-menu__item--danger js-reminder-menu-delete" role="menuitem" data-id="${escHtml(reminderId)}">
-            <span data-lucide="trash-2"></span>
-            ${t("reminders.deleteTitle")}
-          </button>
-        </div>`
-          : ""
-      }
-    </div>
   `;
 }
 
@@ -835,25 +801,34 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
             </label>
           </div>
           <div class="field field--static">
-            <div class="field">
-              <label class="field__label" for="reminder-repeat">${t("reminders.repeatIntervalLabel")}</label>
-              <select class="field__input js-reminder-repeat" id="reminder-repeat"
-                ${repeatDisabled ? "disabled" : ""}>
-                ${repeatOptions
-                  .map(
-                    (option) => `
+            <div class="repeat-row">
+              <div class="field">
+                <label class="field__label" for="reminder-repeat">${t("reminders.repeatIntervalLabel")}</label>
+                <select class="field__input js-reminder-repeat" id="reminder-repeat"
+                  ${repeatDisabled ? "disabled" : ""}>
+                  ${repeatOptions
+                    .map(
+                      (option) => `
                 <option value="${option.value}" ${state.formRepeat === option.value ? "selected" : ""}>${t(option.key)}</option>`,
-                  )
-                  .join("")}
-              </select>
+                    )
+                    .join("")}
+                </select>
+              </div>
+              ${weekdayField}
             </div>
-            ${weekdayField}
             ${repeatKmField}
           </div>` : ""}
 
           <div class="form__actions">
-            <button type="button" class="btn btn--text js-close-overlay">${t("common.cancel")}</button>
-            <button type="submit" class="btn btn--filled">${t("common.save")}</button>
+            ${editing ? `
+            <button type="button" class="btn btn--danger-text reminder-form__delete js-reminder-delete">
+              <span data-lucide="trash-2" aria-hidden="true"></span>
+              ${t("reminders.deleteTitle")}
+            </button>` : ""}
+            <div class="reminder-form__actions-main">
+              <button type="button" class="btn btn--text js-close-overlay">${t("common.cancel")}</button>
+              <button type="submit" class="btn btn--filled">${t("common.save")}</button>
+            </div>
           </div>
         </form>
       </div>
@@ -874,7 +849,7 @@ function deleteConfirmModalHtml(): string {
             <span>${t("reminders.deleteConfirm")} «${escHtml(reminder.title)}»</span>
           </div>
           <div class="form__actions">
-            <button type="button" class="btn btn--text js-close-overlay">${t("common.cancel")}</button>
+            <button type="button" class="btn btn--text js-cancel-reminder-delete">${t("common.cancel")}</button>
             <button type="button" class="btn btn--danger js-confirm-reminder-delete" data-id="${escHtml(reminder.id)}">
               ${t("reminders.deleteTitle")}
             </button>
@@ -1132,36 +1107,34 @@ function bind(container: HTMLElement): void {
     });
   });
 
-  /* Card menu (edit/delete). */
-  container.querySelectorAll<HTMLButtonElement>(".js-reminder-menu-toggle").forEach((button) => {
-    button.addEventListener("click", () => {
-      const id = button.dataset.id ?? null;
-      state.menuReminderId = state.menuReminderId === id ? null : id;
-      redraw(container);
+  /* Whole card opens the edit form — clicks/keys on the enable toggle or
+   * the linked service keep their own behavior. */
+  container.querySelectorAll<HTMLElement>(".js-reminder-card").forEach((card) => {
+    const openEdit = (): void => {
+      const id = card.dataset.id ?? null;
+      if (id) {
+        openEditForm(id);
+        redraw(container);
+      }
+    };
+    card.addEventListener("click", (event) => {
+      if ((event.target as HTMLElement).closest("a, .reminder-card__toggle")) return;
+      openEdit();
     });
-  });
-  container.querySelector<HTMLElement>(".js-reminder-menu-backdrop")?.addEventListener("click", () => {
-    state.menuReminderId = null;
-    redraw(container);
-  });
-  container.querySelectorAll<HTMLButtonElement>(".js-reminder-menu-edit").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.menuReminderId = null;
-      if (button.dataset.id) openEditForm(button.dataset.id);
-      redraw(container);
-    });
-  });
-  container.querySelectorAll<HTMLButtonElement>(".js-reminder-menu-delete").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.menuReminderId = null;
-      state.deleteConfirmId = button.dataset.id ?? null;
-      redraw(container);
+    card.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      if ((event.target as HTMLElement).closest("a, .reminder-card__toggle")) return;
+      event.preventDefault();
+      openEdit();
     });
   });
   container.querySelectorAll<HTMLButtonElement>(".js-confirm-reminder-delete").forEach((button) => {
     button.addEventListener("click", () => {
       const id = button.dataset.id ?? "";
       state.deleteConfirmId = null;
+      // Deleting from the edit form must close the form too — otherwise
+      // the confirm modal would close onto a form for the removed reminder.
+      closeForm();
       store.update((draft) => {
         draft.reminders = draft.reminders.filter((reminder) => reminder.id !== id);
       });
@@ -1195,6 +1168,24 @@ function bind(container: HTMLElement): void {
   container.querySelectorAll<HTMLButtonElement>(".js-close-overlay").forEach((button) => {
     button.addEventListener("click", () => {
       closeForm();
+      state.deleteConfirmId = null;
+      redraw(container);
+    });
+  });
+
+  /* Delete action in the edit form: opens the confirmation dialog over
+   * the still-open form (canceling returns to the form). */
+  container.querySelectorAll<HTMLButtonElement>(".js-reminder-delete").forEach((button) => {
+    button.addEventListener("click", () => {
+      const id = state.form?.mode === "edit" ? state.form.reminderId : null;
+      if (!id) return;
+      state.deleteConfirmId = id;
+      redraw(container);
+    });
+  });
+  /* Cancel of the delete confirmation: back to the edit form, untouched. */
+  container.querySelectorAll<HTMLButtonElement>(".js-cancel-reminder-delete").forEach((button) => {
+    button.addEventListener("click", () => {
       state.deleteConfirmId = null;
       redraw(container);
     });

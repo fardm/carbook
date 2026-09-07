@@ -195,6 +195,19 @@
   margin-top: calc(var(--md-space-4) + var(--md-space-4));
 }
 
+/* Reminder edit-form actions: Delete sits at the row's start (right in
+ * RTL), pushed apart from the Cancel/Save group at the end (left) by an
+ * auto margin — clear spacing without a divider. */
+.reminder-form__delete {
+  margin-inline-end: auto;
+}
+
+.reminder-form__actions-main {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-space-2);
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -1549,7 +1562,36 @@ input.affix-field__input {
   pointer-events: auto;
   transform: none;
   transition: none;
-}/* Soft post-save info note ("فعلاً نه" flow) — full-width status box. */
+}
+
+/* Repeat config row: بازه تکرار and روز هفته ALWAYS share one row, each
+ * column roughly half the row's width (two equal 1fr tracks). Scoped
+ * strictly to these two fields — global .field / .field__input styles
+ * are untouched. For monthly/yearly the weekday cell is absent, so the
+ * repeat select keeps its 50% width instead of expanding; switching
+ * recurrence types never resizes the select.
+ *
+ * Narrow screens: the columns shrink (never wrap) so both selects stay
+ * side by side. Grid items default to min-width: auto and a <select>'s
+ * widest option can set a floor width, so both the field and its input
+ * get min-width: 0 here; the floated labels truncate with an ellipsis
+ * via their existing max-width rule. */
+.repeat-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--md-space-3);
+}
+
+.repeat-row > .field {
+  min-width: 0;
+}
+
+.repeat-row .field__input {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Soft post-save info note ("فعلاً نه" flow) — full-width status box. */
 .reminder-permission-notice {
   align-items: center;
 }
@@ -1588,22 +1630,26 @@ input.affix-field__input {
   padding: var(--md-space-4);
 }
 
-/* Compact, minimalist overflow trigger: reminder cards are dense (chip,
- * toggle, schedule lines), so the shared 40px .icon-btn is visually heavy
- * here. 32px matches the project's other compact icon buttons; the hover
- * wash stays but in a subtler tone. Touch target stays comfortable (32px). */
-.reminder-card .service-card-menu .icon-btn {
-  width: 32px;
-  height: 32px;
+/* The whole reminder card opens the edit form (js-reminder-card): pointer
+ * cursor plus a soft primary ring on hover advertise the affordance, and a
+ * stronger ring marks keyboard activation (the card is focusable). The
+ * head row's inline-end padding previously cleared the removed three-dot
+ * menu, so it is reset here. */
+.reminder-card.js-reminder-card {
+  cursor: pointer;
 }
 
-.reminder-card .service-card-menu .icon-btn svg {
-  width: 16px;
-  height: 16px;
+.reminder-card.js-reminder-card:hover {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-sys-color-primary) 18%, transparent);
 }
 
-.reminder-card .service-card-menu .icon-btn:hover {
-  background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 6%, transparent);
+.reminder-card.js-reminder-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-sys-color-primary) 45%, transparent);
+}
+
+.reminder-card .service-card__head {
+  padding-inline-end: 0;
 }
 
 /* Temporary focus highlight on a reminder card (service → reminder
