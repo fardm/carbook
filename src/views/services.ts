@@ -18,6 +18,7 @@ import {
 import type {
   DisplayMode,
   MaintenanceItem,
+  Reminder,
   ServiceRecord,
 } from "../domain/types";
 import { t, type MessageKey } from "../i18n";
@@ -107,6 +108,9 @@ interface ServicesViewState {
   recordDeleteConfirm: { recordId: string } | null;
   /** Item pending deletion (dedicated confirm modal). */
   deleteConfirmId: string | null;
+  /** Service whose existing reminder is shown in the یادآوری-exists
+   * message modal (reminder id); null = closed. */
+  reminderExistsReminderId: string | null;
   /** Item armed for permanent deletion (legacy inline confirm, list page). */
   deleteArmedId: string | null;
   /** Service card whose three-dot menu is open (list + detail). */
@@ -137,6 +141,7 @@ const state: ServicesViewState = {
   recordMenu: null,
   recordDeleteConfirm: null,
   deleteConfirmId: null,
+  reminderExistsReminderId: null,
   deleteArmedId: null,
   serviceMenuId: null,
   historyOpen: false,
@@ -236,9 +241,11 @@ function servicesViewHtml(): string {
           ? recordDetailsModalHtml()
           : state.recordDeleteConfirm
             ? recordDeleteConfirmModalHtml()
-            : state.deleteConfirmId
-              ? deleteConfirmModalHtml()
-              : "";
+            : state.reminderExistsReminderId
+              ? reminderExistsModalHtml()
+              : state.deleteConfirmId
+                ? deleteConfirmModalHtml()
+                : "";
   return `
     <div class="view-stack view-stack--fab">
       ${detail}
@@ -1050,6 +1057,9 @@ function itemDetailPageHtml(itemId: string): string {
   const open = state.detailMenuOpen;
   const inactive = !item.active;
   const calc = calculateMaintenance(item, contextForVehicle(dataset, item.vehicleId));
+  // Existing reminder for this service (synced preferred): drives the
+  // status label and the یادآوری menu's "already exists" state.
+  const reminder = reminderForService(item, dataset);
   const backLink = `<a class="btn btn--text detail-back" href="${back}">
     <span data-lucide="arrow-right" aria-hidden="true"></span>
     <span>${t("maintenance.detail.backToList")}</span>
@@ -1084,10 +1094,20 @@ function itemDetailPageHtml(itemId: string): string {
                 ${detailLifetimeRowHtml(item, dataset)}
               </div>
             </div>
-            <span class="status-chip status-chip--${calc.status}">
-              <span data-lucide="${STATUS_ICONS[calc.status]}"></span>
-              ${statusLabel(calc.status)}
-            </span>
+            <div class="service-detail-card__header-actions">
+              ${
+                reminder
+                  ? `<a class="reminder-status-label" href="${remindersHash({ focus: reminder.id })}" title="${t("services.viewReminder")}">
+                  <span data-lucide="bell" aria-hidden="true"></span>
+                  ${t("services.notification")}
+                </a>`
+                  : ""
+              }
+              <span class="status-chip status-chip--${calc.status}">
+                <span data-lucide="${STATUS_ICONS[calc.status]}"></span>
+                ${statusLabel(calc.status)}
+              </span>
+            </div>
           </div>
           ${inactive ? `<div class="service-detail__actions">${detailActionRowHtml(item, inactive)}</div>` : ""}
         </section>
@@ -1099,25 +1119,20 @@ function itemDetailPageHtml(itemId: string): string {
 }
 
 /**
- * Where the service page's یادآوری action navigates:
- * - a service-synchronized reminder exists → open ITS edit form (`edit=`)
- *   so the action never duplicates reminders;
- * - else a MANUAL reminder references this service → open that one's edit
- *   form (بررسی یادآوری: the user may want to update or replace it) —
- *   again never creating a second reminder for the same service;
- * - otherwise → the reminders page with `service=` — the reminders view
- *   opens the service-synchronized add form (title + due values resolved
- *   live from this service's next-recommended schedule).
+ * The reminder linked to a service, or null. Single source for "does this
+ * service already have a reminder" — shared by the detail-page status
+ * label, the یادآوری menu action, and the focus deep link. A synced
+ * reminder wins over a manual one (the relationship it owns), matching
+ * the old anti-duplicate rule: never create a second reminder for a
+ * service that already has one.
  */
-function serviceReminderTarget(
+function reminderForService(
   item: MaintenanceItem,
   dataset: ReturnType<typeof store.get>,
-): { service: string } | { edit: string } {
+): Reminder | null {
   const linked = dataset.reminders.filter((reminder) => reminder.serviceId === item.id);
   const synced = linked.find((reminder) => reminder.syncWithService);
-  if (synced) return { edit: synced.id };
-  const manual = linked[0];
-  return manual ? { edit: manual.id } : { service: item.id };
+  return synced ?? linked[0] ?? null;
 }
 
 /** Dropdown three-dot menu (ویرایش / حذف) pinned to the top corner of
@@ -1203,10 +1218,14 @@ function detailLifetimeRowHtml(
 function detailOperationsMenuHtml(itemId: string, open: boolean): string {
   const dataset = store.get();
   const item = dataset.maintenanceItems.find((candidate) => candidate.id === itemId);
-  // The یادآوری action needs the live item to build its deep link; without
-  // it (item deleted mid-session) the link simply has no target.
+  // The یادآوری action needs the live item to build its target; without it
+  // (item deleted mid-session) the link simply has no target.
+  const reminder = item != null ? reminderForService(item, dataset) : null;
+  // No reminder → the creation flow (service-synchronized add form). With
+  // one already present → a button that opens the "already has a reminder"
+  // message instead of silently creating a duplicate.
   const reminderHref =
-    item != null ? remindersHash(serviceReminderTarget(item, dataset)) : "#/reminders";
+    item != null && reminder == null ? remindersHash({ service: item.id }) : "#/reminders";
   return `
     <div class="card-menu__backdrop js-detail-menu-close"></div>
     <div class="fab-menu__actions" role="menu" aria-label="${t("services.operations")}">
@@ -1220,11 +1239,19 @@ function detailOperationsMenuHtml(itemId: string, open: boolean): string {
         <span data-lucide="pencil" aria-hidden="true"></span>
         ${t("maintenance.editItem")}
       </button>
-      <a class="card-menu__item fab-menu__action js-detail-notification" role="menuitem"
+      ${
+        reminder != null
+          ? `<button type="button" class="card-menu__item fab-menu__action js-reminder-exists"
+        role="menuitem" data-reminder-id="${escHtml(reminder.id)}" style="--fab-stagger: 1">
+        <span data-lucide="bell" aria-hidden="true"></span>
+        ${t("services.notification")}
+      </button>`
+          : `<a class="card-menu__item fab-menu__action js-detail-notification" role="menuitem"
         href="${reminderHref}" style="--fab-stagger: 1">
         <span data-lucide="bell" aria-hidden="true"></span>
         ${t("services.notification")}
-      </a>
+      </a>`
+      }
       <button type="button" class="card-menu__item fab-menu__action js-record-service"
         role="menuitem" data-id="${escHtml(itemId)}" style="--fab-stagger: 0">
         <span data-lucide="refresh-cw" aria-hidden="true"></span>
@@ -1541,6 +1568,34 @@ function recordDetailsModalHtml(): string {
   `;
 }
 
+/**
+ * "This service already has a reminder" message modal — shown when the
+ * یادآوری action finds an existing reminder instead of silently creating
+ * a duplicate. مشاهده navigates exactly like the detail page's reminder
+ * status label: reminders index + scroll + temporary highlight (focus=).
+ */
+function reminderExistsModalHtml(): string {
+  const reminderId = state.reminderExistsReminderId;
+  if (!reminderId) return "";
+  const reminder = store.get().reminders.find((candidate) => candidate.id === reminderId);
+  if (!reminder) return "";
+  return `
+    <div class="modal-overlay">
+      <div class="modal" role="alertdialog" aria-modal="true" aria-label="${t("services.reminderExistsTitle")}">
+        <div class="form">
+          <div class="form__title">${t("services.reminderExistsTitle")}</div>
+          <div class="form__actions">
+            <button type="button" class="btn btn--text js-close-overlay">${t("common.cancel")}</button>
+            <a class="btn btn--filled" href="${remindersHash({ focus: reminder.id })}">
+              ${t("services.viewReminder")}
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 /** Dedicated confirmation modal for deleting a service (detail header trash). */
 function deleteConfirmModalHtml(): string {
   const itemId = state.deleteConfirmId;
@@ -1774,6 +1829,7 @@ function registerGlobalKeys(): void {
         state.recordForm ||
         state.recordDetails ||
         state.recordDeleteConfirm ||
+        state.reminderExistsReminderId ||
         state.deleteConfirmId
       )
     ) {
@@ -1820,6 +1876,7 @@ function closeModals(): void {
   state.recordDetails = null;
   state.recordMenu = null;
   state.recordDeleteConfirm = null;
+  state.reminderExistsReminderId = null;
   state.deleteConfirmId = null;
   state.deleteArmedId = null;
   state.serviceMenuId = null;
@@ -1900,6 +1957,17 @@ function bindDetailEvents(container: HTMLElement): void {
       state.serviceMenuId = null;
       state.detailMenuOpen = false;
       state.deleteConfirmId = button.dataset.id ?? null;
+      redraw(container);
+    });
+  });
+
+  /* یادآوری with an existing reminder: never create a duplicate — open the
+   * "already has a reminder" message (مشاهده navigates to the reminder's
+   * card via the focus deep link). */
+  container.querySelectorAll<HTMLButtonElement>(".js-reminder-exists").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.detailMenuOpen = false;
+      state.reminderExistsReminderId = button.dataset.reminderId ?? null;
       redraw(container);
     });
   });

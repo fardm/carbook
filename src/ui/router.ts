@@ -113,16 +113,27 @@ export function remindersEditIdFromHash(hash: string): string | null {
   return hashQueryParam(hash, "/reminders", "edit");
 }
 
+/**
+ * Extracts a reminder id from `#/reminders?focus=<id>` — the reminders
+ * index opens scrolled to that reminder's card with a temporary highlight
+ * (service page status label / "View" action). No form is opened.
+ */
+export function remindersFocusIdFromHash(hash: string): string | null {
+  return hashQueryParam(hash, "/reminders", "focus");
+}
+
 /** The reminders-page hash with query params (skips null/empty values). */
 export function remindersHash(params: {
   vehicle?: string | null;
   service?: string | null;
   edit?: string | null;
+  focus?: string | null;
 }): string {
   const query = new URLSearchParams();
   if (params.vehicle) query.set("vehicle", params.vehicle);
   if (params.service) query.set("service", params.service);
   if (params.edit) query.set("edit", params.edit);
+  if (params.focus) query.set("focus", params.focus);
   const qs = query.toString();
   return qs ? `#/reminders?${qs}` : "#/reminders";
 }

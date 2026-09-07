@@ -189,6 +189,8 @@ export const fa = {
     editService: "ویرایش",
     operations: "عملیات",
     notification: "یادآوری",
+    reminderExistsTitle: "این سرویس قبلاً یادآوری فعال دارد",
+    viewReminder: "مشاهده یادآوری",
   },
   settings: {
     backupTitle: "پشتیبان‌گیری",

@@ -804,16 +804,23 @@ respect. The section documents the CURRENT (v12) state in full.
   repeat group (not date-relevant). Enabling repeat resumes the last
   choice (weekly default + weekday defaulted from the due date).
 - **Service page → reminders deep links** (`views/services.ts` +
-  `ui/router.ts`): the Operations menu's یادآوری item is a navigation link
-  built by `serviceReminderTarget`: a SYNCED reminder exists → its edit
-  form (`#/reminders?edit=<id>`); else a MANUAL reminder references the
-  service → that one's edit form (بررسی یادآوری semantics); else
-  `#/reminders?service=<id>` → the service-synchronized add form.
-  `consumeReminderHash` (reminders view) consumes the params ONCE per
-  navigation (opens existing-for-edit, never duplicates) and strips them
-  via `history.replaceState` so a refresh never re-opens the form. The
-  legacy `prefill=1` flow was removed (`remindersPrefillRequested` deleted;
-  `remindersHash` params are `vehicle`/`service`/`edit`).
+  `ui/router.ts`): a single lookup — `reminderForService` (synced
+  preferred) — drives every entry point, so nothing is duplicated:
+  (1) **Reminder status label** — when the service has a reminder, the
+  detail header shows a small secondary pill (bell + یادآوری) next to the
+  status chip; it links to `#/reminders?focus=<id>`. (2) **یادآوری menu
+  action** — with NO reminder it stays the creation-flow link
+  (`#/reminders?service=<id>` → the service-synchronized add form); with
+  one already present it becomes a BUTTON that opens a small modal
+  ("این سرویس قبلاً یادآوری فعال دارد") with a مشاهده action instead of
+  silently creating a duplicate. Both مشاهده and the status label use the
+  SAME focus deep link. (3) **`focus=` param** — `consumeReminderHash`
+  resolves it to the reminder, selects its vehicle, resets the filter to
+  "all", then `applyFocusHighlight` scrolls the card into view and runs a
+  ~2.3s `reminder-focus` ring/tint animation (no form opens; no reminder
+  detail page). The legacy `prefill=1` flow was removed
+  (`remindersPrefillRequested` deleted; `remindersHash` params are
+  `vehicle`/`service`/`edit`/`focus`).
 - **i18n** (`fa.ts`): `reminders.syncHint`, per-side unavailable hints,
   `errorSync*` messages; removed the form's `serviceLabel`/`serviceNone`.
 - **Icon fix**: the reminder card's metric lines use lucide `activity`,
@@ -1611,6 +1618,17 @@ Post-Phase-13 reminders (v12 — service-synchronized reminders):
     larger gaps (`form__gap--1/2/3` stacking on the 16px form gap) with no
     cards, borders, or headers — the existing design system, floating
     labels, and validation stay untouched.
+74. **One reminder per service, surfaced instead of duplicated.**
+    `reminderForService` (synced preferred) is the single "does this
+    service have a reminder" check behind BOTH the detail-page status
+    label and the یادآوری menu action. With a reminder present the menu
+    never navigates to creation — it shows a concise "already has a
+    reminder" modal whose مشاهده action targets the card via `focus=`.
+75. **`focus=` = scroll + temporary highlight, never a form.** The focus
+    deep link resolves to the reminder, selects its vehicle, resets the
+    filter, scrolls the card into view and runs a ~2.3s ring/tint pulse
+    (auto-cleared; re-applies safely across redraws). No reminder detail
+    page exists — the index IS the target, per the product decision.
 
 ---
 

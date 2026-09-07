@@ -5,6 +5,10 @@ import {
   maintenanceDetailHash,
   maintenanceItemIdFromHash,
   parseHash,
+  remindersEditIdFromHash,
+  remindersFocusIdFromHash,
+  remindersHash,
+  remindersServiceIdFromHash,
   routeFor,
   routes,
 } from "../src/ui/router";
@@ -48,5 +52,20 @@ describe("router", () => {
 
   it("routeFor throws for unknown ids", () => {
     expect(() => routeFor("nope" as never)).toThrow();
+  });
+
+  it("remindersHash builds params and the readers round-trip them", () => {
+    expect(remindersHash({})).toBe("#/reminders");
+    expect(remindersHash({ vehicle: "v1" })).toBe("#/reminders?vehicle=v1");
+    expect(remindersHash({ service: "item-1" })).toBe("#/reminders?service=item-1");
+    expect(remindersHash({ edit: "rem-9" })).toBe("#/reminders?edit=rem-9");
+    const focus = remindersHash({ focus: "rem-9" });
+    expect(focus).toBe("#/reminders?focus=rem-9");
+    expect(remindersFocusIdFromHash(focus)).toBe("rem-9");
+    expect(remindersServiceIdFromHash("#/reminders?service=item-1")).toBe("item-1");
+    expect(remindersEditIdFromHash("#/reminders?edit=rem-9")).toBe("rem-9");
+    // Readers only match the reminders page.
+    expect(remindersFocusIdFromHash("#/maintenance?focus=rem-9")).toBe(null);
+    expect(remindersFocusIdFromHash("#/reminders")).toBe(null);
   });
 });

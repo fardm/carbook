@@ -967,6 +967,42 @@ textarea.field__input {
   flex-wrap: wrap;
 }
 
+/* Header actions: the reminder status label + the status chip sit together
+ * at the row's end. */
+.service-detail-card__header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-space-2);
+}
+
+/* Reminder status label on the service detail page: small, visually
+ * secondary, clickable — navigates to the reminder's card (focus deep
+ * link). Not underlined like a plain link; dims on hover. */
+.reminder-status-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-space-1);
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface-variant);
+  background-color: var(--md-sys-color-surface-container-high);
+  font-size: var(--md-typescale-label-large);
+  font-weight: 500;
+  text-decoration: none;
+  transition:
+    color var(--md-motion-duration-short) var(--md-motion-easing),
+    background-color var(--md-motion-duration-short) var(--md-motion-easing);
+}
+.reminder-status-label:hover {
+  text-decoration: none;
+  color: var(--md-sys-color-primary);
+  background-color: color-mix(in srgb, var(--md-sys-color-primary) 10%, var(--md-sys-color-surface-container-high));
+}
+.reminder-status-label svg {
+  width: 14px;
+  height: 14px;
+}
+
 /* Detail page top row: the back link on one side, ویرایش/حذف actions on
  * the other (wraps onto two lines on very narrow screens). */
 /* Back link followed by the desktop Operations menu anchor — the menu
@@ -1565,6 +1601,23 @@ input.affix-field__input {
 
 .reminder-card .service-card-menu .icon-btn:hover {
   background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 6%, transparent);
+}
+
+/* Temporary focus highlight on a reminder card (service → reminder
+ * navigation): a soft primary ring + tint that pulses once, then fades
+ * back so the card settles into its normal state. */
+.reminder-card--focus {
+  animation: reminder-focus 2.3s var(--md-motion-easing) forwards;
+}
+@keyframes reminder-focus {
+  0%,
+  25% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-sys-color-primary) 45%, transparent);
+    background-color: color-mix(in srgb, var(--md-sys-color-primary) 10%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 3px transparent;
+  }
 }
 
 .reminder-card--disabled .service-card__name,

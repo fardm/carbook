@@ -34,6 +34,7 @@ import { bindFloatingFields } from "../ui/floating-field";
 import { applyIcons } from "../ui/icons";
 import {
   remindersEditIdFromHash,
+  remindersFocusIdFromHash,
   remindersServiceIdFromHash,
   remindersVehicleIdFromHash,
 } from "../ui/router";
@@ -76,6 +77,9 @@ interface ReminderViewState {
   menuReminderId: string | null;
   /** Filter dropdown popover is open. */
   filterMenuOpen: boolean;
+  /** Reminder whose card the index should scroll to + temporarily
+   * highlight (set by `#/reminders?focus=<id>`; cleared after the pulse). */
+  focusReminderId: string | null;
   /** Reminder pending deletion (confirm modal). */
   deleteConfirmId: string | null;
   /** First-notification permission prompt (Phase 7). */
@@ -119,6 +123,7 @@ const state: ReminderViewState = {
   formWeekday: null,
   formNotifications: false,
   formSynced: false,
+  focusReminderId: null,
   deleteConfirmId: null,
   menuReminderId: null,
   filterMenuOpen: false,
@@ -179,8 +184,8 @@ function defaultWeekdayFor(dueDate: string | null): number {
 
 export function renderReminders(container: HTMLElement): () => void {
   // Deep links (service page → synchronized reminder, "بررسی یادآوری" →
-  // edit form) are consumed ONCE per navigation — store-driven redraws
-  // below never re-open forms.
+  // edit form, status label → focus) are consumed ONCE per navigation —
+  // store-driven redraws below never re-open forms.
   consumeReminderHash();
   const draw = (): void => {
     activeContainer = container;
@@ -190,6 +195,7 @@ export function renderReminders(container: HTMLElement): () => void {
     bindFloatingFields(container);
     bindDateFields(container);
     alignFabBar();
+    applyFocusHighlight(container);
   };
   registerGlobalKeys();
   draw();
@@ -490,7 +496,7 @@ function reminderCardHtml(reminder: Reminder, vehicle: Vehicle | null, dataset: 
             : null;
 
   return `
-    <article class="card service-card reminder-card${reminder.enabled ? "" : " reminder-card--disabled"}">
+    <article class="card service-card reminder-card${reminder.enabled ? "" : " reminder-card--disabled"}" data-id="${escHtml(reminder.id)}">
       <div class="service-card__head">
         <div class="service-card__info">
           <div class="service-card__name">${escHtml(reminder.title)}</div>
@@ -971,6 +977,9 @@ function serviceSyncedPrefill(item: MaintenanceItem, dataset: ReturnType<typeof 
  *   duplicates), otherwise the service-based add form.
  * - `#/reminders?edit=<id>` — opens one reminder's edit form (the service
  *   page's "بررسی یادآوری" action for manual reminders).
+ * - `#/reminders?focus=<id>` — scrolls to + temporarily highlights one
+ *   reminder's card (the service page's status label / "View" action);
+ *   NO form is opened.
  * Consumed params are stripped from the URL so a refresh never re-opens
  * the form.
  */
@@ -999,6 +1008,18 @@ function consumeReminderHash(): void {
     if (reminder != null) {
       state.selectedVehicleId = reminder.vehicleId;
       openEditForm(reminder.id);
+    }
+    clearReminderHashQuery();
+    return;
+  }
+  const focusId = remindersFocusIdFromHash(window.location.hash);
+  if (focusId != null) {
+    const reminder = dataset.reminders.find((candidate) => candidate.id === focusId);
+    if (reminder != null) {
+      state.selectedVehicleId = reminder.vehicleId;
+      // Reset the filter so the target card is guaranteed to be rendered.
+      state.filter = "all";
+      state.focusReminderId = reminder.id;
     }
     clearReminderHashQuery();
   }
@@ -1509,4 +1530,31 @@ function redraw(container: HTMLElement): void {
   bindFloatingFields(container);
   bindDateFields(container);
   alignFabBar();
+  applyFocusHighlight(container);
+}
+
+/**
+ * Scrolls to the focused reminder's card (set by `#/reminders?focus=<id>`)
+ * and applies a temporary highlight so the user immediately identifies it.
+ * Re-applies safely if a redraw wipes the class mid-pulse; the highlight
+ * clears itself after ~2.4s and the state is dropped.
+ */
+let focusTimer: number | null = null;
+function applyFocusHighlight(container: HTMLElement): void {
+  const id = state.focusReminderId;
+  if (id == null) return;
+  const card = container.querySelector<HTMLElement>(`.reminder-card[data-id="${CSS.escape(id)}"]`);
+  if (!card) return; // not rendered (yet) — keep the state for a later draw
+  if (card.classList.contains("reminder-card--focus")) return; // already pulsing
+  card.classList.add("reminder-card--focus");
+  requestAnimationFrame(() => {
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+  const focusId = id;
+  if (focusTimer != null) window.clearTimeout(focusTimer);
+  focusTimer = window.setTimeout(() => {
+    focusTimer = null;
+    card.classList.remove("reminder-card--focus");
+    if (state.focusReminderId === focusId) state.focusReminderId = null;
+  }, 2400);
 }
