@@ -804,7 +804,7 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
             <p class="field__error" id="reminder-error-offsets" hidden></p>
           </div>` : ""}
 
-          ${!synced && watchesDate ? `
+          ${watchesDate ? `
           <div class="field">
             <label class="field__label" for="reminder-repeat">${t("reminders.repeatLabel")}</label>
             <select class="field__input js-reminder-repeat" id="reminder-repeat">
@@ -996,15 +996,11 @@ function openEditForm(reminderId: string): void {
   // The toggle reflects the STORED sync state; when ON the resolved values
   // display read-only, when OFF the stored snapshot values are editable.
   state.formSynced = stored.syncWithService;
-  // Synced reminders follow the service schedule — no repeat control.
-  state.formRepeat = reminder.syncWithService
-    ? "none"
-    : reminder.repeat === "km" && reminder.type === "date"
-      ? "none"
-      : reminder.repeat;
-  state.formWeekday = reminder.syncWithService
-    ? null
-    : (reminder.repeatWeekday ?? defaultWeekdayFor(reminder.dueDate));
+  // The sync toggle controls ONLY the due date/km editability — repeat is
+  // an independent setting and always loads (km repeat only exists on
+  // date_mileage reminders, where the due mileage can advance).
+  state.formRepeat = reminder.repeat === "km" && reminder.type === "date" ? "none" : reminder.repeat;
+  state.formWeekday = reminder.repeatWeekday ?? defaultWeekdayFor(reminder.dueDate);
   const firstDays = reminder.notificationOffsets.find((offset) => offset.days != null);
   const firstKm = reminder.notificationOffsets.find((offset) => offset.km != null);
   state.formNotifications = reminder.notificationOffsets.length > 0;
@@ -1331,12 +1327,10 @@ function submitReminderForm(container: HTMLElement, form: HTMLFormElement): void
     : watchesKm() && kmRaw !== ""
       ? Number(toLatinDigits(kmRaw))
       : null;
-  // Manual (unsynced) reminders own their recurrence — synced ones follow
-  // the service schedule, so repeat stays "none" there (draft fields
-  // below already gate on `synced`).
-
+  // Repeat is an independent setting in BOTH flows: the toggle only gates
+  // the due date/km editability, never the recurrence controls.
   const repeatEveryKmRaw = String(data.get("repeatEveryKm") ?? "").trim();
-  const repeatEveryKm = !synced && state.formRepeat === "km" && repeatEveryKmRaw !== "" ? Number(toLatinDigits(repeatEveryKmRaw)) : null;
+  const repeatEveryKm = state.formRepeat === "km" && repeatEveryKmRaw !== "" ? Number(toLatinDigits(repeatEveryKmRaw)) : null;
 
   /* Reminders are saved ENABLED (Req 5) — the user toggles enable/disable
    * later from the card in the list, which is the existing pattern. */
@@ -1362,10 +1356,9 @@ function submitReminderForm(container: HTMLElement, form: HTMLFormElement): void
     dueDate,
     dueMileage,
     notificationOffsets,
-    // Synced reminders follow the service schedule — repeat stays "none".
-    repeat: synced ? ("none" as const) : state.formRepeat,
+    repeat: state.formRepeat,
     // The weekday only applies to repeat "weekly" — cleared otherwise.
-    repeatWeekday: !synced && state.formRepeat === "weekly" ? state.formWeekday : null,
+    repeatWeekday: state.formRepeat === "weekly" ? state.formWeekday : null,
     repeatEveryKm,
     enabled,
   };

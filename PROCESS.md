@@ -767,17 +767,21 @@ respect. The section documents the CURRENT (v12) state in full.
   related-service select was removed from the form; the sync toggle does
   NOT appear). Service-based (service page, or editing any reminder with
   a serviceId): a **همگام با تعویض پیشنهادی toggle** (before the type
-  control, default ON) decides the flow. ON: title + due date/km render
+  control, default ON) decides the flow. The toggle governs ONLY the due
+  date/km editability — the تکرار (repeat) section stays visible,
+  selectable, and persisted in BOTH states. ON: title + due date/km render
   READ-ONLY from the service's current recommendation (title mirrors the
-  service's current name), repeat is hidden (repeat "none"), and the
-  submit path RE-RESOLVES values from the service at save time — a stale
-  form value can never be persisted. OFF: the fields keep the resolved
-  values but become EDITABLE (the toggle handler seeds the editable
-  fields from the live recommendation so nothing is lost), repeat returns,
-  and the reminder saves as a MANUAL reminder that KEEPS its serviceId
-  reference (the service page's یادآوری action still routes to its edit
-  form; future service changes never move it). Re-toggling ON re-resolves
-  everything read-only again. Validator maps missing synced values to
+  service's current name) and the submit path RE-RESOLVES values from the
+  service at save time — a stale form value can never be persisted; the
+  chosen repeat is still stored and shown on the card (synced reminders
+  never roll independently — the service schedule IS their recurrence).
+  OFF: the fields keep the resolved values but become EDITABLE (the
+  toggle handler seeds the editable fields from the live recommendation
+  so nothing is lost), and the reminder saves as a MANUAL reminder that
+  KEEPS its serviceId reference (the service page's یادآوری action still
+  routes to its edit form; future service changes never move it — repeat
+  then drives normal roll-over). Re-toggling ON re-resolves everything
+  read-only again. Validator maps missing synced values to
   dedicated errors (`syncDateUnavailable`/`syncKmUnavailable`). The
   draft's form-level `synced` flag is stripped before persisting (only
   `syncWithService` is stored).
@@ -795,8 +799,9 @@ respect. The section documents the CURRENT (v12) state in full.
 - **i18n** (`fa.ts`): `reminders.syncHint`, per-side unavailable hints,
   `errorSync*` messages; removed the form's `serviceLabel`/`serviceNone`.
 - **Icon fix**: the reminder card's metric lines use lucide `activity`,
-  which was never registered — `Activity` is now in `src/ui/icons.ts`
-  (console warning resolved).
+  and the repeat badge uses `repeat` — both were never registered;
+  `Activity` and `Repeat` are now in `src/ui/icons.ts` (console warnings
+  resolved).
 
 ### v12 tests
 - `tests/reminder-sync.test.ts` (new, 26 tests): recommendation
