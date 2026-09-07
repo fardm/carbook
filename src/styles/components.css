@@ -1537,10 +1537,11 @@ input.affix-field__input {
   opacity: 0.6;
 }
 
-.reminder-card__description {
-  color: var(--md-sys-color-on-surface-variant);
+/* Repeat/frequency line reads as tertiary metadata: the shared
+ * .metric--muted color plus one step smaller than the schedule lines, so
+ * it never competes with the reminder title or the due date. */
+.reminder-card__repeat {
   font-size: var(--md-typescale-body-small);
-  margin-top: var(--md-space-2);
 }
 
 .reminder-card__toggle {

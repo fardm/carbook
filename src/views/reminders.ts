@@ -160,34 +160,6 @@ function defaultWeekdayFor(dueDate: string | null): number {
   return 0;
 }
 
-/** Status chip styling reuses the existing maintenance status classes. */
-const STATUS_CHIP_CLASS: Record<ReminderStatus, string> = {
-  upcoming: "status-chip--upcoming",
-  dueSoon: "status-chip--dueSoon",
-  dueToday: "status-chip--due",
-  due: "status-chip--due",
-  overdue: "status-chip--overdue",
-  disabled: "status-chip--inactive",
-};
-
-const STATUS_ICON: Record<ReminderStatus, string> = {
-  upcoming: "calendar-arrow-up",
-  dueSoon: "clock",
-  dueToday: "calendar-clock",
-  due: "calendar-clock",
-  overdue: "triangle-alert",
-  disabled: "circle",
-};
-
-const STATUS_LABEL_KEY: Record<ReminderStatus, Parameters<typeof t>[0]> = {
-  upcoming: "reminders.statusUpcoming",
-  dueSoon: "reminders.statusDueSoon",
-  dueToday: "reminders.statusDueToday",
-  due: "reminders.statusDue",
-  overdue: "reminders.statusOverdue",
-  disabled: "reminders.statusDisabled",
-};
-
 export function renderReminders(container: HTMLElement): () => void {
   const draw = (): void => {
     activeContainer = container;
@@ -472,13 +444,10 @@ function reminderScheduleLines(reminder: Reminder, vehicle: Vehicle | null): str
 }
 
 function reminderCardHtml(reminder: Reminder, vehicle: Vehicle | null, dataset: ReturnType<typeof store.get>): string {
-  const evaluation = evaluateReminder(reminder, vehicle?.currentOdometer ?? null);
   const service = reminder.serviceId
     ? (dataset.maintenanceItems.find((item) => item.id === reminder.serviceId) ?? null)
     : null;
   const schedule = reminderScheduleLines(reminder, vehicle);
-
-  const typeIcon = reminder.type === "mileage" ? "gauge" : reminder.type === "date_mileage" ? "calendar-clock" : "calendar";
 
   const repeatLabel =
     reminder.repeat === "monthly"
@@ -496,7 +465,6 @@ function reminderCardHtml(reminder: Reminder, vehicle: Vehicle | null, dataset: 
   return `
     <article class="card service-card reminder-card${reminder.enabled ? "" : " reminder-card--disabled"}">
       <div class="service-card__head">
-        <span class="service-card__icon" data-lucide="${typeIcon}"></span>
         <div class="service-card__info">
           <div class="service-card__name">${escHtml(reminder.title)}</div>
           ${
@@ -505,15 +473,11 @@ function reminderCardHtml(reminder: Reminder, vehicle: Vehicle | null, dataset: 
               : ""
           }
         </div>
-        <span class="status-chip ${STATUS_CHIP_CLASS[evaluation.status]}">
-          <span data-lucide="${STATUS_ICON[evaluation.status]}"></span>
-          ${t(STATUS_LABEL_KEY[evaluation.status])}
-        </span>
       </div>
       <div class="service-card__body reminder-card__body">
         <div class="service-card__detail reminder-card__detail">
           ${schedule.map((line) => `<div class="metric service-card__last"><span data-lucide="${line.includes("—") ? "activity" : "calendar"}"></span>${escHtml(line)}</div>`).join("")}
-          ${repeatLabel ? `<div class="metric service-card__last"><span data-lucide="repeat"></span>${escHtml(repeatLabel)}</div>` : ""}
+          ${repeatLabel ? `<div class="metric service-card__last metric--muted reminder-card__repeat"><span data-lucide="repeat"></span>${escHtml(repeatLabel)}</div>` : ""}
         </div>
         <label class="toggle reminder-card__toggle" title="${t("reminders.enabledLabel")}">
           <input type="checkbox" class="js-reminder-toggle" data-id="${escHtml(reminder.id)}"
@@ -521,11 +485,6 @@ function reminderCardHtml(reminder: Reminder, vehicle: Vehicle | null, dataset: 
           <span class="toggle__track" aria-hidden="true"><span class="toggle__thumb"></span></span>
         </label>
       </div>
-      ${
-        reminder.description.trim() !== ""
-          ? `<p class="reminder-card__description">${escHtml(reminder.description)}</p>`
-          : ""
-      }
       ${reminderMenuHtml(reminder.id)}
     </article>
   `;
