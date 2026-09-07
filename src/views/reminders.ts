@@ -60,7 +60,8 @@ interface ReminderViewState {
   formValues: Record<string, string>;
   /** Which reminder type the form currently shows. */
   formType: Reminder["type"];
-  /** Which repeat mode the form currently shows. */
+  /** Which repeat mode the form currently shows; "none" = the تکرار
+   * toggle is OFF (its config fields render disabled). */
   formRepeat: RepeatMode;
   /** Day-of-week for repeat "weekly" while the form is open
    * (0 = Saturday … 6 = Friday, the domain/calendar weekdayOf convention). */
@@ -608,12 +609,12 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
     date_mileage: "reminders.typeDateMileageHint",
   };
 
-  // Repeat dropdown (Req 3): a date-based concept, so the section only
-  // renders for date/date_mileage reminders. "هر چند کیلومتر" stays listed
-  // ONLY for date_mileage — the km recurrence advances the due mileage
-  // there; a pure-date reminder has no mileage to advance.
+  // Recurrence choices (Req 3): a date-based concept, so the section only
+  // renders for date/date_mileage reminders. No-repeat is the toggle being
+  // OFF, so the select carries only real recurrences. "هر چند کیلومتر"
+  // stays listed ONLY for date_mileage — the km recurrence advances the
+  // due mileage there; a pure-date reminder has no mileage to advance.
   const repeatOptions: Array<{ value: RepeatMode; key: Parameters<typeof t>[0] }> = [
-    { value: "none", key: "reminders.repeatNone" },
     { value: "weekly", key: "reminders.repeatWeekly" },
     { value: "monthly", key: "reminders.repeatMonthly" },
     { value: "yearly", key: "reminders.repeatYearly" },
@@ -677,17 +678,19 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
     : "";
 
   // Advance-reminder fields (Req 1): at most ONE per kind, and they are
-  // part of the form the moment the اعلان پیش از موعد toggle is on — no
-  // add-interval buttons. An empty field simply means no advance for that
-  // kind (notifications remain optional). Reuses the Services form's
-  // affix-field input pattern (label + input + unit suffix inside).
+  // ALWAYS in the DOM (no injection on toggle) so the layout never jumps —
+  // while اعلان پیش از موعد is OFF they render DISABLED and the submit
+  // path skips them (a disabled input is also absent from FormData). An
+  // empty field simply means no advance for that kind. Reuses the Services
+  // form's affix-field input pattern (label + input + unit suffix inside).
   const advanceDaysField = watchesDate
     ? `
     <div class="field">
       <label class="field__label" for="reminder-advance-days">${t("reminders.advanceDaysLabel")}</label>
       <div class="affix-field">
         <input class="field__input affix-field__input" id="reminder-advance-days" name="advanceDays" type="number"
-          inputmode="numeric" min="0" step="1" value="${escHtml(fieldValue("advanceDays"))}" />
+          inputmode="numeric" min="0" step="1" ${state.formNotifications ? "" : "disabled"}
+          value="${escHtml(fieldValue("advanceDays"))}" />
         <span class="affix-field__suffix">${t("reminders.daysBefore")}</span>
       </div>
     </div>`
@@ -699,11 +702,16 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
       <label class="field__label" for="reminder-advance-km">${t("reminders.advanceKmLabel")}</label>
       <div class="affix-field">
         <input class="field__input affix-field__input" id="reminder-advance-km" name="advanceKm" type="number"
-          inputmode="numeric" min="0" step="1" value="${escHtml(fieldValue("advanceKm"))}" />
+          inputmode="numeric" min="0" step="1" ${state.formNotifications ? "" : "disabled"}
+          value="${escHtml(fieldValue("advanceKm"))}" />
         <span class="affix-field__suffix">${t("reminders.kmBefore")}</span>
       </div>
     </div>`
     : "";
+
+  // True while the تکرار toggle is OFF: the whole repeat group renders
+  // visible-but-disabled (no-repeat = toggle off, so nothing is submitted).
+  const repeatDisabled = state.formRepeat === "none";
 
   const repeatKmField =
     state.formRepeat === "km" && watchesDate
@@ -711,19 +719,22 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
     <div class="field">
       <label class="field__label" for="reminder-repeat-km">${t("reminders.repeatEveryKmLabel")}</label>
       <input class="field__input" id="reminder-repeat-km" name="repeatEveryKm" type="number"
-        inputmode="numeric" min="1" step="1" value="${escHtml(fieldValue("repeatEveryKm"))}" />
+        inputmode="numeric" min="1" step="1" ${repeatDisabled ? "disabled" : ""}
+        value="${escHtml(fieldValue("repeatEveryKm"))}" />
       <p class="field__error" id="reminder-error-repeat-km" hidden></p>
     </div>`
       : "";
 
-  // Day-of-week select — visible ONLY while repeat is "weekly" (Req 4);
-  // switching away hides it and clears the stored weekday.
+  // Day-of-week select — part of the WEEKLY recurrence config (Req 4);
+  // switching away hides it and clears the stored weekday. Disabled with
+  // the rest of the repeat group while the toggle is OFF.
   const weekdayField =
     state.formRepeat === "weekly" && watchesDate
       ? `
     <div class="field">
       <label class="field__label" for="reminder-weekday">${t("reminders.weekdayLabel")}</label>
-      <select class="field__input js-reminder-weekday" id="reminder-weekday">
+      <select class="field__input js-reminder-weekday" id="reminder-weekday"
+        ${repeatDisabled ? "disabled" : ""}>
         ${WEEKDAY_KEYS.map(
           (key, index) => `
         <option value="${index}" ${state.formWeekday === index ? "selected" : ""}>${t(key)}</option>`,
@@ -767,7 +778,8 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
             ${synced ? `<p class="field__hint reminder-sync-hint">${t("reminders.syncHint")}</p>` : ""}
           </div>` : ""}
 
-          <div class="field">
+          <!-- Reminder type group: segmented control + dynamic hint. -->
+          <div class="field form__gap--1">
             <span class="field__label" id="reminder-type-label">${t("reminders.typeLabel")}</span>
             <div class="settings-theme segmented" role="radiogroup" aria-labelledby="reminder-type-label">
               ${typeOptions
@@ -786,7 +798,10 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
           ${dateSection}
           ${kmSection}
 
-          <div class="field field--static">
+          <!-- Advance notification group: toggle + ALWAYS-present config
+               fields. OFF = fields disabled (never submitted); ON = enabled.
+               Nothing is injected/removed, so the layout stays stable. -->
+          <div class="field field--static form__gap--2">
             <label class="toggle-row">
               <span class="toggle-row__label">${t("reminders.notifyBeforeLabel")}</span>
               <span class="toggle">
@@ -796,28 +811,42 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
               </span>
             </label>
           </div>
-
-          ${state.formNotifications ? `
           <div class="field field--static">
             ${advanceDaysField}
             ${advanceKmField}
             <p class="field__error" id="reminder-error-offsets" hidden></p>
-          </div>` : ""}
+          </div>
 
+          <!-- Repeat group (date-based reminders only): toggle + config.
+               OFF = no recurrence (fields visible but disabled); ON = the
+               select + weekly-day controls become editable. -->
           ${watchesDate ? `
-          <div class="field">
-            <label class="field__label" for="reminder-repeat">${t("reminders.repeatLabel")}</label>
-            <select class="field__input js-reminder-repeat" id="reminder-repeat">
-              ${repeatOptions
-                .map(
-                  (option) => `
-              <option value="${option.value}" ${state.formRepeat === option.value ? "selected" : ""}>${t(option.key)}</option>`,
-                )
-                .join("")}
-            </select>
+          <div class="field field--static form__gap--3">
+            <label class="toggle-row">
+              <span class="toggle-row__label">${t("reminders.repeatLabel")}</span>
+              <span class="toggle">
+                <input type="checkbox" class="js-reminder-repeat-toggle" role="switch"
+                  aria-label="${t("reminders.repeatLabel")}" ${repeatDisabled ? "" : "checked"} />
+                <span class="toggle__track" aria-hidden="true"><span class="toggle__thumb"></span></span>
+              </span>
+            </label>
+          </div>
+          <div class="field field--static">
+            <div class="field">
+              <label class="field__label" for="reminder-repeat">${t("reminders.repeatIntervalLabel")}</label>
+              <select class="field__input js-reminder-repeat" id="reminder-repeat"
+                ${repeatDisabled ? "disabled" : ""}>
+                ${repeatOptions
+                  .map(
+                    (option) => `
+                <option value="${option.value}" ${state.formRepeat === option.value ? "selected" : ""}>${t(option.key)}</option>`,
+                  )
+                  .join("")}
+              </select>
+            </div>
+            ${weekdayField}
+            ${repeatKmField}
           </div>` : ""}
-          ${weekdayField}
-          ${repeatKmField}
 
           <div class="form__actions">
             <button type="button" class="btn btn--text js-close-overlay">${t("common.cancel")}</button>
@@ -1169,6 +1198,24 @@ function bind(container: HTMLElement): void {
       redraw(container);
     });
   });
+  /* تکرار toggle: OFF = no recurrence (config fields stay visible but
+   * disabled — nothing submitted); ON resumes the last recurrence choice,
+   * defaulting to weekly. */
+  container.querySelectorAll<HTMLInputElement>(".js-reminder-repeat-toggle").forEach((input) => {
+    input.addEventListener("change", () => {
+      if (input.checked) {
+        if (state.formRepeat === "none") state.formRepeat = "weekly";
+        if (state.formRepeat === "weekly" && state.formWeekday == null) {
+          state.formWeekday = defaultWeekdayFor(fieldValue("dueDate") || null);
+        }
+      } else {
+        // Keep the pending config in state so re-enabling restores it; the
+        // submit path never reads it while the toggle is "none".
+        state.formRepeat = "none";
+      }
+      redraw(container);
+    });
+  });
   container.querySelectorAll<HTMLSelectElement>(".js-reminder-repeat").forEach((select) => {
     select.addEventListener("change", () => {
       const repeat = select.value as RepeatMode;
@@ -1188,12 +1235,12 @@ function bind(container: HTMLElement): void {
     });
   });
 
-  /* اعلان پیش از موعد toggle (Req 4): reveals/hides the advance fields. */
+  /* اعلان پیش از موعد toggle (Req 4): the advance fields are ALWAYS in the
+   * DOM — this only enables/disables them (OFF = disabled, never
+   * submitted). Turning ON prefills sensible defaults so they are ready. */
   container.querySelectorAll<HTMLInputElement>(".js-notifications-toggle").forEach((input) => {
     input.addEventListener("change", () => {
       state.formNotifications = input.checked;
-      // The advance fields are part of the form the moment the toggle is
-      // on (Req 1) — prefill sensible defaults so they are ready to edit.
       if (input.checked) {
         if (fieldValue("advanceDays") === "") state.formValues.advanceDays = "7";
         if (fieldValue("advanceKm") === "") state.formValues.advanceKm = "100";

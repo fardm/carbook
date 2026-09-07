@@ -180,6 +180,21 @@
   margin-top: var(--md-space-1);
 }
 
+/* Form group hierarchy built from spacing alone (no cards, borders, or
+ * headers). Each gap ADDS to the .form flex gap, so groups read as
+ * distinct blocks while individual fields stay tightly related:
+ * basic info → type (+ small step) → advance notification (+ larger) →
+ * repeat (+ largest). */
+.form__gap--1 {
+  margin-top: calc(var(--md-space-4) + var(--md-space-1));
+}
+.form__gap--2 {
+  margin-top: calc(var(--md-space-4) + var(--md-space-2));
+}
+.form__gap--3 {
+  margin-top: calc(var(--md-space-4) + var(--md-space-4));
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -327,6 +342,26 @@ textarea.field__input {
   color: var(--md-sys-color-on-surface-variant);
   font-size: var(--md-typescale-label-small);
   line-height: 1.6;
+}
+
+/* Dependent config fields while their toggle is OFF (advance-notification
+ * and repeat groups): always present but visibly inert — reduced opacity,
+ * no hover/focus ring, not-allowed cursor. Matches the float-label hover
+ * rule's specificity so it wins on source order. */
+.field__input:disabled {
+  opacity: 0.55;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+.field:has(.field__input:disabled) .field__input:not(:focus) {
+  border-color: var(--md-sys-color-outline-variant);
+}
+.field:has(.field__input:disabled) .field__label {
+  color: var(--md-sys-color-on-surface-variant);
+  opacity: 0.6;
+}
+.affix-field:has(input:disabled) .affix-field__suffix {
+  opacity: 0.55;
 }
 
 /* --- Vehicle summary (dashboard) --- */

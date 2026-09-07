@@ -785,6 +785,24 @@ respect. The section documents the CURRENT (v12) state in full.
   dedicated errors (`syncDateUnavailable`/`syncKmUnavailable`). The
   draft's form-level `synced` flag is stripped before persisting (only
   `syncWithService` is stored).
+- **Form UI refinement (spacing groups + toggle-based config)**: the
+  reminder form is organized into FOUR groups separated by spacing alone
+  (`form__gap--1/2/3` in components.css — no cards, borders, or headers):
+  (1) basic info (title + description, unchanged gap), (2) reminder type
+  (segmented control + dynamic hint + its date/km fields), (3) advance
+  notification, (4) repeat. Both config groups use a TOGGLE + always-
+  present DISABLED dependent fields: the اعلان پیش از موعد fields
+  (فاصله زمانی / فاصله کیلومتری) and the تکرار config (بازه تکرار select
+  — هفتگی/ماهانه/سالانه + km for date_mileage — plus روز هفته for weekly
+  and the km-interval input) exist in the DOM from the first render, so
+  toggling never injects/removes anything and the layout never jumps.
+  OFF = disabled inputs (dimmed via `:disabled` rules), excluded from
+  FormData and from the submit gates (`state.formNotifications`,
+  `state.formRepeat === "none"`), so nothing disabled is ever persisted
+  as an active setting. No-repeat is the toggle OFF — the select no
+  longer carries a "یک‌بار" option. Mileage-only reminders hide the whole
+  repeat group (not date-relevant). Enabling repeat resumes the last
+  choice (weekly default + weekday defaulted from the due date).
 - **Service page → reminders deep links** (`views/services.ts` +
   `ui/router.ts`): the Operations menu's یادآوری item is a navigation link
   built by `serviceReminderTarget`: a SYNCED reminder exists → its edit
@@ -1576,6 +1594,23 @@ Post-Phase-13 reminders (v12 — service-synchronized reminders):
 70. **Reminder deep links keep the reminder's own vehicle**: the service
     page's link omits `vehicle=`; `consumeReminderHash` selects the
     service's vehicle before opening the form.
+71. **Toggle-based config groups with always-present disabled fields.**
+    The advance-notification and repeat groups render their dependent
+    fields in the DOM from the first render — OFF just disables them
+    (dimmed, excluded from FormData and the submit gates). No
+    injection/removal means the layout never jumps when a toggle flips,
+    and nothing disabled is ever persisted as an active setting.
+72. **No-repeat is the toggle being OFF.** The repeat select carries only
+    real recurrences (weekly/monthly/yearly, plus km for date_mileage);
+    the "یک‌بار" option is gone. Enabling repeat resumes the last choice
+    (weekly default, weekday defaulted from the due date), and switching
+    the type to pure mileage hides the group entirely (not semantically
+    relevant).
+73. **Form hierarchy comes from spacing, not containers.** Four groups
+    (basic info → type → advance → repeat) are separated by progressively
+    larger gaps (`form__gap--1/2/3` stacking on the 16px form gap) with no
+    cards, borders, or headers — the existing design system, floating
+    labels, and validation stay untouched.
 
 ---
 

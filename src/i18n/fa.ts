@@ -352,6 +352,7 @@ export const fa = {
     repeatMonthly: "ماهانه",
     repeatYearly: "سالانه",
     repeatKm: "هر چند کیلومتر",
+    repeatIntervalLabel: "بازه تکرار",
     repeatEveryKmLabel: "بازه تکرار (کیلومتر)",
     weekdayLabel: "روز هفته",
     weekday0: "شنبه",
