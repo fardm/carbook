@@ -1,4 +1,5 @@
 import { triggeredOffsets, offsetKey, nextOccurrence, dueSides } from "../domain/reminders";
+import { resolveReminder } from "../domain/reminder-sync";
 import type { Dataset, Reminder } from "../domain/types";
 
 /**
@@ -54,10 +55,15 @@ function writeCheckState(state: CheckState): void {
  * Identifies WHICH occurrence of a recurring reminder the current due
  * values belong to, so repeating reminders notify again on their next
  * occurrence while the same occurrence never notifies twice. One-time
- * reminders key on the id alone.
+ * MANUAL reminders key on the id alone.
+ *
+ * Service-synchronized reminders always key on their (resolved) due
+ * values: when the service's next recommendation moves, the reminder is
+ * effectively a NEW occurrence and may notify again — even with repeat
+ * "none". Call this with the RESOLVED reminder.
  */
 export function occurrenceKey(reminder: Reminder): string {
-  if (reminder.repeat === "none") return "once";
+  if (reminder.repeat === "none" && !reminder.syncWithService) return "once";
   return `${reminder.dueDate ?? "-"}|${reminder.dueMileage ?? "-"}`;
 }
 
@@ -128,8 +134,11 @@ export function runReminderCheck(
     return result;
   }
 
-  for (const reminder of dataset.reminders) {
-    if (!reminder.enabled) continue;
+  for (const rawReminder of dataset.reminders) {
+    if (!rawReminder.enabled) continue;
+    // Service-synchronized reminders resolve their due values live from
+    // the service's next-recommended schedule before anything is checked.
+    const reminder = resolveReminder(rawReminder, dataset);
     const odometer = odometerOf(dataset, reminder.vehicleId);
     const occKey = occurrenceKey(reminder);
 
@@ -185,7 +194,9 @@ export function runReminderCheck(
 export function advanceRecurringReminders(draft: Dataset, today: string): string[] {
   const rolled: string[] = [];
   for (const reminder of draft.reminders) {
-    if (!reminder.enabled || reminder.repeat === "none") continue;
+    // Service-synchronized reminders never roll: the service's schedule IS
+    // their recurrence — their due values follow it via resolveReminder.
+    if (!reminder.enabled || reminder.syncWithService || reminder.repeat === "none") continue;
     const odometer = odometerOf(draft, reminder.vehicleId);
     const sides = dueSides(reminder, odometer, today);
     if (!sides.date && !sides.mileage) continue;

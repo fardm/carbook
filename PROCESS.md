@@ -45,9 +45,21 @@ complete dataset round-trips through export → import with no data loss
 server stopped (§44), and the app feels like a polished utility rather than
 a prototype (Phase 12 “Done when”).
 
-Git note: all of the work below is **uncommitted** (the repo only has the
-initial "first commit" with the plan documents). Nothing has been staged or
-committed.
+After the phase plan, the reminders subsystem (یادآوری‌ها) was built across
+several user-requested iterations (schema v10–v12; see the "Post-Phase-13
+reminders work" section below for the v12 state and the reminder decisions
+62–70). Latest addition: **service-synchronized reminders** — a reminder
+created from a service's detail page resolves its due date/mileage live
+from that service's next-recommended schedule (schema v12,
+`syncWithService`), so recording the service again moves the reminder
+automatically. The service page's یادآوری action deep-links into the
+reminders view (opens the synced add form, or the existing reminder's edit
+form — never duplicates). All verified live + 26 unit tests in
+`tests/reminder-sync.test.ts`.
+
+Git note: Phases 1–13 and the earlier reminders iterations (v10/v11) are
+committed. The CURRENT working tree holds the uncommitted v12
+service-synchronized reminders work (files listed under Files Changed).
 
 ---
 
@@ -713,6 +725,89 @@ Final QA (verify-and-fix). Findings fixed during the pass:
   dependencies; nothing persisted is derived (store + engine invariants
   hold). The only remaining placeholder is the سوابق view (deliberate;
   listed as an optional follow-up).
+
+---
+
+## Post-Phase-13 Reminders Work (schema v10–v12)
+
+Note: PROCESS.md was NOT updated while the reminders iterations (v10/v11)
+were committed (see `git log`: add reminder, offsets editor, notification
+toggle, weekly repeat, card restyle). Their implementation details live in
+the code and git history; the decisions below record what future work must
+respect. The section documents the CURRENT (v12) state in full.
+
+### Schema state (v12)
+- `CURRENT_VERSION = 12`. Reminders exist on the dataset (`reminders[]`);
+  v12 adds `Reminder.syncWithService: boolean` — migration step 11→12 is a
+  warning + `normalizeReminders` pass (missing/false stays manual; only an
+  explicit `true` synchronizes). The strict import validator requires the
+  field (boolean).
+
+### Service-synchronized reminders (v12 — what they are)
+- `src/domain/reminder-sync.ts` (new): `recommendedDueForService(item,
+  dataset)` returns the service's next-recommended `{dueDate, dueMileage}`
+  via the SAME calculation engine the service detail page uses
+  (`calculateMaintenance` — last service + interval; null per side the
+  service cannot provide). `resolveReminder(reminder, dataset)` resolves a
+  synced reminder's TITLE (service name) + due values live, restricted to
+  the conditions its `type` watches; manual reminders and rows whose
+  service no longer exists pass through untouched.
+- **The service is the source of truth; there is NO sync job.** Stored
+  reminder values are never rewritten when a service is recorded — every
+  consumer (list evaluation, checker, edit form) resolves live. This keeps
+  the "facts only" invariant and eliminates drift by construction.
+- **Checker integration** (`reminder-checker.ts`): `runReminderCheck`
+  resolves each reminder before evaluating; `occurrenceKey` keys a synced
+  reminder on its RESOLVED due values even with repeat "none" (a moved
+  schedule is a NEW occurrence that may notify again), while manual
+  one-time reminders stay `"once"`. `advanceRecurringReminders` SKIPS
+  synced reminders — the service schedule IS their recurrence.
+- **Reminders form** (`views/reminders.ts`): two creation flows. Manual
+  (Reminders page): NO service relationship (`serviceId` null — the old
+  related-service select was removed from the form). Service-synchronized
+  (service page): title + due date/km render READ-ONLY from the service's
+  current recommendation (with a همگام hint; per-side "service has no
+  recommendation" hints), repeat is hidden (repeat "none"), and the submit
+  path RE-RESOLVES values from the service at save time — a stale form
+  value can never be persisted. Validator maps missing synced values to
+  dedicated errors (`syncDateUnavailable`/`syncKmUnavailable`). The
+  draft's form-level `synced` flag is stripped before persisting (only
+  `syncWithService` is stored).
+- **Service page → reminders deep links** (`views/services.ts` +
+  `ui/router.ts`): the Operations menu's یادآوری item is a navigation link
+  built by `serviceReminderTarget`: a SYNCED reminder exists → its edit
+  form (`#/reminders?edit=<id>`); else a MANUAL reminder references the
+  service → that one's edit form (بررسی یادآوری semantics); else
+  `#/reminders?service=<id>` → the service-synchronized add form.
+  `consumeReminderHash` (reminders view) consumes the params ONCE per
+  navigation (opens existing-for-edit, never duplicates) and strips them
+  via `history.replaceState` so a refresh never re-opens the form. The
+  legacy `prefill=1` flow was removed (`remindersPrefillRequested` deleted;
+  `remindersHash` params are `vehicle`/`service`/`edit`).
+- **i18n** (`fa.ts`): `reminders.syncHint`, per-side unavailable hints,
+  `errorSync*` messages; removed the form's `serviceLabel`/`serviceNone`.
+- **Icon fix**: the reminder card's metric lines use lucide `activity`,
+  which was never registered — `Activity` is now in `src/ui/icons.ts`
+  (console warning resolved).
+
+### v12 tests
+- `tests/reminder-sync.test.ts` (new, 26 tests): recommendation
+  computation (with/without baseline, single-side interval), resolution
+  (type restriction, manual pass-through, missing-service fallback),
+  occurrence keys, checker integration (fires from resolved values with
+  the service's name; notifies again when the schedule moves; never twice
+  per occurrence; silent when the service provides nothing), non-rolling,
+  synced-draft validation errors, `normalizeReminder` v12 default, and
+  export→import round trip + strict `syncWithService` validation.
+- Live verification (Preview tab, dev 5173): service detail یادآوری →
+  synced add form (readonly resolved values) → save → card shows resolved
+  schedule → یادآوری again opens the EXISTING reminder's edit form (no
+  duplicate) → recording a new service moved the card + edit form to the
+  NEW schedule (۱۶ اسفند ۱۴۰۵ / ۱۱۰٬۰۰۰) while stored values stayed
+  untouched; manual-reminder branch (edit form, editable values, no sync
+  hint) verified; manual add flow intact; v11→v12 migration warning
+  observed; console clean. `npm run typecheck` clean, **249 tests pass
+  (18 files)**, `npm run build` clean.
 
 ---
 
@@ -1428,6 +1523,47 @@ Post-Phase-13 UI adjustments (user-requested, layout):
     Verified live at 440 px: two-line header fits the 64px bar centered,
     no clipping; typecheck/205 tests/build clean.
 
+Post-Phase-13 reminders (v12 — service-synchronized reminders):
+62. **`syncWithService` means LIVE RESOLUTION, never a sync job.** A
+    synced reminder stores a title/due snapshot for fallback only; every
+    consumer calls `resolveReminder` (reminder-sync.ts) which recomputes
+    from the service via the SAME `calculateMaintenance` engine. Recording
+    a service NEVER rewrites reminder rows — no drift, no duplicated
+    derived data, §4 invariant intact.
+63. **Only an explicit `true` synchronizes** (normalize + import enforce
+    boolean). Pre-v12 reminders — including ones with a serviceId from the
+    old form — stay fully manual; their stored values are never touched.
+64. **Synced reminders never roll and always key on resolved values.**
+    `advanceRecurringReminders` skips them (the service schedule IS their
+    recurrence) and `occurrenceKey` uses the resolved due values even for
+    repeat "none" — so when the service's next recommendation moves, the
+    reminder may notify again (it is effectively a new occurrence).
+65. **The service page's یادآوری action never duplicates.**
+    `serviceReminderTarget` routes: synced reminder exists → edit it;
+    else a manual reminder references the service → edit that one;
+    else `service=` → the service-synchronized add form. One reminder per
+    service relationship, enforced at the entry point.
+66. **Deep-link action params are consumed once and stripped**
+    (`history.replaceState` to the bare `#/reminders`), so store-driven
+    redraws and refreshes never re-open a form. The legacy `prefill=1`
+    snapshot flow was removed — `remindersHash` accepts only
+    `vehicle`/`service`/`edit`.
+67. **Deleting a service freezes its synced reminder.** Resolution falls
+    back to the stored snapshot when the service id no longer resolves —
+    a reminder must never crash or vanish because its service is gone.
+68. **The reminders form no longer edits the service relationship.**
+    Manual reminders are standalone (`serviceId: null`); the relationship
+    exists only via the service-page entry point. The draft's form-level
+    `synced` flag is stripped before persisting — stored rows carry only
+    `syncWithService`.
+69. **Synced saves re-resolve values from the service at submit time**
+    (req 7): the readonly fields are displays, not inputs — a stale form
+    value can never be persisted, and a service that cannot provide a
+    watched value fails validation with a dedicated error.
+70. **Reminder deep links keep the reminder's own vehicle**: the service
+    page's link omits `vehicle=`; `consumeReminderHash` selects the
+    service's vehicle before opening the form.
+
 ---
 
 ## Known Issues / Limitations
@@ -1465,9 +1601,12 @@ Post-Phase-13 UI adjustments (user-requested, layout):
 
 ## Exact Next Steps
 
-The project is COMPLETE (all 13 phases). No planned work remains. Optional
-follow-ups (each small and self-contained; none are required for daily
-use):
+The v12 service-synchronized reminders work is COMPLETE (implemented,
+tested, live-verified — see the Post-Phase-13 section above) but NOT YET
+COMMITTED: the working tree holds the v12 changes (untracked:
+`src/domain/reminder-sync.ts`, `tests/reminder-sync.test.ts`; modified:
+domain/persistence/router/views/i18n/icons as listed under Files Changed).
+Commit it first. Optional follow-ups (each small and self-contained):
 
 1. **سوابق aggregate log view** — the history tab is still a placeholder;
    a simple newest-first log of every service/inspection record across
@@ -1476,15 +1615,18 @@ use):
 2. **Formal Lighthouse audit** — run Lighthouse (or Chrome DevTools) on
    the built PWA once, outside this toolchain, to get official
 a11y/installability scores; Phase 13's manual checks found no issues.
-3. **Commit / deploy** — all work since the initial plan commit is
-   uncommitted (see Git note above). Commit the project and deploy `dist/`
-   (GitHub Pages sub-path is supported: relative base + manifest/SW
-   scope). Remember to bump the SW `CACHE` constant when deploying.
+3. **Commit / deploy** — commit the uncommitted v12 work, then deploy
+   `dist/` (GitHub Pages sub-path is supported: relative base). Remember
+   to bump the SW `CACHE` constant when deploying.
 4. **English locale** — the i18n catalog is structure-ready for `{fa,en}`
    (Phase 1 scaffolding) but only fa ships; adding an en catalog + locale
    switcher is a self-contained future feature.
+5. **Reminder card affordance for synced reminders** — the card already
+   resolves live values; a small "همگام با سرویس" marker on synced cards
+   would make the distinction visible without opening the form (the edit
+   form shows the hint today; the card does not).
 
-Future work must keep decisions 1–59 in mind (they are the project's
+Future work must keep decisions 1–70 in mind (they are the project's
 contract). If the project is picked up later, read SKILL.md →
 PROJECT_PLAN.md → this file, in that order.
 
@@ -1657,3 +1799,26 @@ PROCESS.md (this file — Phase 13 QA record, decision 59)
 
 No new files were needed: Phase 13 was a verify-and-fix pass over the
 complete Phase 1–12 implementation.
+
+Post-Phase-13 reminders — v12 service-synchronized reminders:
+```
+src/domain/reminder-sync.ts (new — resolveReminder / resolveReminders /
+  recommendedDueForService)
+src/domain/types.ts (Reminder.syncWithService)
+src/domain/defaults.ts (CURRENT_VERSION 12)
+src/domain/reminders.ts (draft `synced` flag + sync validation errors)
+src/domain/reminder-checker.ts (resolve before check; occurrence keys;
+  synced reminders never roll)
+src/persistence/reminder-normalize.ts (v12 default false)
+src/persistence/repository.ts (v11→v12 migration comment/warning)
+src/persistence/import-export.ts (strict syncWithService validation)
+src/ui/router.ts (edit= param; prefill=1 flow removed)
+src/views/reminders.ts (synced form mode, readonly resolved values,
+  deep-link consumption, submit re-resolves, no service select)
+src/views/services.ts (یادآوری link via serviceReminderTarget)
+src/ui/icons.ts (Activity registered)
+src/i18n/fa.ts (sync hints/errors; removed serviceLabel/serviceNone)
+tests/reminder-sync.test.ts (new — 26 tests)
+tests/reminders.test.ts (fixtures gained the new fields)
+PROCESS.md (this file)
+```

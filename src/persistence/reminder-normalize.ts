@@ -13,6 +13,8 @@ import type { NotificationOffset, ReminderType, RepeatMode } from "../domain/typ
  *   ONE days-offset and ONE km-offset (the first of each kind) — the
  *   current model does not support multiple intervals per kind, and this
  *   guarantees the checker/form never see duplicates.
+ * - syncWithService defaults to FALSE: pre-v12 reminders were created as
+ *   value snapshots, so they stay manual and are never auto-updated.
  */
 
 const REMINDER_TYPES: ReminderType[] = ["date", "mileage", "date_mileage"];
@@ -33,6 +35,8 @@ export function normalizeReminder(raw: unknown): Reminder | null {
     title: typeof row.title === "string" ? row.title : "",
     description: typeof row.description === "string" ? row.description : "",
     serviceId: typeof row.serviceId === "string" && row.serviceId !== "" ? row.serviceId : null,
+    // Only an explicit true synchronizes; missing/legacy → manual reminder.
+    syncWithService: row.syncWithService === true,
     type,
     dueDate: typeof row.dueDate === "string" ? row.dueDate : null,
     dueMileage:

@@ -15,6 +15,7 @@ const baseDraft: ReminderDraft = {
   title: "بیمه",
   description: "",
   serviceId: null,
+  synced: false,
   type: "date",
   dueDate: "2026-09-10",
   dueMileage: null,
@@ -51,6 +52,7 @@ function weeklyReminder(overrides: Partial<Reminder>): Reminder {
     title: "یادآوری هفتگی",
     description: "",
     serviceId: null,
+    syncWithService: false,
     type: "date",
     dueDate: "2026-01-03", // Saturday
     dueMileage: null,

@@ -160,6 +160,12 @@ export interface Reminder {
   description: string;
   /** Linked maintenance item; null = standalone reminder. */
   serviceId: string | null;
+  /** True when this reminder is SERVICE-SYNCHRONIZED: it was created from
+   * the service's detail page and its due date/mileage are resolved live
+   * from that service's next-recommended schedule (the service is the
+   * source of truth). Manual reminders are fully user-controlled and are
+   * never synchronized, even when they reference a service. */
+  syncWithService: boolean;
   /** Which condition(s) the reminder watches. */
   type: ReminderType;
   /** Due date (date / date_mileage); null when the reminder has none. */

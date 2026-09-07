@@ -12,10 +12,12 @@ import {
   runReminderCheck,
   advanceRecurringReminders,
 } from "../domain/reminder-checker";
+import { recommendedDueForService, resolveReminder } from "../domain/reminder-sync";
 import { isValidIso, todayIso, weekdayOf } from "../domain/calendar";
 import { formatDate } from "../domain/calendar/format";
 import { createId } from "../domain/ids";
 import type {
+  MaintenanceItem,
   NotificationOffset,
   Reminder,
   RepeatMode,
@@ -31,6 +33,8 @@ import { alignFabBar } from "../ui/fab";
 import { bindFloatingFields } from "../ui/floating-field";
 import { applyIcons } from "../ui/icons";
 import {
+  remindersEditIdFromHash,
+  remindersServiceIdFromHash,
   remindersVehicleIdFromHash,
 } from "../ui/router";
 
@@ -77,7 +81,10 @@ interface ReminderViewState {
   vehicleMenuOpen: boolean;
 }
 
-/** Values carried from a service into the add form (Phase 6). */
+/** Values carried into the add form.
+ * Manual flow (Reminders page): serviceId null + synced false — the user
+ * controls every value. Service flow (service page): synced true — title
+ * and due values come from the service and render read-only. */
 interface ReminderPrefill {
   vehicleId: string;
   serviceId: string | null;
@@ -86,6 +93,8 @@ interface ReminderPrefill {
   dueMileage: number | null;
   /** Vehicle's current odometer at prefill time, for the hint row. */
   currentOdometer: number | null;
+  /** True = service-synchronized form (service page entry point). */
+  synced: boolean;
 }
 
 /** A reminder ready to save, waiting on the permission decision (Phase 7). */
@@ -131,6 +140,8 @@ const ERROR_KEYS: Record<ReminderDraftError, Parameters<typeof t>[0]> = {
   dueMileageRequired: "reminders.errorDueMileageRequired",
   dueMileageInvalid: "reminders.errorDueMileageInvalid",
   conditionRequired: "reminders.errorConditionRequired",
+  syncDateUnavailable: "reminders.errorSyncDateUnavailable",
+  syncKmUnavailable: "reminders.errorSyncKmUnavailable",
   repeatWeekdayInvalid: "reminders.errorRepeatWeekday",
   repeatKmRequired: "reminders.errorRepeatKmRequired",
   repeatKmInvalid: "reminders.errorRepeatKmInvalid",
@@ -161,6 +172,10 @@ function defaultWeekdayFor(dueDate: string | null): number {
 }
 
 export function renderReminders(container: HTMLElement): () => void {
+  // Deep links (service page → synchronized reminder, "بررسی یادآوری" →
+  // edit form) are consumed ONCE per navigation — store-driven redraws
+  // below never re-open forms.
+  consumeReminderHash();
   const draw = (): void => {
     activeContainer = container;
     container.innerHTML = remindersViewHtml();
@@ -373,10 +388,16 @@ function remindersNoVehicleHtml(): string {
 function remindersListHtml(dataset: ReturnType<typeof store.get>, vehicleId: string): string {
   const vehicle = dataset.vehicles.find((v) => v.id === vehicleId) ?? null;
   const reminders = dataset.reminders.filter((reminder) => reminder.vehicleId === vehicleId);
-  const evaluated = reminders.map((reminder) => ({
-    reminder,
-    evaluation: evaluateReminder(reminder, vehicle?.currentOdometer ?? null),
-  }));
+  // Service-synchronized reminders resolve their due values live from the
+  // service's next-recommended schedule — the service is the source of
+  // truth for evaluation, sorting, and the displayed schedule.
+  const evaluated = reminders.map((reminder) => {
+    const effective = resolveReminder(reminder, dataset);
+    return {
+      reminder: effective,
+      evaluation: evaluateReminder(effective, vehicle?.currentOdometer ?? null),
+    };
+  });
 
   const filtered = evaluated.filter(({ reminder, evaluation }) => {
     switch (state.filter) {
@@ -547,10 +568,24 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
   const vehicle = vehicleId != null ? (dataset.vehicles.find((v) => v.id === vehicleId) ?? null) : null;
   const title = editing ? t("reminders.editTitle") : t("reminders.addTitle");
 
-  // Services of the selected vehicle for the optional related-service select.
-  const services = dataset.maintenanceItems.filter(
-    (item) => item.vehicleId === vehicleId && item.active,
-  );
+  // Service-synchronized mode (service page entry point, or editing an
+  // existing synced reminder): the SERVICE is the source of truth — title
+  // and due values render read-only from its current recommendation and
+  // repeat is hidden (the service schedule IS the recurrence).
+  const editingReminder = editing
+    ? (dataset.reminders.find((r) => r.id === (state.form as { reminderId: string }).reminderId) ?? null)
+    : null;
+  const synced = editing
+    ? (editingReminder?.syncWithService ?? false)
+    : (prefill?.synced ?? false);
+  const syncServiceId = synced
+    ? (editing ? editingReminder?.serviceId ?? null : prefill?.serviceId ?? null)
+    : null;
+  const syncSource = (() => {
+    if (syncServiceId == null) return null;
+    const item = dataset.maintenanceItems.find((candidate) => candidate.id === syncServiceId);
+    return item ? recommendedDueForService(item, dataset) : null;
+  })();
 
   const typeOptions: Array<{ value: Reminder["type"]; key: Parameters<typeof t>[0] }> = [
     { value: "date", key: "reminders.typeDate" },
@@ -580,8 +615,24 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
   const watchesDate = state.formType === "date" || state.formType === "date_mileage";
   const watchesKm = state.formType === "mileage" || state.formType === "date_mileage";
 
+  // Synced due fields are READ-ONLY displays of the service's current
+  // recommendation (no name attribute — the submit path re-resolves them
+  // from the service, so a stale form value can never be persisted). When
+  // the service cannot provide a value, a clear hint replaces it.
+  const syncDate = synced ? (syncSource?.dueDate ?? null) : null;
+  const syncKm = synced ? (syncSource?.dueMileage ?? null) : null;
+
   const dateSection = watchesDate
-    ? `
+    ? synced
+      ? `
+    <div class="field">
+      <label class="field__label" for="reminder-date">${t("reminders.dueDateLabel")}</label>
+      <input class="field__input" id="reminder-date" type="text" readonly
+        value="${syncDate != null ? escHtml(formatDate(syncDate)) : ""}" />
+      ${syncDate == null ? `<p class="field__hint">${t("reminders.syncDateUnavailableHint")}</p>` : ""}
+      <p class="field__error" id="reminder-error-date" hidden></p>
+    </div>`
+      : `
     <div class="field">
       <label class="field__label" for="reminder-date">${t("reminders.dueDateLabel")}</label>
       ${dateFieldHtml({
@@ -595,7 +646,16 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
     : "";
 
   const kmSection = watchesKm
-    ? `
+    ? synced
+      ? `
+    <div class="field">
+      <label class="field__label" for="reminder-km">${t("reminders.dueMileageLabel")}</label>
+      <input class="field__input" id="reminder-km" type="text" readonly
+        value="${syncKm != null ? escHtml(faNum(syncKm)) : ""}" />
+      ${syncKm == null ? `<p class="field__hint">${t("reminders.syncKmUnavailableHint")}</p>` : ""}
+      <p class="field__error" id="reminder-error-km" hidden></p>
+    </div>`
+      : `
     <div class="field">
       <label class="field__label" for="reminder-km">${t("reminders.dueMileageLabel")}</label>
       <input class="field__input" id="reminder-km" name="dueMileage" type="number"
@@ -668,11 +728,11 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
       <div class="modal modal--scroll" role="dialog" aria-modal="true" aria-label="${escHtml(title)}">
         <form id="reminder-form" class="form" novalidate>
           <div class="form__title">${escHtml(title)}</div>
-          ${prefill?.serviceId ? `<input type="hidden" name="serviceId" value="${escHtml(prefill.serviceId)}" />` : ""}
 
           <div class="field">
             <label class="field__label" for="reminder-title">${t("reminders.titleLabel")}</label>
             <input class="field__input" id="reminder-title" name="title" type="text"
+              ${synced ? "readonly" : ""}
               value="${escHtml(fieldValue("title"))}"
               placeholder="${t("reminders.titlePlaceholder")}" />
             <p class="field__error" id="reminder-error-title" hidden></p>
@@ -682,21 +742,6 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
             <label class="field__label" for="reminder-description">${t("reminders.descriptionLabel")}</label>
             <textarea class="field__input" id="reminder-description" name="description" rows="2"
               placeholder="${t("reminders.descriptionPlaceholder")}">${escHtml(fieldValue("description"))}</textarea>
-          </div>
-
-          <div class="field">
-            <label class="field__label" for="reminder-service">${t("reminders.serviceLabel")}</label>
-            <select class="field__input" id="reminder-service" name="serviceId" ${prefill?.serviceId ? "disabled" : ""}>
-              <option value="">${t("reminders.serviceNone")}</option>
-              ${services
-                .map(
-                  (service) => `
-                <option value="${escHtml(service.id)}" ${
-                  fieldValue("serviceId", prefill?.serviceId ?? "") === service.id ? "selected" : ""
-                }>${escHtml(service.name)}</option>`,
-                )
-                .join("")}
-            </select>
           </div>
 
           <div class="field">
@@ -714,6 +759,8 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
             </div>
             <p class="field__hint">${t(typeHintKey[state.formType])}</p>
           </div>
+
+          ${synced ? `<p class="field__hint reminder-sync-hint">${t("reminders.syncHint")}</p>` : ""}
 
           ${dateSection}
           ${kmSection}
@@ -736,7 +783,7 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
             <p class="field__error" id="reminder-error-offsets" hidden></p>
           </div>` : ""}
 
-          ${watchesDate ? `
+          ${!synced && watchesDate ? `
           <div class="field">
             <label class="field__label" for="reminder-repeat">${t("reminders.repeatLabel")}</label>
             <select class="field__input js-reminder-repeat" id="reminder-repeat">
@@ -839,8 +886,109 @@ function openAddForm(prefill: ReminderPrefill | null): void {
     if (prefill.title !== "") state.formValues.title = prefill.title;
     if (prefill.dueDate != null) state.formValues.dueDate = prefill.dueDate;
     if (prefill.dueMileage != null) state.formValues.dueMileage = String(prefill.dueMileage);
-    if (prefill.serviceId != null) state.formValues.serviceId = prefill.serviceId;
   }
+}
+
+/**
+ * Prefill for the SERVICE-BASED form (service page → یادآوری): title from
+ * the service name, due values from the service's CURRENT next-recommended
+ * schedule — only what the service actually provides, never invented. The
+ * initial type follows the available data (openAddForm derives it from the
+ * values): both → date+mileage, one → that one, neither → date (the form
+ * then shows a clear "unavailable" state instead of an invalid reminder).
+ */
+function serviceSyncedPrefill(item: MaintenanceItem, dataset: ReturnType<typeof store.get>): ReminderPrefill {
+  const recommended = recommendedDueForService(item, dataset);
+  return {
+    vehicleId: item.vehicleId ?? "",
+    serviceId: item.id,
+    title: item.name,
+    dueDate: recommended.dueDate,
+    dueMileage: recommended.dueMileage,
+    currentOdometer: dataset.vehicles.find((v) => v.id === item.vehicleId)?.currentOdometer ?? null,
+    synced: true,
+  };
+}
+
+/**
+ * Deep links, consumed once per navigation:
+ * - `#/reminders?service=<id>` — the service page's یادآوری action. Opens
+ *   the EXISTING synchronized reminder for editing when one exists (never
+ *   duplicates), otherwise the service-based add form.
+ * - `#/reminders?edit=<id>` — opens one reminder's edit form (the service
+ *   page's "بررسی یادآوری" action for manual reminders).
+ * Consumed params are stripped from the URL so a refresh never re-opens
+ * the form.
+ */
+function consumeReminderHash(): void {
+  const dataset = store.get();
+  const serviceId = remindersServiceIdFromHash(window.location.hash);
+  if (serviceId != null) {
+    const item = dataset.maintenanceItems.find((candidate) => candidate.id === serviceId);
+    if (item != null) {
+      if (item.vehicleId != null) state.selectedVehicleId = item.vehicleId;
+      const existing = dataset.reminders.find(
+        (reminder) => reminder.serviceId === serviceId && reminder.syncWithService,
+      );
+      if (existing != null) {
+        openEditForm(existing.id);
+      } else {
+        openAddForm(serviceSyncedPrefill(item, dataset));
+      }
+    }
+    clearReminderHashQuery();
+    return;
+  }
+  const editId = remindersEditIdFromHash(window.location.hash);
+  if (editId != null) {
+    const reminder = dataset.reminders.find((candidate) => candidate.id === editId);
+    if (reminder != null) {
+      state.selectedVehicleId = reminder.vehicleId;
+      openEditForm(reminder.id);
+    }
+    clearReminderHashQuery();
+  }
+}
+
+/** Strips view-action query params from the hash (replaceState: no re-render). */
+function clearReminderHashQuery(): void {
+  history.replaceState(null, "", `${location.pathname}${location.search}#/reminders`);
+}
+
+/**
+ * Opens the edit form. Service-synchronized reminders display their
+ * RESOLVED values — the service's current name and recommendation — not
+ * the stored snapshot.
+ */
+function openEditForm(reminderId: string): void {
+  const dataset = store.get();
+  const stored = dataset.reminders.find((candidate) => candidate.id === reminderId);
+  if (!stored) return;
+  closeForm();
+  state.form = { mode: "edit", reminderId: stored.id };
+  const reminder = resolveReminder(stored, dataset);
+  state.formType = reminder.type;
+  // Synced reminders follow the service schedule — no repeat control.
+  state.formRepeat = reminder.syncWithService
+    ? "none"
+    : reminder.repeat === "km" && reminder.type === "date"
+      ? "none"
+      : reminder.repeat;
+  state.formWeekday = reminder.syncWithService
+    ? null
+    : (reminder.repeatWeekday ?? defaultWeekdayFor(reminder.dueDate));
+  const firstDays = reminder.notificationOffsets.find((offset) => offset.days != null);
+  const firstKm = reminder.notificationOffsets.find((offset) => offset.km != null);
+  state.formNotifications = reminder.notificationOffsets.length > 0;
+  state.formValues = {
+    title: reminder.title,
+    description: reminder.description,
+    dueDate: reminder.dueDate ?? "",
+    dueMileage: reminder.dueMileage != null ? String(reminder.dueMileage) : "",
+    advanceDays: firstDays?.days != null ? String(firstDays.days) : "",
+    advanceKm: firstKm?.km != null ? String(firstKm.km) : "",
+    repeatEveryKm: reminder.repeatEveryKm != null ? String(reminder.repeatEveryKm) : "",
+  };
 }
 
 /** True when this is the user's FIRST notification-enabled reminder save
@@ -907,7 +1055,7 @@ function bind(container: HTMLElement): void {
       openAddForm(
         vehicleId == null
           ? null
-          : { vehicleId, serviceId: null, title: "", dueDate: null, dueMileage: null, currentOdometer: null },
+          : { vehicleId, serviceId: null, title: "", dueDate: null, dueMileage: null, currentOdometer: null, synced: false },
       );
       redraw(container);
     });
@@ -927,34 +1075,8 @@ function bind(container: HTMLElement): void {
   });
   container.querySelectorAll<HTMLButtonElement>(".js-reminder-menu-edit").forEach((button) => {
     button.addEventListener("click", () => {
-      const dataset = store.get();
-      const reminder = dataset.reminders.find((r) => r.id === button.dataset.id);
-      if (!reminder) return;
-      closeForm();
       state.menuReminderId = null;
-      state.form = { mode: "edit", reminderId: reminder.id };
-      state.formType = reminder.type;
-      // Legacy guard: a pure-date reminder cannot have a km recurrence
-      // (no due mileage to advance) — edit it as one-time.
-      state.formRepeat = reminder.repeat === "km" && reminder.type === "date" ? "none" : reminder.repeat;
-      // Weekly needs a day: fall back to the due date's weekday / Saturday
-      // for legacy rows stored without one.
-      state.formWeekday = reminder.repeatWeekday ?? defaultWeekdayFor(reminder.dueDate);
-      // Single advance value per kind: take the FIRST days/km entry of any
-      // legacy multi-interval data (normalize collapses those on load too).
-      const firstDays = reminder.notificationOffsets.find((offset) => offset.days != null);
-      const firstKm = reminder.notificationOffsets.find((offset) => offset.km != null);
-      state.formNotifications = reminder.notificationOffsets.length > 0;
-      state.formValues = {
-        title: reminder.title,
-        description: reminder.description,
-        serviceId: reminder.serviceId ?? "",
-        dueDate: reminder.dueDate ?? "",
-        dueMileage: reminder.dueMileage != null ? String(reminder.dueMileage) : "",
-        advanceDays: firstDays?.days != null ? String(firstDays.days) : "",
-        advanceKm: firstKm?.km != null ? String(firstKm.km) : "",
-        repeatEveryKm: reminder.repeatEveryKm != null ? String(reminder.repeatEveryKm) : "",
-      };
+      if (button.dataset.id) openEditForm(button.dataset.id);
       redraw(container);
     });
   });
@@ -1099,19 +1221,48 @@ function submitReminderForm(container: HTMLElement, form: HTMLFormElement): void
   const vehicleId = resolveSelectedVehicleId(dataset);
   if (vehicleId == null) return;
 
+  const editing = formState.mode === "edit";
+  const editingReminder = editing
+    ? (dataset.reminders.find((r) => r.id === formState.reminderId) ?? null)
+    : null;
+  // Two creation flows (req 1): manual reminders have NO service
+  // relationship at all; service-synchronized reminders keep their
+  // serviceId and resolve values from the service.
+  const synced = editing
+    ? (editingReminder?.syncWithService ?? false)
+    : (formState.prefill?.synced ?? false);
+  const serviceId = synced
+    ? (editing ? editingReminder?.serviceId ?? null : formState.prefill?.serviceId ?? null)
+    : null;
+
   const data = new FormData(form);
   const title = String(data.get("title") ?? "").trim();
   const description = String(data.get("description") ?? "").trim();
-  const serviceRaw = String(data.get("serviceId") ?? "").trim();
-  const serviceId = serviceRaw !== "" ? serviceRaw : (formState.mode === "add" ? formState.prefill?.serviceId ?? null : null);
+
+  // Service-synchronized saves re-resolve the due values from the service
+  // at save time (req 7) — a stale form value can never be persisted, and
+  // the validation catches a service that cannot provide a required value.
+  const syncRecommended = (() => {
+    if (serviceId == null) return null;
+    const item = dataset.maintenanceItems.find((candidate) => candidate.id === serviceId);
+    return item ? recommendedDueForService(item, dataset) : null;
+  })();
 
   const dateRaw = String(data.get("dueDate") ?? "").trim();
-  const dueDate = watchesDate() && dateRaw !== "" ? dateRaw : null;
+  const dueDate = synced
+    ? (watchesDate() ? syncRecommended?.dueDate ?? null : null)
+    : watchesDate() && dateRaw !== ""
+      ? dateRaw
+      : null;
   const kmRaw = String(data.get("dueMileage") ?? "").trim();
-  const dueMileage = watchesKm() && kmRaw !== "" ? Number(toLatinDigits(kmRaw)) : null;
+  const dueMileage = synced
+    ? (watchesKm() ? syncRecommended?.dueMileage ?? null : null)
+    : watchesKm() && kmRaw !== ""
+      ? Number(toLatinDigits(kmRaw))
+      : null;
 
   const repeatEveryKmRaw = String(data.get("repeatEveryKm") ?? "").trim();
-  const repeatEveryKm = state.formRepeat === "km" && repeatEveryKmRaw !== "" ? Number(toLatinDigits(repeatEveryKmRaw)) : null;
+  const repeatEveryKm = !synced && state.formRepeat === "km" && repeatEveryKmRaw !== "" ? Number(toLatinDigits(repeatEveryKmRaw)) : null;
 
   /* Reminders are saved ENABLED (Req 5) — the user toggles enable/disable
    * later from the card in the list, which is the existing pattern. */
@@ -1132,13 +1283,15 @@ function submitReminderForm(container: HTMLElement, form: HTMLFormElement): void
     title,
     description,
     serviceId,
+    synced,
     type: state.formType,
     dueDate,
     dueMileage,
     notificationOffsets,
-    repeat: state.formRepeat,
+    // Synced reminders follow the service schedule — repeat stays "none".
+    repeat: synced ? ("none" as const) : state.formRepeat,
     // The weekday only applies to repeat "weekly" — cleared otherwise.
-    repeatWeekday: state.formRepeat === "weekly" ? state.formWeekday : null,
+    repeatWeekday: !synced && state.formRepeat === "weekly" ? state.formWeekday : null,
     repeatEveryKm,
     enabled,
   };
@@ -1150,16 +1303,20 @@ function submitReminderForm(container: HTMLElement, form: HTMLFormElement): void
   }
 
   const now = new Date().toISOString();
-  const editing = formState.mode === "edit";
+  // The draft's `synced` flag is form-level validation input, not a stored
+  // field — the persisted Reminder carries only `syncWithService`.
+  const { synced: _draftSynced, ...draftFields } = draft;
   const reminder: Reminder = editing
     ? {
         ...((dataset.reminders.find((r) => r.id === formState.reminderId) as Reminder) ?? { id: createId() }),
-        ...draft,
+        ...draftFields,
+        syncWithService: synced,
         updatedAt: now,
       }
     : {
         id: createId(),
-        ...draft,
+        ...draftFields,
+        syncWithService: synced,
         lastCompletedDate: null,
         lastCompletedMileage: null,
         createdAt: now,
@@ -1211,6 +1368,8 @@ function showReminderErrors(container: HTMLElement, errors: [ReminderDraftError,
     dueDateInvalid: "reminder-error-date",
     dueMileageRequired: "reminder-error-km",
     dueMileageInvalid: "reminder-error-km",
+    syncDateUnavailable: "reminder-error-date",
+    syncKmUnavailable: "reminder-error-km",
     repeatWeekdayInvalid: "reminder-error-repeat-weekday",
     repeatKmRequired: "reminder-error-repeat-km",
     repeatKmInvalid: "reminder-error-repeat-km",

@@ -2,8 +2,10 @@ import type { Dataset, Settings } from "./types";
 
 /** Current schema version. Bump when the dataset shape changes (§40).
  * v11: repeat gains "weekly" + per-reminder repeatWeekday; notification
- * offsets become at most one per kind (normalized defensively on load). */
-export const CURRENT_VERSION = 11;
+ * offsets become at most one per kind (normalized defensively on load).
+ * v12: reminders gain syncWithService (service-synchronized reminders);
+ * existing rows default to false — they stay manual, values untouched. */
+export const CURRENT_VERSION = 12;
 
 export function defaultSettings(): Settings {
   return {

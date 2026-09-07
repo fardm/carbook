@@ -96,27 +96,33 @@ export function remindersVehicleIdFromHash(hash: string): string | null {
 
 /**
  * Extracts the service (maintenance item) id from
- * `#/reminders?service=<id>`; null when absent. Combined with `prefill=1`
- * it opens the Add-Reminder form pre-filled from that service.
+ * `#/reminders?service=<id>` — the service page's یادآوری action. The
+ * reminders view opens the service-synchronized add form for that service
+ * (or its existing synced reminder's edit form).
  */
 export function remindersServiceIdFromHash(hash: string): string | null {
   return hashQueryParam(hash, "/reminders", "service");
 }
 
-/** True when the reminders hash carries `prefill=1`. */
-export function remindersPrefillRequested(hash: string): boolean {
-  const cleaned = hash.startsWith("#") ? hash.slice(1) : hash;
-  const [hashPath, query] = cleaned.split("?");
-  if (hashPath !== "/reminders" || query == null) return false;
-  return new URLSearchParams(query).get("prefill") === "1";
+/**
+ * Extracts a reminder id from `#/reminders?edit=<id>` — opens that
+ * reminder's edit form (used by the service page's یادآوری action for
+ * reminders that already exist).
+ */
+export function remindersEditIdFromHash(hash: string): string | null {
+  return hashQueryParam(hash, "/reminders", "edit");
 }
 
 /** The reminders-page hash with query params (skips null/empty values). */
-export function remindersHash(params: { vehicle?: string | null; service?: string | null; prefill?: boolean }): string {
+export function remindersHash(params: {
+  vehicle?: string | null;
+  service?: string | null;
+  edit?: string | null;
+}): string {
   const query = new URLSearchParams();
   if (params.vehicle) query.set("vehicle", params.vehicle);
   if (params.service) query.set("service", params.service);
-  if (params.prefill) query.set("prefill", "1");
+  if (params.edit) query.set("edit", params.edit);
   const qs = query.toString();
   return qs ? `#/reminders?${qs}` : "#/reminders";
 }

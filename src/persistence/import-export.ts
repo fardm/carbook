@@ -303,6 +303,7 @@ function validateReminders(
     checkField(issues, row, "serviceId", `${path}.serviceId`, { type: "string", allowNull: true }, (v) =>
       itemIds.has(v),
     );
+    checkField(issues, row, "syncWithService", `${path}.syncWithService`, { type: "boolean" });
     checkField(issues, row, "type", `${path}.type`, { type: "string", nonEmpty: true }, (v) =>
       (REMINDER_TYPES as readonly string[]).includes(v),
     );

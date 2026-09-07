@@ -1,4 +1,5 @@
 import {
+  Activity,
   ArrowLeftRight,
   ArrowRight,
   ArrowUpDown,
@@ -68,6 +69,7 @@ export const iconRegistry = {
   ArrowLeftRight,
   ArrowRight,
   ArrowUpDown,
+  Activity,
   Battery,
   Bell,
   Calculator,

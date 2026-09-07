@@ -43,6 +43,7 @@ import {
 import {
   maintenanceDetailHash,
   maintenanceItemIdFromHash,
+  remindersHash,
   servicesVehicleIdFromHash,
 } from "../ui/router";
 
@@ -1097,6 +1098,28 @@ function itemDetailPageHtml(itemId: string): string {
   `;
 }
 
+/**
+ * Where the service page's یادآوری action navigates:
+ * - a service-synchronized reminder exists → open ITS edit form (`edit=`)
+ *   so the action never duplicates reminders;
+ * - else a MANUAL reminder references this service → open that one's edit
+ *   form (بررسی یادآوری: the user may want to update or replace it) —
+ *   again never creating a second reminder for the same service;
+ * - otherwise → the reminders page with `service=` — the reminders view
+ *   opens the service-synchronized add form (title + due values resolved
+ *   live from this service's next-recommended schedule).
+ */
+function serviceReminderTarget(
+  item: MaintenanceItem,
+  dataset: ReturnType<typeof store.get>,
+): { service: string } | { edit: string } {
+  const linked = dataset.reminders.filter((reminder) => reminder.serviceId === item.id);
+  const synced = linked.find((reminder) => reminder.syncWithService);
+  if (synced) return { edit: synced.id };
+  const manual = linked[0];
+  return manual ? { edit: manual.id } : { service: item.id };
+}
+
 /** Dropdown three-dot menu (ویرایش / حذف) pinned to the top corner of
  * every service card on the list page. */
 function serviceItemMenuHtml(itemId: string): string {
@@ -1178,6 +1201,12 @@ function detailLifetimeRowHtml(
  * first for the upward dial (danger farthest from the trigger).
  */
 function detailOperationsMenuHtml(itemId: string, open: boolean): string {
+  const dataset = store.get();
+  const item = dataset.maintenanceItems.find((candidate) => candidate.id === itemId);
+  // The یادآوری action needs the live item to build its deep link; without
+  // it (item deleted mid-session) the link simply has no target.
+  const reminderHref =
+    item != null ? remindersHash(serviceReminderTarget(item, dataset)) : "#/reminders";
   return `
     <div class="card-menu__backdrop js-detail-menu-close"></div>
     <div class="fab-menu__actions" role="menu" aria-label="${t("services.operations")}">
@@ -1191,11 +1220,11 @@ function detailOperationsMenuHtml(itemId: string, open: boolean): string {
         <span data-lucide="pencil" aria-hidden="true"></span>
         ${t("maintenance.editItem")}
       </button>
-      <button type="button" class="card-menu__item fab-menu__action js-detail-notification"
-        role="menuitem" aria-disabled="true" style="--fab-stagger: 1">
+      <a class="card-menu__item fab-menu__action js-detail-notification" role="menuitem"
+        href="${reminderHref}" style="--fab-stagger: 1">
         <span data-lucide="bell" aria-hidden="true"></span>
         ${t("services.notification")}
-      </button>
+      </a>
       <button type="button" class="card-menu__item fab-menu__action js-record-service"
         role="menuitem" data-id="${escHtml(itemId)}" style="--fab-stagger: 0">
         <span data-lucide="refresh-cw" aria-hidden="true"></span>
@@ -1825,10 +1854,12 @@ function bindDetailEvents(container: HTMLElement): void {
     });
   });
 
-  /* Operations FAB menu: toggle, backdrop close, notification (UI-only).
-   * The mounted panel's class is flipped directly (no full redraw) so the
-   * CSS transitions animate both the expand and the collapse; state stays
-   * in sync so any later full redraw renders the same state. */
+  /* Operations FAB menu: toggle + backdrop close. The mounted panel's
+   * class is flipped directly (no full redraw) so the CSS transitions
+   * animate both the expand and the collapse; state stays in sync so any
+   * later full redraw renders the same state. The یادآوری item is a plain
+   * navigation link — hashchange re-renders the route and the menu goes
+   * away with the view. */
   container.querySelectorAll<HTMLButtonElement>(".js-detail-menu-toggle").forEach((button) => {
     button.addEventListener("click", () => {
       setDetailMenuOpen(container, !state.detailMenuOpen);
@@ -1836,11 +1867,6 @@ function bindDetailEvents(container: HTMLElement): void {
   });
   container.querySelectorAll<HTMLElement>(".js-detail-menu-close").forEach((el) => {
     el.addEventListener("click", () => {
-      setDetailMenuOpen(container, false);
-    });
-  });
-  container.querySelectorAll<HTMLButtonElement>(".js-detail-notification").forEach((button) => {
-    button.addEventListener("click", () => {
       setDetailMenuOpen(container, false);
     });
   });

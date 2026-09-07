@@ -256,6 +256,11 @@ export interface ReminderDraft {
   title: string;
   description: string;
   serviceId: string | null;
+  /** True for service-synchronized reminders (created from the service
+   * page): their due values come from the service and cannot be typed in,
+   * so a missing value is a "service provides no recommendation" problem,
+   * not a "please fill the field" problem. */
+  synced: boolean;
   type: Reminder["type"];
   dueDate: string | null;
   dueMileage: number | null;
@@ -274,6 +279,8 @@ export type ReminderDraftError =
   | "dueMileageRequired"
   | "dueMileageInvalid"
   | "conditionRequired"
+  | "syncDateUnavailable"
+  | "syncKmUnavailable"
   | "repeatWeekdayInvalid"
   | "repeatKmRequired"
   | "repeatKmInvalid"
@@ -289,12 +296,15 @@ export function validateReminderDraft(draft: ReminderDraft): ReminderDraftError[
   const watchesKm = draft.type === "mileage" || draft.type === "date_mileage";
 
   if (watchesDate) {
-    if (draft.dueDate == null || draft.dueDate === "") errors.push("dueDateRequired");
-    else if (!isValidIso(draft.dueDate)) errors.push("dueDateInvalid");
+    if (draft.dueDate == null || draft.dueDate === "") {
+      // Synced reminders cannot type a date in — the service must provide it.
+      errors.push(draft.synced ? "syncDateUnavailable" : "dueDateRequired");
+    } else if (!isValidIso(draft.dueDate)) errors.push("dueDateInvalid");
   }
   if (watchesKm) {
-    if (draft.dueMileage == null) errors.push("dueMileageRequired");
-    else if (!Number.isInteger(draft.dueMileage) || draft.dueMileage < 0) {
+    if (draft.dueMileage == null) {
+      errors.push(draft.synced ? "syncKmUnavailable" : "dueMileageRequired");
+    } else if (!Number.isInteger(draft.dueMileage) || draft.dueMileage < 0) {
       errors.push("dueMileageInvalid");
     }
   }

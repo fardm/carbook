@@ -77,10 +77,9 @@ export function loadFromString(raw: string): Dataset {
     return defaultDataset();
   }
   if (parsed.version !== CURRENT_VERSION) {
-    // v10 → v11: reminders gain repeat "weekly"/repeatWeekday and advance
-    // intervals collapse to one per kind. Existing datasets migrate in
-    // place — normalizeReminders repairs every row, so users never lose
-    // vehicles/services/settings/reminders across the update.
+    // v11 → v12: reminders gain syncWithService (service-synchronized
+    // reminders). Existing rows normalize in place with syncWithService
+    // false — they stay manual and their stored values are untouched.
     if (parsed.version === CURRENT_VERSION - 1) {
       console.warn(
         `[persistence] Migrating stored data v${parsed.version} → v${CURRENT_VERSION} (reminder repeat/advance normalization).`,
