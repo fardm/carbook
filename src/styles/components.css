@@ -976,8 +976,8 @@ textarea.field__input {
 
 /* Reminder status label on the service detail page: small pill marking
  * an ACTIVE reminder, clickable — navigates to the reminder's card
- * (focus deep link). Filled with the primary color like a filled button;
- * darkens on hover. */
+ * (focus deep link). Tinted with a color lighter than the primary;
+ * deepens on hover. */
 .reminder-status-label {
   display: inline-flex;
   align-items: center;
@@ -985,7 +985,7 @@ textarea.field__input {
   padding: 3px 10px;
   border-radius: 999px;
   color: var(--md-sys-color-on-primary);
-  background-color: var(--md-sys-color-primary);
+  background-color: color-mix(in srgb, var(--md-sys-color-primary) 30%, white);
   font-size: var(--md-typescale-label-large);
   font-weight: 500;
   text-decoration: none;
@@ -996,7 +996,7 @@ textarea.field__input {
 .reminder-status-label:hover {
   text-decoration: none;
   color: var(--md-sys-color-on-primary);
-  background-color: color-mix(in srgb, var(--md-sys-color-primary) 88%, black);
+  background-color: color-mix(in srgb, var(--md-sys-color-primary) 45%, white);
 }
 .reminder-status-label svg {
   width: 14px;
