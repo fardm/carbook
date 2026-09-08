@@ -1,5 +1,5 @@
 import type { Dataset } from "../domain/types";
-import { browserStorage, createRepository, type Repository } from "../persistence/repository";
+import { createDefaultRepository, type Repository } from "../persistence/repository";
 
 /**
  * Minimal in-memory store: holds the dataset, persists every change through
@@ -12,7 +12,7 @@ export class Store {
   private dataset: Dataset;
   private readonly listeners = new Set<() => void>();
 
-  constructor(private readonly repository: Repository = createRepository(browserStorage())) {
+  constructor(private readonly repository: Repository = createDefaultRepository()) {
     this.dataset = repository.load();
   }
 
