@@ -1648,10 +1648,6 @@ input.affix-field__input {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-sys-color-primary) 45%, transparent);
 }
 
-.reminder-card .service-card__head {
-  padding-inline-end: 0;
-}
-
 /* Temporary focus highlight on a reminder card (service → reminder
  * navigation): a soft primary ring + tint that pulses once, then fades
  * back so the card settles into its normal state. */
@@ -2223,13 +2219,10 @@ a.card-menu__item:hover {
   cursor: pointer;
 }
 
-/* The three-dot menu is pinned to the card's top-left corner; the head row
- * clears it so the status chip never hides beneath the menu button. */
 .service-card__head {
   display: flex;
   align-items: center;
   gap: var(--md-space-3);
-  padding-inline-end: var(--md-space-6);
 }
 
 .service-card__icon {
@@ -2961,6 +2954,18 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
   display: inline-flex;
   width: 20px;
   height: 20px;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Add Reminder FAB: one plus glyph rotates 45° into an × (no icon swap). */
+.fab-menu__toggle-icon--plus {
+  transition: transform 300ms ease-in-out;
+  transform: rotate(0deg);
+}
+
+.fab-menu--open .fab-menu__toggle-icon--plus {
+  transform: rotate(45deg);
 }
 
 /* The two toggle glyphs (settings-2 / x) stack and crossfade. */

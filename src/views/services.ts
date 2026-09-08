@@ -113,8 +113,6 @@ interface ServicesViewState {
   reminderExistsReminderId: string | null;
   /** Item armed for permanent deletion (legacy inline confirm, list page). */
   deleteArmedId: string | null;
-  /** Service card whose three-dot menu is open (list + detail). */
-  serviceMenuId: string | null;
   /** Service History section on the detail page is expanded. */
   historyOpen: boolean;
   /** Current sort order for the active-services list. */
@@ -143,7 +141,6 @@ const state: ServicesViewState = {
   deleteConfirmId: null,
   reminderExistsReminderId: null,
   deleteArmedId: null,
-  serviceMenuId: null,
   historyOpen: false,
   sortMode: "healthBest",
   sortMenuOpen: false,
@@ -693,7 +690,6 @@ function serviceCardHtml(item: MaintenanceItem, dataset: ReturnType<typeof store
           </div>
         </div>
       </a>
-      ${serviceItemMenuHtml(item.id)}
     </article>
   `;
 }
@@ -1135,34 +1131,6 @@ function reminderForService(
   const linked = dataset.reminders.filter((reminder) => reminder.serviceId === item.id);
   const synced = linked.find((reminder) => reminder.syncWithService);
   return synced ?? linked[0] ?? null;
-}
-
-/** Dropdown three-dot menu (ویرایش / حذف) pinned to the top corner of
- * every service card on the list page. */
-function serviceItemMenuHtml(itemId: string): string {
-  const open = state.serviceMenuId === itemId;
-  return `
-    <div class="card-menu service-card-menu">
-      <button type="button" class="icon-btn js-service-menu-toggle" data-id="${escHtml(itemId)}"
-        aria-haspopup="menu" aria-expanded="${open}"
-        aria-label="${t("services.menuLabel")}" title="${t("services.menuLabel")}">
-        <span data-lucide="more-vertical"></span>
-      </button>
-      ${open ? `
-        <div class="card-menu__backdrop js-service-menu-backdrop"></div>
-        <div class="card-menu__popover" role="menu" aria-label="${t("services.menuLabel")}">
-          <button type="button" class="card-menu__item js-service-menu-edit" role="menuitem" data-id="${escHtml(itemId)}">
-            <span data-lucide="pencil"></span>
-            ${t("maintenance.editItem")}
-          </button>
-          <div class="card-menu__divider" role="separator"></div>
-          <button type="button" class="card-menu__item card-menu__item--danger js-service-menu-delete" role="menuitem" data-id="${escHtml(itemId)}">
-            <span data-lucide="trash-2"></span>
-            ${t("maintenance.detail.delete")}
-          </button>
-        </div>` : ""}
-    </div>
-  `;
 }
 
 /** Body actions under the header — only the legacy inactive-item reactivate
@@ -1819,11 +1787,6 @@ function registerGlobalKeys(): void {
       setDetailMenuOpen(container, false);
       return;
     }
-    if (state.serviceMenuId) {
-      state.serviceMenuId = null;
-      redraw(container);
-      return;
-    }
     if (
       !(
         state.pickerOpen ||
@@ -1881,7 +1844,6 @@ function closeModals(): void {
   state.reminderExistsReminderId = null;
   state.deleteConfirmId = null;
   state.deleteArmedId = null;
-  state.serviceMenuId = null;
   state.detailMenuOpen = false;
 }
 
@@ -1930,25 +1892,11 @@ function bindDetailEvents(container: HTMLElement): void {
     });
   });
 
-  /* ویرایش/حذف on the detail page's top bar + the three-dot menu on list
-   * service cards: both share these actions (edit form, delete confirm). */
-  container.querySelectorAll<HTMLButtonElement>(".js-service-menu-toggle").forEach((button) => {
-    button.addEventListener("click", () => {
-      const id = button.dataset.id ?? null;
-      state.recordMenu = null;
-      state.serviceMenuId = state.serviceMenuId === id ? null : id;
-      redraw(container);
-    });
-  });
-  container.querySelector<HTMLElement>(".js-service-menu-backdrop")?.addEventListener("click", () => {
-    state.serviceMenuId = null;
-    redraw(container);
-  });
+  /* ویرایش/حذف on the detail page's Operations menu. */
   container.querySelectorAll<HTMLButtonElement>(".js-service-menu-edit").forEach((button) => {
     button.addEventListener("click", () => {
       const item = store.get().maintenanceItems.find((candidate) => candidate.id === button.dataset.id);
       if (!item) return;
-      state.serviceMenuId = null;
       state.detailMenuOpen = false;
       openEditServiceForm(item);
       redraw(container);
@@ -1956,7 +1904,6 @@ function bindDetailEvents(container: HTMLElement): void {
   });
   container.querySelectorAll<HTMLButtonElement>(".js-service-menu-delete").forEach((button) => {
     button.addEventListener("click", () => {
-      state.serviceMenuId = null;
       state.detailMenuOpen = false;
       state.deleteConfirmId = button.dataset.id ?? null;
       redraw(container);
@@ -1979,7 +1926,6 @@ function bindDetailEvents(container: HTMLElement): void {
       state.recordDetails = null;
       state.recordMenu = null;
       state.recordDeleteConfirm = null;
-      state.serviceMenuId = null;
       state.detailMenuOpen = false;
       state.recordForm = { recordId: null, itemId: button.dataset.id ?? currentItemId ?? "" };
       redraw(container);
@@ -1997,7 +1943,6 @@ function bindDetailEvents(container: HTMLElement): void {
     button.addEventListener("click", () => {
       const id = button.dataset.id ?? "";
       state.recordMenu = state.recordMenu?.recordId === id ? null : { recordId: id };
-      state.serviceMenuId = null;
       redraw(container);
     });
   });

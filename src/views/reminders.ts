@@ -322,13 +322,27 @@ function addReminderMenuHtml(open: boolean, disabled: boolean): string {
     <button type="button" class="btn btn--filled fab-menu__toggle js-add-menu-toggle"
       aria-haspopup="menu" aria-expanded="${open}"
       aria-label="${t("reminders.addReminder")}" ${disabled ? "disabled" : ""}>
-      <span class="fab-menu__toggle-icon" aria-hidden="true">
-        <span class="fab-menu__toggle-ico fab-menu__toggle-ico--open" data-lucide="x"></span>
-        <span class="fab-menu__toggle-ico fab-menu__toggle-ico--closed" data-lucide="plus"></span>
+      <span class="fab-menu__toggle-icon fab-menu__toggle-icon--plus" aria-hidden="true">
+        <span data-lucide="plus"></span>
       </span>
       <span>${t("reminders.addReminder")}</span>
     </button>
   `;
+}
+
+/**
+ * Opens/closes the Add Reminder FAB menu by toggling the mounted panel's
+ * class (CSS transitions animate both directions); aria-expanded and state
+ * stay in sync so later full redraws render the same state.
+ */
+function setAddMenuOpen(container: HTMLElement, open: boolean): void {
+  state.addMenuOpen = open;
+  container.querySelectorAll<HTMLElement>(".fab-menu").forEach((menu) => {
+    menu.classList.toggle("fab-menu--open", open);
+  });
+  container.querySelectorAll<HTMLButtonElement>(".js-add-menu-toggle").forEach((button) => {
+    button.setAttribute("aria-expanded", String(open));
+  });
 }
 
 /** Toolbar: the SAME vehicle selector as Services + the add action. */
@@ -1190,19 +1204,19 @@ function bind(container: HTMLElement): void {
     });
   });
 
-  /* Add Reminder menu toggle — opens/closes the floating action menu. */
+  /* Add Reminder menu toggle — opens/closes the floating action menu.
+   * Class is flipped directly (no full redraw) so the plus→× rotation
+   * and menu expand/collapse CSS transitions can run. */
   container.querySelectorAll<HTMLButtonElement>(".js-add-menu-toggle").forEach((button) => {
     button.addEventListener("click", () => {
-      state.addMenuOpen = !state.addMenuOpen;
-      redraw(container);
+      setAddMenuOpen(container, !state.addMenuOpen);
     });
   });
 
   /* Add Reminder menu close — closes when clicking the backdrop. */
   container.querySelectorAll<HTMLElement>(".js-add-menu-close").forEach((backdrop) => {
     backdrop.addEventListener("click", () => {
-      state.addMenuOpen = false;
-      redraw(container);
+      setAddMenuOpen(container, false);
     });
   });
 
