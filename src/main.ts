@@ -110,7 +110,7 @@ function boot(): void {
 /**
  * Runs the reminder checker when the app becomes active. Never requests
  * notification permission — that only happens from an explicit user gesture
- * (notify toggle / permission modal / Settings enable button).
+ * (permission modal Enable / Settings enable button).
  */
 function registerReminderChecks(): void {
   const run = (): void => {

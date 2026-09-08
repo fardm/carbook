@@ -1145,12 +1145,13 @@ function deferNotificationPrompt(): void {
   }
 }
 
-/** True when the user is saving with notifications configured and the
- * browser permission is still undecided. Never auto-prompts on app start.
- * Skips after "فعلاً نه" for the rest of the session (and forever once
- * permission is granted or denied). */
-function needsPermissionPrompt(_dataset: ReturnType<typeof store.get>, enabled: boolean): boolean {
-  if (!enabled || !notificationsSupported()) return false;
+/** True when browser notification permission is still undecided and the
+ * in-app enable prompt should appear before saving ANY reminder. Notification
+ * permission is a prerequisite for the reminder system itself — not only for
+ * Early Notification. Never auto-prompts on app start; skips after "فعلاً نه"
+ * for the rest of the session (and forever once granted or denied). */
+function needsPermissionPrompt(): boolean {
+  if (!notificationsSupported()) return false;
   if (notificationPermission() !== "default") return false;
   if (isNotificationPromptDeferred()) return false;
   return true;
@@ -1436,33 +1437,13 @@ function bind(container: HTMLElement): void {
   /* اعلان پیش از موعد toggle (Req 4): the advance fields are ALWAYS in the
    * DOM — this only enables/disables them (OFF = disabled, never
    * submitted). Turning ON prefills sensible defaults so they are ready.
-   * On Android PWA, this change event is the strongest user-gesture to
-   * request notification permission (must not await anything before the
-   * requestPermission call). */
+   * Notification permission is requested on Save/Create, not from this toggle. */
   container.querySelectorAll<HTMLInputElement>(".js-notifications-toggle").forEach((input) => {
     input.addEventListener("change", () => {
       state.formNotifications = input.checked;
       if (input.checked) {
         if (fieldValue("advanceDays") === "") state.formValues.advanceDays = "7";
         if (fieldValue("advanceKm") === "") state.formValues.advanceKm = "100";
-        if (notificationsSupported() && notificationPermission() === "default") {
-          // Start the permission request immediately from this gesture.
-          const permissionPromise = requestNotificationPermission();
-          redraw(container);
-          void permissionPromise.then((permission) => {
-            if (permission === "denied") {
-              state.permissionNotice = t("notifications.promptDeniedNote");
-              redraw(container);
-            } else if (permission === "granted") {
-              // Refresh any status UI; fields already enabled.
-              redraw(container);
-            }
-          });
-          return;
-        }
-        if (notificationPermission() === "denied") {
-          state.permissionNotice = t("notifications.promptDeniedNote");
-        }
       }
       redraw(container);
     });
@@ -1659,18 +1640,14 @@ function submitReminderForm(container: HTMLElement, form: HTMLFormElement): void
       };
 
   closeForm();
-  // Prompt when the user opted into advance notifications and browser
-  // permission is still undecided. Also treat the notify toggle itself as
-  // intent (defaults fill offsets) so Android gets a clear enable path.
-  const wantsNotifications = state.formNotifications || notificationOffsets.length > 0;
-  if (!editing && needsPermissionPrompt(dataset, wantsNotifications)) {
-    // Reminder with notifications while permission is still "default": ask
-    // BEFORE saving — never on app start or plain browsing.
+  // Notification permission is required for the reminder system itself
+  // (due + early alerts) — ask on any Save/Create while still undecided.
+  if (needsPermissionPrompt()) {
     state.permissionPrompt = { pendingReminder: { reminder, wantsNotifications: true } };
     redraw(container);
     return;
   }
-  if (wantsNotifications && notificationPermission() === "denied") {
+  if (notificationPermission() === "denied") {
     state.permissionNotice = t("notifications.promptDeniedNote");
   }
   saveReminder(reminder);
