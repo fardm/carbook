@@ -343,10 +343,11 @@ function bind(container: HTMLElement): void {
     });
   });
   /* Enable notifications — only requests the browser prompt from this
-   * explicit gesture, and only while permission is still "default". */
+   * explicit gesture, and only while permission is still "default". Must
+   * not await anything before requestPermission (Android user activation). */
   container.querySelector<HTMLButtonElement>(".js-enable-notifications")?.addEventListener("click", () => {
-    void (async () => {
-      const permission = await requestNotificationPermission();
+    const permissionPromise = requestNotificationPermission();
+    void permissionPromise.then((permission) => {
       if (permission === "granted") {
         try {
           runReminderCheck(store.get());
@@ -355,7 +356,7 @@ function bind(container: HTMLElement): void {
         }
       }
       redraw(container);
-    })();
+    });
   });
   container.querySelector<HTMLButtonElement>(".js-export")?.addEventListener("click", onExport);
   const fileInput = container.querySelector<HTMLInputElement>("#import-file");

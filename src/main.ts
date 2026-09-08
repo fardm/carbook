@@ -3,7 +3,11 @@ import { applyIcons } from "./ui/icons";
 import { routes, parseHash, type RouteId } from "./ui/router";
 import { registerThemeSync } from "./ui/theme";
 import { renderView } from "./views";
-import { advanceRecurringReminders, runReminderCheck } from "./domain/reminder-checker";
+import {
+  advanceRecurringReminders,
+  ensureServiceWorkerRegistered,
+  runReminderCheck,
+} from "./domain/reminder-checker";
 import { store } from "./state/store";
 
 import "./styles/fonts.css";
@@ -82,6 +86,17 @@ function render(): void {
   applyIcons();
 }
 
+/** Runs `fn` now if the document already finished loading; otherwise on load.
+ * Installed Android PWAs often restore with readyState already "complete",
+ * so a bare window "load" listener would never fire. */
+function onDocumentLoad(fn: () => void): void {
+  if (document.readyState === "complete") {
+    fn();
+  } else {
+    window.addEventListener("load", fn, { once: true });
+  }
+}
+
 function boot(): void {
   registerThemeSync();
   renderNav();
@@ -95,7 +110,7 @@ function boot(): void {
 /**
  * Runs the reminder checker when the app becomes active. Never requests
  * notification permission — that only happens from an explicit user gesture
- * (Settings enable button / first-notification save prompt).
+ * (notify toggle / permission modal / Settings enable button).
  */
 function registerReminderChecks(): void {
   const run = (): void => {
@@ -109,8 +124,7 @@ function registerReminderChecks(): void {
       /* a failed check must never break boot / resume */
     }
   };
-  // After first paint — not during the critical boot path.
-  window.addEventListener("load", run);
+  onDocumentLoad(run);
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") run();
   });
@@ -118,16 +132,15 @@ function registerReminderChecks(): void {
 
 /**
  * Registers the offline service worker (§44). Production builds only — the
- * Vite dev server serves source modules and must never be cached. The first
- * load works normally; the worker (public/sw.js) precaches the shell so
- * subsequent loads run offline. The same worker delivers reminder
- * notifications via registration.showNotification().
+ * Vite dev server serves source modules and must never be cached. Must also
+ * run when the document is already complete (installed PWA warm start),
+ * otherwise Android never gets a worker and cannot show notifications.
  */
 function registerServiceWorker(): void {
   if (!import.meta.env.PROD) return;
   if (!("serviceWorker" in navigator)) return;
-  window.addEventListener("load", () => {
-    void navigator.serviceWorker.register("./sw.js").catch(() => {
+  onDocumentLoad(() => {
+    void ensureServiceWorkerRegistered().catch(() => {
       console.warn("[pwa] Service worker registration failed.");
     });
   });

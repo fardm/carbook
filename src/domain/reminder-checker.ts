@@ -74,6 +74,8 @@ export interface ReminderCheckResult {
 
 /** Whether the browser can show notifications at all. */
 export function notificationsSupported(): boolean {
+  // Android installed PWAs still expose Notification; require it explicitly
+  // so permission/show APIs are available in the page context.
   return typeof globalThis.Notification !== "undefined";
 }
 
@@ -84,16 +86,44 @@ export function notificationPermission(): NotificationPermission | "unsupported"
 }
 
 /**
+ * Ensures the app service worker is registered (production). Safe to call
+ * repeatedly. Android PWAs need an active worker before showNotification
+ * can deliver; waiting on `ready` without a registration would hang forever.
+ */
+export async function ensureServiceWorkerRegistered(): Promise<ServiceWorkerRegistration | null> {
+  if (!("serviceWorker" in navigator)) return null;
+  try {
+    let registration = await navigator.serviceWorker.getRegistration();
+    if (!registration && import.meta.env.PROD) {
+      registration = await navigator.serviceWorker.register("./sw.js");
+    }
+    if (!registration) return null;
+    // Prefer an active worker; ready resolves once one is controlling/available.
+    await navigator.serviceWorker.ready;
+    return registration;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Requests browser notification permission (call from a user gesture only).
  * Already-decided states are returned as-is — never re-prompts after deny,
  * and never asks again when already granted.
+ *
+ * Important for Android PWA: this must be invoked directly from the click /
+ * change handler (no prior `await import(...)`), or Chrome drops user
+ * activation and the system permission sheet never appears.
  */
 export async function requestNotificationPermission(): Promise<NotificationPermission | "unsupported"> {
   if (!notificationsSupported()) return "unsupported";
   const current = globalThis.Notification.permission;
   if (current === "granted" || current === "denied") return current;
+  // Best-effort: have the SW ready before the prompt on Android standalone.
+  void ensureServiceWorkerRegistered();
   try {
-    return await globalThis.Notification.requestPermission();
+    const result = await globalThis.Notification.requestPermission();
+    return result;
   } catch {
     return "denied";
   }
@@ -121,12 +151,10 @@ function showBrowserNotification(title: string, body: string): void {
   const options = notificationOptions(body);
   void (async () => {
     try {
-      if ("serviceWorker" in navigator) {
-        const registration = await navigator.serviceWorker.getRegistration();
-        if (registration) {
-          await registration.showNotification(title, options);
-          return;
-        }
+      const registration = await ensureServiceWorkerRegistered();
+      if (registration) {
+        await registration.showNotification(title, options);
+        return;
       }
     } catch {
       // Fall through to the page constructor.

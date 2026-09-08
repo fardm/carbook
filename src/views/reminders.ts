@@ -9,6 +9,7 @@ import {
 import {
   notificationsSupported,
   notificationPermission,
+  requestNotificationPermission,
   runReminderCheck,
   advanceRecurringReminders,
 } from "../domain/reminder-checker";
@@ -1123,12 +1124,36 @@ function openEditForm(reminderId: string): void {
   };
 }
 
+/** Session flag: user chose "فعلاً نه" — don't re-show the in-app prompt
+ * on every subsequent reminder save this session (Settings still offers
+ * Enable). Cleared when the tab closes. */
+const NOTIF_PROMPT_DEFERRED_KEY = "car-maintenance-tracker.notif-prompt-deferred";
+
+function isNotificationPromptDeferred(): boolean {
+  try {
+    return sessionStorage.getItem(NOTIF_PROMPT_DEFERRED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function deferNotificationPrompt(): void {
+  try {
+    sessionStorage.setItem(NOTIF_PROMPT_DEFERRED_KEY, "1");
+  } catch {
+    /* private mode / quota — ignore */
+  }
+}
+
 /** True when the user is saving with notifications configured and the
- * browser permission is still undecided (Phase 7). Never auto-prompts on
- * app start — only from this explicit save path (or Settings). */
+ * browser permission is still undecided. Never auto-prompts on app start.
+ * Skips after "فعلاً نه" for the rest of the session (and forever once
+ * permission is granted or denied). */
 function needsPermissionPrompt(_dataset: ReturnType<typeof store.get>, enabled: boolean): boolean {
   if (!enabled || !notificationsSupported()) return false;
-  return notificationPermission() === "default";
+  if (notificationPermission() !== "default") return false;
+  if (isNotificationPromptDeferred()) return false;
+  return true;
 }
 
 /* --- Events --- */
@@ -1410,13 +1435,34 @@ function bind(container: HTMLElement): void {
 
   /* اعلان پیش از موعد toggle (Req 4): the advance fields are ALWAYS in the
    * DOM — this only enables/disables them (OFF = disabled, never
-   * submitted). Turning ON prefills sensible defaults so they are ready. */
+   * submitted). Turning ON prefills sensible defaults so they are ready.
+   * On Android PWA, this change event is the strongest user-gesture to
+   * request notification permission (must not await anything before the
+   * requestPermission call). */
   container.querySelectorAll<HTMLInputElement>(".js-notifications-toggle").forEach((input) => {
     input.addEventListener("change", () => {
       state.formNotifications = input.checked;
       if (input.checked) {
         if (fieldValue("advanceDays") === "") state.formValues.advanceDays = "7";
         if (fieldValue("advanceKm") === "") state.formValues.advanceKm = "100";
+        if (notificationsSupported() && notificationPermission() === "default") {
+          // Start the permission request immediately from this gesture.
+          const permissionPromise = requestNotificationPermission();
+          redraw(container);
+          void permissionPromise.then((permission) => {
+            if (permission === "denied") {
+              state.permissionNotice = t("notifications.promptDeniedNote");
+              redraw(container);
+            } else if (permission === "granted") {
+              // Refresh any status UI; fields already enabled.
+              redraw(container);
+            }
+          });
+          return;
+        }
+        if (notificationPermission() === "denied") {
+          state.permissionNotice = t("notifications.promptDeniedNote");
+        }
       }
       redraw(container);
     });
@@ -1456,7 +1502,9 @@ function bind(container: HTMLElement): void {
     });
   });
 
-  /* Permission prompt (Phase 7). */
+  /* Permission prompt (Phase 7) — Enable must call requestPermission
+   * directly from this click (no dynamic import) or Android drops the
+   * user gesture and never shows the system sheet. */
   container.querySelector<HTMLButtonElement>(".js-permission-enable")?.addEventListener("click", () => {
     const pending = state.permissionPrompt?.pendingReminder;
     state.permissionPrompt = null;
@@ -1464,19 +1512,19 @@ function bind(container: HTMLElement): void {
       redraw(container);
       return;
     }
-    void (async () => {
-      const { requestNotificationPermission } = await import("../domain/reminder-checker");
-      const permission = await requestNotificationPermission();
+    const permissionPromise = requestNotificationPermission();
+    void permissionPromise.then((permission) => {
       if (permission === "denied") {
         state.permissionNotice = t("notifications.promptDeniedNote");
       }
       saveReminder(pending.reminder);
       redraw(container);
-    })();
+    });
   });
   container.querySelector<HTMLButtonElement>(".js-permission-later")?.addEventListener("click", () => {
     const pending = state.permissionPrompt?.pendingReminder;
     state.permissionPrompt = null;
+    deferNotificationPrompt();
     if (pending) {
       saveReminder(pending.reminder);
       state.permissionNotice = t("notifications.promptLaterNote");
@@ -1611,13 +1659,19 @@ function submitReminderForm(container: HTMLElement, form: HTMLFormElement): void
       };
 
   closeForm();
-  if (!editing && needsPermissionPrompt(dataset, notificationOffsets.length > 0)) {
-    // New reminder with CONFIGURED notifications while permission is still
-    // "default": ask BEFORE saving (Phase 7) — gated on the اعلان پیش از
-    // موعد toggle plus actual offsets, never on app start or plain browsing.
+  // Prompt when the user opted into advance notifications and browser
+  // permission is still undecided. Also treat the notify toggle itself as
+  // intent (defaults fill offsets) so Android gets a clear enable path.
+  const wantsNotifications = state.formNotifications || notificationOffsets.length > 0;
+  if (!editing && needsPermissionPrompt(dataset, wantsNotifications)) {
+    // Reminder with notifications while permission is still "default": ask
+    // BEFORE saving — never on app start or plain browsing.
     state.permissionPrompt = { pendingReminder: { reminder, wantsNotifications: true } };
     redraw(container);
     return;
+  }
+  if (wantsNotifications && notificationPermission() === "denied") {
+    state.permissionNotice = t("notifications.promptDeniedNote");
   }
   saveReminder(reminder);
   redraw(container);
