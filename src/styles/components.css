@@ -1596,29 +1596,19 @@ input.affix-field__input {
   align-items: center;
 }
 
-/* Reminder card: linked-service line under the title. When a valid related
- * service exists the whole line is a hash link to its detail page; the
- * colors follow the standard link affordance (brand ink + soft hover). */
-.reminder-card__service {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--md-space-1);
+/* Reminder card: when linked to a service, the title uses primary ink so
+ * it reads as a link; hover adds a soft underline (same affordance as the
+ * former service-name link). General titles stay plain .service-card__name. */
+a.service-card__name {
   color: var(--md-sys-color-primary);
-  font-size: var(--md-typescale-body-small);
   text-decoration: none;
-  border-radius: var(--md-shape-small);
   transition: color var(--md-motion-duration-short) var(--md-motion-easing);
 }
 
-.reminder-card__service:hover {
+a.service-card__name:hover {
   color: color-mix(in srgb, var(--md-sys-color-primary) 82%, black);
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-
-.reminder-card__service svg {
-  width: 14px;
-  height: 14px;
 }
 
 /* Reminder cards keep the standard .card padding: unlike service cards
@@ -2257,8 +2247,6 @@ a.card-menu__item:hover {
   display: flex;
   align-items: center;
   gap: var(--md-space-4);
-  margin-top: var(--md-space-3);
-  padding-top: var(--md-space-3);
   border-top: 1px solid var(--md-sys-color-outline-variant);
 }
 

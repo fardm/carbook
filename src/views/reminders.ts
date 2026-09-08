@@ -506,13 +506,13 @@ function reminderScheduleLines(
   if (reminder.dueDate != null) {
     const suffix =
       days == null ? "" : days >= 0 ? t("reminders.remainingDays") : t("reminders.pastDays");
-    const remaining = days == null ? "" : ` — ${faNum(Math.abs(days))} ${suffix}`;
+    const remaining = days == null ? "" : ` (${faNum(Math.abs(days))} ${suffix})`;
     lines.push({ text: `${formatDate(reminder.dueDate)}${remaining}`, icon: "calendar" });
   }
   if (reminder.dueMileage != null) {
     const suffix =
       km == null ? "" : km >= 0 ? t("reminders.remainingKm") : t("reminders.pastKm");
-    const remaining = km == null ? "" : ` — ${faNum(Math.abs(km))} ${suffix}`;
+    const remaining = km == null ? "" : ` (${faNum(Math.abs(km))} ${suffix})`;
     lines.push({
       text: `${faNum(reminder.dueMileage)} ${t("common.kmUnit")}${remaining}`,
       icon: "gauge",
@@ -546,11 +546,10 @@ function reminderCardHtml(reminder: Reminder, vehicle: Vehicle | null, dataset: 
       <div class="reminder-card__content">
         <div class="service-card__head">
           <div class="service-card__info">
-            <div class="service-card__name">${escHtml(reminder.title)}</div>
             ${
               service
-                ? `<a class="reminder-card__service" href="${maintenanceDetailHash(service.id)}"><span data-lucide="link"></span>${escHtml(service.name)}</a>`
-                : ""
+                ? `<a class="service-card__name" href="${maintenanceDetailHash(service.id)}">${escHtml(reminder.title)}</a>`
+                : `<div class="service-card__name">${escHtml(reminder.title)}</div>`
             }
           </div>
         </div>
@@ -1251,7 +1250,7 @@ function bind(container: HTMLElement): void {
   });
 
   /* Whole card opens the edit form — clicks/keys on the enable toggle or
-   * the linked service keep their own behavior. */
+   * a linked service title keep their own behavior. */
   container.querySelectorAll<HTMLElement>(".js-reminder-card").forEach((card) => {
     const openEdit = (): void => {
       const id = card.dataset.id ?? null;
