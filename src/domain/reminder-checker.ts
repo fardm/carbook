@@ -83,9 +83,15 @@ export function notificationPermission(): NotificationPermission | "unsupported"
   return globalThis.Notification.permission;
 }
 
-/** Requests browser notification permission (call from a user gesture). */
+/**
+ * Requests browser notification permission (call from a user gesture only).
+ * Already-decided states are returned as-is — never re-prompts after deny,
+ * and never asks again when already granted.
+ */
 export async function requestNotificationPermission(): Promise<NotificationPermission | "unsupported"> {
   if (!notificationsSupported()) return "unsupported";
+  const current = globalThis.Notification.permission;
+  if (current === "granted" || current === "denied") return current;
   try {
     return await globalThis.Notification.requestPermission();
   } catch {
@@ -93,14 +99,44 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
   }
 }
 
-/** Shows one browser notification (silently ignored when unavailable). */
+/** Options shared by page-context and service-worker notifications. */
+function notificationOptions(body: string): NotificationOptions {
+  return {
+    body,
+    icon: "./icons/icon-192.png",
+    badge: "./favicon.svg",
+    lang: "fa",
+    dir: "rtl",
+  };
+}
+
+/**
+ * Shows one browser notification (silently ignored when unavailable).
+ * Prefers the registered service worker's showNotification (required for
+ * reliable delivery in an installed mobile PWA); falls back to the page
+ * Notification constructor when no worker is active (e.g. Vite dev).
+ */
 function showBrowserNotification(title: string, body: string): void {
   if (!notificationsSupported() || globalThis.Notification.permission !== "granted") return;
-  try {
-    new globalThis.Notification(title, { body });
-  } catch {
-    // Some engines require the service-worker constructor; never crash.
-  }
+  const options = notificationOptions(body);
+  void (async () => {
+    try {
+      if ("serviceWorker" in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          await registration.showNotification(title, options);
+          return;
+        }
+      }
+    } catch {
+      // Fall through to the page constructor.
+    }
+    try {
+      new globalThis.Notification(title, options);
+    } catch {
+      // Some engines reject the constructor outside a service worker; never crash.
+    }
+  })();
 }
 
 /** The vehicle's current odometer, or null when unknown. */

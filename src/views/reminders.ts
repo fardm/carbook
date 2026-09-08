@@ -1123,12 +1123,12 @@ function openEditForm(reminderId: string): void {
   };
 }
 
-/** True when this is the user's FIRST notification-enabled reminder save
- * and browser permission has not been decided yet (Phase 7). */
-function needsPermissionPrompt(dataset: ReturnType<typeof store.get>, enabled: boolean): boolean {
+/** True when the user is saving with notifications configured and the
+ * browser permission is still undecided (Phase 7). Never auto-prompts on
+ * app start — only from this explicit save path (or Settings). */
+function needsPermissionPrompt(_dataset: ReturnType<typeof store.get>, enabled: boolean): boolean {
   if (!enabled || !notificationsSupported()) return false;
-  if (notificationPermission() !== "default") return false;
-  return !dataset.reminders.some((reminder) => reminder.enabled);
+  return notificationPermission() === "default";
 }
 
 /* --- Events --- */
@@ -1612,9 +1612,9 @@ function submitReminderForm(container: HTMLElement, form: HTMLFormElement): void
 
   closeForm();
   if (!editing && needsPermissionPrompt(dataset, notificationOffsets.length > 0)) {
-    // First reminder with CONFIGURED notifications: ask BEFORE saving
-    // (Phase 7) — gated on the اعلان پیش از موعد toggle plus actual
-    // offsets, never on app start or plain browsing.
+    // New reminder with CONFIGURED notifications while permission is still
+    // "default": ask BEFORE saving (Phase 7) — gated on the اعلان پیش از
+    // موعد toggle plus actual offsets, never on app start or plain browsing.
     state.permissionPrompt = { pendingReminder: { reminder, wantsNotifications: true } };
     redraw(container);
     return;

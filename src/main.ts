@@ -3,6 +3,8 @@ import { applyIcons } from "./ui/icons";
 import { routes, parseHash, type RouteId } from "./ui/router";
 import { registerThemeSync } from "./ui/theme";
 import { renderView } from "./views";
+import { advanceRecurringReminders, runReminderCheck } from "./domain/reminder-checker";
+import { store } from "./state/store";
 
 import "./styles/fonts.css";
 import "./styles/tokens.css";
@@ -87,13 +89,39 @@ function boot(): void {
   render();
   window.addEventListener("hashchange", render);
   registerServiceWorker();
+  registerReminderChecks();
+}
+
+/**
+ * Runs the reminder checker when the app becomes active. Never requests
+ * notification permission — that only happens from an explicit user gesture
+ * (Settings enable button / first-notification save prompt).
+ */
+function registerReminderChecks(): void {
+  const run = (): void => {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      store.update((draft) => {
+        advanceRecurringReminders(draft, today);
+      });
+      runReminderCheck(store.get(), today);
+    } catch {
+      /* a failed check must never break boot / resume */
+    }
+  };
+  // After first paint — not during the critical boot path.
+  window.addEventListener("load", run);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") run();
+  });
 }
 
 /**
  * Registers the offline service worker (§44). Production builds only — the
  * Vite dev server serves source modules and must never be cached. The first
  * load works normally; the worker (public/sw.js) precaches the shell so
- * subsequent loads run offline.
+ * subsequent loads run offline. The same worker delivers reminder
+ * notifications via registration.showNotification().
  */
 function registerServiceWorker(): void {
   if (!import.meta.env.PROD) return;

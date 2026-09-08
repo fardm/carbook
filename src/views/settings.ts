@@ -1,4 +1,10 @@
 import type { CalendarPreference, Currency, Dataset, ThemePreference } from "../domain/types";
+import {
+  notificationPermission,
+  notificationsSupported,
+  requestNotificationPermission,
+  runReminderCheck,
+} from "../domain/reminder-checker";
 import { t, type MessageKey } from "../i18n";
 import {
   backupFilename,
@@ -92,6 +98,7 @@ function settingsViewHtml(): string {
       ${calendarCardHtml(dataset)}
       ${currencyCardHtml(dataset)}
       ${appearanceCardHtml(dataset)}
+      ${notificationsCardHtml()}
       ${backupCardHtml(dataset)}
       ${restoreCardHtml()}
     </div>
@@ -166,6 +173,39 @@ function appearanceCardHtml(dataset: Dataset): string {
       <div class="settings-theme segmented" role="radiogroup" aria-label="${t("settings.appearanceTitle")}">
         ${options}
       </div>
+    </section>
+  `;
+}
+
+/* --- Notifications (browser permission) card --- */
+
+function notificationsCardHtml(): string {
+  const permission = notificationPermission();
+  const supported = notificationsSupported();
+  let statusText: string;
+  let actionHtml = "";
+  if (!supported || permission === "unsupported") {
+    statusText = t("notifications.stateUnsupported");
+  } else if (permission === "granted") {
+    statusText = t("notifications.stateEnabled");
+  } else if (permission === "denied") {
+    statusText = t("notifications.stateDenied");
+  } else {
+    statusText = t("notifications.stateDefault");
+    actionHtml = `
+      <div class="settings-action-row">
+        <button type="button" class="btn btn--filled js-enable-notifications">
+          <span data-lucide="bell"></span>
+          ${t("notifications.enableButton")}
+        </button>
+      </div>`;
+  }
+  return `
+    <section class="card">
+      <h2 class="card__title">${t("notifications.settingsTitle")}</h2>
+      <p class="card__text">${t("notifications.settingsHint")}</p>
+      <p class="settings-note" role="status">${statusText}</p>
+      ${actionHtml}
     </section>
   `;
 }
@@ -301,6 +341,21 @@ function bind(container: HTMLElement): void {
         draft.settings.currency = currency;
       });
     });
+  });
+  /* Enable notifications — only requests the browser prompt from this
+   * explicit gesture, and only while permission is still "default". */
+  container.querySelector<HTMLButtonElement>(".js-enable-notifications")?.addEventListener("click", () => {
+    void (async () => {
+      const permission = await requestNotificationPermission();
+      if (permission === "granted") {
+        try {
+          runReminderCheck(store.get());
+        } catch {
+          /* a failed check must not break settings */
+        }
+      }
+      redraw(container);
+    })();
   });
   container.querySelector<HTMLButtonElement>(".js-export")?.addEventListener("click", onExport);
   const fileInput = container.querySelector<HTMLInputElement>("#import-file");

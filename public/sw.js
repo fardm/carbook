@@ -1,11 +1,15 @@
 /*
- * Service worker — offline app shell (§44).
+ * Service worker — offline app shell (§44) + reminder notifications.
  *
  * Strategy: CACHE-FIRST for every same-origin GET, with the full shell
  * (index.html, hashed JS/CSS, fonts, favicon.svg) precached at install.
  * The FIRST visit still works normally (a service worker cannot control the
  * page that registers it); install fetches the shell + its assets so the
  * SECOND load onward is fully offline-capable.
+ *
+ * Notifications: the page calls registration.showNotification() when a
+ * reminder fires; this worker handles notificationclick to focus/open the
+ * app. There is no separate worker — offline + notifications share this file.
  *
  * Notes:
  * - Data stays in localStorage and is NEVER cached here — a stale asset
@@ -15,7 +19,7 @@
  * - Works from any sub-path (GitHub Pages): all URLs are relative to the
  *   worker scope, so `./` resolution is scope-relative.
  */
-const CACHE = "car-maintenance-shell-v3";
+const CACHE = "car-maintenance-shell-v4";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(precache());
@@ -40,6 +44,32 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return; // never touch external calls
   event.respondWith(cacheFirst(request));
+});
+
+/** Focus an open CarBook window, or open the reminders route. */
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = new URL("./#/reminders", self.location.href).href;
+  event.waitUntil(
+    (async () => {
+      const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const client of windows) {
+        if ("focus" in client) {
+          if ("navigate" in client) {
+            try {
+              await client.navigate(targetUrl);
+            } catch {
+              /* navigate may be blocked; focusing is still useful */
+            }
+          }
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    })(),
+  );
 });
 
 /** Precache the shell document and every asset it references. */
