@@ -1351,10 +1351,51 @@ textarea.field__input {
   margin: 0;
 }
 
-.settings-file-label {
+/* Import dropzone: click opens the file picker; drag-and-drop feeds the
+ * same validation path as choosing a file. */
+.settings-dropzone {
   margin-top: var(--md-space-3);
+  border: 1.5px dashed var(--md-sys-color-outline-variant);
+  border-radius: var(--md-shape-medium);
+  background-color: var(--md-sys-color-surface-container-low);
+  transition:
+    border-color var(--md-motion-duration-short) var(--md-motion-easing),
+    background-color var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+.settings-dropzone:hover,
+.settings-dropzone--active {
+  border-color: var(--md-sys-color-primary);
+  background-color: color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
+}
+
+.settings-dropzone__label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--md-space-2);
+  padding: var(--md-space-6) var(--md-space-4);
   cursor: pointer;
-  width: fit-content;
+  text-align: center;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.settings-dropzone__icon {
+  width: 28px;
+  height: 28px;
+  color: var(--md-sys-color-primary);
+}
+
+.settings-dropzone__title {
+  font-size: var(--md-typescale-title-small);
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface);
+}
+
+.settings-dropzone__hint {
+  font-size: var(--md-typescale-body-small);
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 /* --- Info boxes (warn / error / success) --- */
@@ -1384,6 +1425,13 @@ textarea.field__input {
 .box--danger {
   background-color: var(--md-sys-color-error-container);
   color: var(--md-sys-color-on-error-container);
+}
+
+/* Settings import overwrite note: text-only warning (no red fill). */
+.settings-preview .box--danger {
+  background-color: transparent;
+  color: color-mix(in srgb, var(--md-sys-color-error) 72%, var(--md-sys-color-on-surface));
+  padding-inline: 0;
 }
 
 .box--success {
@@ -2248,6 +2296,8 @@ a.card-menu__item:hover {
   align-items: center;
   gap: var(--md-space-4);
   border-top: 1px solid var(--md-sys-color-outline-variant);
+  margin-top: 8px;
+  padding-top: 6px;
 }
 
 /* Reminder card body without horizontal divider */

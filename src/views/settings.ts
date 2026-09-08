@@ -21,8 +21,8 @@ import { applyIcons } from "../ui/icons";
  * `exportedAt` (§41). Import is defensive end to end: parse → FULL strict
  * structural validation (decision 13 — loading is defensive, import is
  * fail-closed) → preview with counts → explicit confirm → atomic
- * `store.replace` (§40 step 5–6, §42). The §43 backup warning is always
- * visible here and repeated right before an overwrite.
+ * `store.replace` (§40 step 5–6, §42). Overwrite confirmation is shown in
+ * the import preview before replacing data.
  */
 
 interface SettingsViewState {
@@ -180,7 +180,6 @@ function backupCardHtml(dataset: Dataset): string {
     <section class="card">
       <h2 class="card__title">${t("settings.backupTitle")}</h2>
       <p class="card__text">${t("settings.backupIntro")}</p>
-      <div class="box box--warn" role="note">${t("settings.backupWarning")}</div>
       <div class="settings-action-row">
         <button type="button" class="btn btn--filled js-export">
           <span data-lucide="download"></span>
@@ -199,12 +198,15 @@ function restoreCardHtml(): string {
     <section class="card">
       <h2 class="card__title">${t("settings.restoreTitle")}</h2>
       <p class="card__text">${t("settings.restoreIntro")}</p>
-      <input type="file" id="import-file" class="visually-hidden"
-        accept=".json,application/json" />
-      <label for="import-file" class="btn btn--filled settings-file-label">
-        <span data-lucide="upload"></span>
-        ${t("settings.chooseFile")}
-      </label>
+      <div class="settings-dropzone js-import-dropzone">
+        <input type="file" id="import-file" class="visually-hidden"
+          accept=".json,application/json" />
+        <label for="import-file" class="settings-dropzone__label">
+          <span class="settings-dropzone__icon" data-lucide="upload" aria-hidden="true"></span>
+          <span class="settings-dropzone__title">${t("settings.chooseFile")}</span>
+          <span class="settings-dropzone__hint">${t("settings.dropzoneHint")}</span>
+        </label>
+      </div>
       ${state.imported ? successBoxHtml() : ""}
       ${state.issues ? errorBoxHtml(state.issues) : ""}
       ${state.pending ? previewHtml(state.pending) : ""}
@@ -265,7 +267,7 @@ function previewHtml(pending: { fileName: string; dataset: Dataset }): string {
       <div class="box box--danger" role="alert">${t("settings.overwriteWarning")}</div>
       <div class="settings-preview__actions">
         <button type="button" class="btn btn--text js-cancel-import">${t("common.cancel")}</button>
-        <button type="button" class="btn btn--danger js-confirm-import">
+        <button type="button" class="btn btn--filled js-confirm-import">
           ${t("settings.confirmReplace")}
         </button>
       </div>
@@ -301,9 +303,11 @@ function bind(container: HTMLElement): void {
     });
   });
   container.querySelector<HTMLButtonElement>(".js-export")?.addEventListener("click", onExport);
-  container.querySelector<HTMLInputElement>("#import-file")?.addEventListener("change", (event) => {
+  const fileInput = container.querySelector<HTMLInputElement>("#import-file");
+  fileInput?.addEventListener("change", (event) => {
     onFileChosen(container, event.currentTarget as HTMLInputElement);
   });
+  bindImportDropzone(container, fileInput);
   container.querySelector<HTMLButtonElement>(".js-confirm-import")?.addEventListener("click", () => {
     confirmImport();
   });
@@ -330,7 +334,47 @@ function onExport(): void {
 
 function onFileChosen(container: HTMLElement, input: HTMLInputElement): void {
   const file = input.files?.[0];
+  input.value = "";
   if (!file) return;
+  processImportFile(container, file);
+}
+
+/** Wires drag-and-drop onto the import dropzone; click still uses the
+ * native file input via the label. */
+function bindImportDropzone(container: HTMLElement, fileInput: HTMLInputElement | null): void {
+  const dropzone = container.querySelector<HTMLElement>(".js-import-dropzone");
+  if (!dropzone) return;
+
+  const setActive = (active: boolean): void => {
+    dropzone.classList.toggle("settings-dropzone--active", active);
+  };
+
+  dropzone.addEventListener("dragenter", (event) => {
+    event.preventDefault();
+    setActive(true);
+  });
+  dropzone.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+    setActive(true);
+  });
+  dropzone.addEventListener("dragleave", (event) => {
+    event.preventDefault();
+    // Ignore leave events that stay inside the dropzone (child → parent).
+    if (event.relatedTarget instanceof Node && dropzone.contains(event.relatedTarget)) return;
+    setActive(false);
+  });
+  dropzone.addEventListener("drop", (event) => {
+    event.preventDefault();
+    setActive(false);
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) return;
+    if (fileInput) fileInput.value = "";
+    processImportFile(container, file);
+  });
+}
+
+function processImportFile(container: HTMLElement, file: File): void {
   state.imported = false;
   state.issues = null;
   state.pending = null;

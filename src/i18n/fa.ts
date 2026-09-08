@@ -193,12 +193,12 @@ export const fa = {
     viewReminder: "مشاهده یادآوری",
   },
   settings: {
-    backupTitle: "پشتیبان‌گیری",
+    backupTitle: "خروجی گرفتن داده‌ها",
     backupIntro:
       "با دانلود پشتیبان، همه داده‌ها (خودرو، کیلومتر، نگهداری‌ها، سوابق و تنظیمات) در یک فایل JSON ذخیره می‌شود.",
     backupWarning:
       "داده‌ها فقط در همین مرورگر و روی همین دستگاه ذخیره می‌شوند و با پاک شدن داده‌های سایت از بین می‌روند. هیچ پشتیبان‌گیری خودکاری وجود ندارد؛ فایل JSON تنها راه پشتیبان‌گیری است.",
-    exportButton: "دانلود پشتیبان (JSON)",
+    exportButton: "دانلود",
     lastExport: "آخرین پشتیبان‌گیری",
     neverExported: "هنوز پشتیبان‌گیری نشده است.",
     appearanceTitle: "ظاهر",
@@ -217,9 +217,10 @@ export const fa = {
     currencyIrr: "تومان",
     currencyUsd: "دلار",
     currencyEur: "یورو",
-    restoreTitle: "بازیابی از پشتیبان",
+    restoreTitle: "وارد کردن داده‌ها",
     restoreIntro: "یک فایل پشتیبان JSON انتخاب کنید؛ ابتدا پیش‌نمایش داده و سپس تأیید شما لازم است.",
     chooseFile: "انتخاب فایل پشتیبان",
+    dropzoneHint: "فایل JSON را اینجا رها کنید یا برای انتخاب کلیک کنید",
     dismiss: "بستن",
     restoreSuccess: "داده‌ها با موفقیت بازیابی شد.",
     previewTitle: "پیش‌نمایش فایل",
