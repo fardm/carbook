@@ -945,7 +945,7 @@ function serviceFormModalHtml(): string {
           ${currentKm == null ? "disabled" : ""}
           title="${escHtml(t("services.useCurrentKm"))}"
           aria-label="${escHtml(t("services.useCurrentKm"))}">
-          <span data-lucide="download" aria-hidden="true"></span>
+          <span data-lucide="file-input" aria-hidden="true"></span>
         </button>
       </div>
       <p class="field__error" id="service-error-odometer" hidden></p>
@@ -990,7 +990,7 @@ function serviceFormModalHtml(): string {
                 data-recommended-km="${recommendedKm}"
                 title="${escHtml(t("services.useRecommendedLifespan"))}"
                 aria-label="${escHtml(t("services.useRecommendedLifespan"))}">
-                <span data-lucide="download" aria-hidden="true"></span>
+                <span data-lucide="file-input" aria-hidden="true"></span>
               </button>
             </div>
             <p class="field__hint">${t("services.recommendedLifespanHint")} ${faNum(recommendedKm)} ${t("common.kmUnit")}</p>` : `
