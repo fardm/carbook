@@ -481,8 +481,11 @@ function remindersListHtml(dataset: ReturnType<typeof store.get>, vehicleId: str
 }
 
 /** Due date/mileage + remaining lines for one reminder card. */
-function reminderScheduleLines(reminder: Reminder, vehicle: Vehicle | null): string[] {
-  const lines: string[] = [];
+function reminderScheduleLines(
+  reminder: Reminder,
+  vehicle: Vehicle | null,
+): Array<{ text: string; icon: "calendar" | "gauge" }> {
+  const lines: Array<{ text: string; icon: "calendar" | "gauge" }> = [];
   const days = remainingDays(reminder);
   const km = remainingKm(reminder, vehicle?.currentOdometer ?? null);
 
@@ -490,13 +493,16 @@ function reminderScheduleLines(reminder: Reminder, vehicle: Vehicle | null): str
     const suffix =
       days == null ? "" : days >= 0 ? t("reminders.remainingDays") : t("reminders.pastDays");
     const remaining = days == null ? "" : ` — ${faNum(Math.abs(days))} ${suffix}`;
-    lines.push(`${formatDate(reminder.dueDate)}${remaining}`);
+    lines.push({ text: `${formatDate(reminder.dueDate)}${remaining}`, icon: "calendar" });
   }
   if (reminder.dueMileage != null) {
     const suffix =
       km == null ? "" : km >= 0 ? t("reminders.remainingKm") : t("reminders.pastKm");
     const remaining = km == null ? "" : ` — ${faNum(Math.abs(km))} ${suffix}`;
-    lines.push(`${faNum(reminder.dueMileage)} ${t("common.kmUnit")}${remaining}`);
+    lines.push({
+      text: `${faNum(reminder.dueMileage)} ${t("common.kmUnit")}${remaining}`,
+      icon: "gauge",
+    });
   }
   return lines;
 }
@@ -536,7 +542,7 @@ function reminderCardHtml(reminder: Reminder, vehicle: Vehicle | null, dataset: 
         </div>
         <div class="service-card__body reminder-card__body">
           <div class="service-card__detail reminder-card__detail">
-            ${schedule.map((line) => `<div class="metric service-card__last"><span data-lucide="${line.includes("—") ? "activity" : "calendar"}"></span>${escHtml(line)}</div>`).join("")}
+            ${schedule.map((line) => `<div class="metric service-card__last"><span data-lucide="${line.icon}"></span>${escHtml(line.text)}</div>`).join("")}
             ${repeatLabel ? `<div class="metric service-card__last metric--muted reminder-card__repeat"><span data-lucide="repeat"></span>${escHtml(repeatLabel)}</div>` : ""}
           </div>
         </div>
