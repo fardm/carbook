@@ -955,31 +955,6 @@ function closeForm(): void {
 }
 
 /**
- * Opens the add form with a service's derivable facts pre-filled (Phase 6):
- * title from the service name; due mileage from lastService.odometer +
- * intervalKm; due date from lastService.date + intervalMonths. Only
- * RELIABLY derivable values are set — anything missing stays empty.
- */
-function openAddForm(prefill: ReminderPrefill | null): void {
-  closeForm();
-  state.form = { mode: "add", prefill };
-  state.formType = prefill?.dueDate != null && prefill.dueMileage != null ? "date_mileage" : prefill?.dueMileage != null ? "mileage" : "date";
-  state.formRepeat = "none";
-  state.formWeekday = null;
-  // Notifications are OFF by default (Req 4) — the user opts in; the
-  // advance fields prefill sensible defaults the moment the toggle is on.
-  state.formNotifications = false;
-  // Service-based forms start SYNCHRONIZED (toggle ON): the service's
-  // current recommendation fills both fields read-only.
-  state.formSynced = prefill?.synced ?? false;
-  if (prefill != null) {
-    if (prefill.title !== "") state.formValues.title = prefill.title;
-    if (prefill.dueDate != null) state.formValues.dueDate = prefill.dueDate;
-    if (prefill.dueMileage != null) state.formValues.dueMileage = String(prefill.dueMileage);
-  }
-}
-
-/**
  * Opens the General Reminder form — no service linkage, no type selection.
  * Date is optional, repeat functionality is available.
  */
@@ -1030,9 +1005,9 @@ function openServiceReminderForm(prefill: ReminderPrefill | null): void {
  * Prefill for the SERVICE-BASED form (service page → یادآوری): title from
  * the service name, due values from the service's CURRENT next-recommended
  * schedule — only what the service actually provides, never invented. The
- * initial type follows the available data (openAddForm derives it from the
- * values): both → date+mileage, one → that one, neither → date (the form
- * then shows a clear "unavailable" state instead of an invalid reminder).
+ * initial type follows the available data (openServiceReminderForm derives
+ * it from the values): both → date+mileage, one → that one, neither → date
+ * (the form then shows a clear "unavailable" state instead of an invalid reminder).
  */
 function serviceSyncedPrefill(item: MaintenanceItem, dataset: ReturnType<typeof store.get>): ReminderPrefill {
   const recommended = recommendedDueForService(item, dataset);
