@@ -4,6 +4,7 @@ import {
   resolveReminder,
   resolveReminders,
 } from "../src/domain/reminder-sync";
+import { calculateMaintenance, contextForVehicle } from "../src/domain/maintenance/calculations";
 import { advanceRecurringReminders, clearReminderCheckState, occurrenceKey, runReminderCheck } from "../src/domain/reminder-checker";
 import { validateReminderDraft, type ReminderDraft } from "../src/domain/reminders";
 import { normalizeReminder } from "../src/persistence/reminder-normalize";
@@ -120,7 +121,40 @@ describe("recommendedDueForService", () => {
   });
 
   it("returns null on the side the service has no interval for", () => {
-    const dataset = datasetWith({ item: item({ rule: { intervalKm: 10_000, intervalMonths: null, trigger: "any", displayMode: "auto" } }) });
+    const dataset = datasetWith({
+      item: item({
+        rule: { intervalKm: null, intervalMonths: 6, trigger: "any", displayMode: "auto" },
+      }),
+    });
+    expect(recommendedDueForService(dataset.maintenanceItems[0], dataset)).toEqual({
+      dueDate: "2026-09-01",
+      dueMileage: null,
+    });
+  });
+
+  it("uses the estimated due date when the service is km-only (same as service detail)", () => {
+    const dataset = datasetWith({
+      item: item({
+        rule: { intervalKm: 10_000, intervalMonths: null, trigger: "any", displayMode: "auto" },
+      }),
+    });
+    const recommended = recommendedDueForService(dataset.maintenanceItems[0], dataset);
+    const calc = calculateMaintenance(
+      dataset.maintenanceItems[0],
+      contextForVehicle(dataset, VEHICLE_ID),
+    );
+    expect(recommended.dueMileage).toBe(105_000);
+    expect(recommended.dueDate).toBe(calc.estimatedDueDate);
+    expect(recommended.dueDate).not.toBeNull();
+  });
+
+  it("leaves the date null when a km-only service cannot estimate one", () => {
+    const dataset = datasetWith({
+      item: item({
+        rule: { intervalKm: 10_000, intervalMonths: null, trigger: "any", displayMode: "auto" },
+      }),
+    });
+    dataset.vehicles[0].averageAnnualDistance = null;
     expect(recommendedDueForService(dataset.maintenanceItems[0], dataset)).toEqual({
       dueDate: null,
       dueMileage: 105_000,

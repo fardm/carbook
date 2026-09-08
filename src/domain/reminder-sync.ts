@@ -20,6 +20,9 @@ import type { Dataset, MaintenanceItem, Reminder } from "./types";
  * The next-recommended date/mileage of a maintenance item (the values the
  * service detail page shows). Null on either side the service cannot
  * provide (no interval configured, or no service history baseline yet).
+ *
+ * Date matches the service lifecycle display: estimated due date when the
+ * primary criterion yields one, otherwise the calendar next-due date.
  */
 export function recommendedDueForService(
   item: MaintenanceItem,
@@ -27,7 +30,10 @@ export function recommendedDueForService(
 ): { dueDate: string | null; dueMileage: number | null } {
   const context = contextForVehicle(dataset, item.vehicleId);
   const calc = calculateMaintenance(item, context);
-  return { dueDate: calc.nextDueDate, dueMileage: calc.nextDueOdometer };
+  return {
+    dueDate: calc.estimatedDueDate ?? calc.nextDueDate,
+    dueMileage: calc.nextDueOdometer,
+  };
 }
 
 /**

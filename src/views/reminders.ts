@@ -986,7 +986,14 @@ function openGeneralReminderForm(prefill: ReminderPrefill | null): void {
 function openServiceReminderForm(prefill: ReminderPrefill | null): void {
   closeForm();
   state.form = { mode: "add", prefill };
-  state.formType = "date"; // Will be updated based on service selection
+  // Type follows what the service currently provides (same rule as selecting
+  // a service in the form): both → date+mileage, one → that one, neither → date.
+  state.formType =
+    prefill?.dueDate != null && prefill.dueMileage != null
+      ? "date_mileage"
+      : prefill?.dueMileage != null
+        ? "mileage"
+        : "date";
   state.formRepeat = "none"; // No repeat for service reminders
   state.formWeekday = null;
   state.formNotifications = false;
