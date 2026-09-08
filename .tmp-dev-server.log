@@ -1,37 +1,9 @@
 
-  [32m[1mVITE[22m v8.2.2[39m  [2mready in [0m[1m187[22m[2m[0m ms[22m
+> car-maintenance-tracker@0.1.0 dev
+> vite
+
+
+  [32m[1mVITE[22m v8.2.2[39m  [2mready in [0m[1m192[22m[2m[0m ms[22m
 
   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
 [2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
-[2m۱۵:۴۵:۳۵[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/reminders.ts[22m
-[2m۱۵:۴۶:۱۴[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/reminders.ts[22m
-[2m۱۵:۴۷:۲۵[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/reminders.ts[22m
-[2m۱۵:۴۸:۴۳[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/reminders.ts[22m
-[2m۱۵:۴۹:۲۳[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/reminders.ts[22m
-[2m۱۵:۵۰:۱۲[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/reminders.ts[22m
-[2m۱۵:۵۰:۵۸[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/reminders.ts[22m
-[2m۱۵:۵۲:۳۱[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/reminders.ts[22m
-[2m۱۵:۵۳:۲۷[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/reminders.ts[22m
-[2m۱۵:۵۳:۵۵[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/i18n/fa.ts[22m
-[2m۱۶:۰۵:۳۶[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/reminders.ts[22m
-[2m۱۶:۵۳:۱۸[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/reminders.ts[22m
-[2m۱۶:۵۸:۴۳[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/ui/icons.ts[22m
-[2m۱۷:۰۳:۵۸[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/components.css[22m
-[2m۱۷:۱۸:۵۸[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/reminders.ts[22m
-[2m۱۷:۱۹:۱۰[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/reminders.ts[22m
-[2m۱۷:۱۹:۲۰[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/reminders.ts[22m
-[2m۱۷:۱۹:۲۴[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/reminders.ts[22m
-[2m۱۷:۱۹:۲۷[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/i18n/fa.ts[22m
-[2m۱۷:۱۹:۳۳[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/components.css[22m
-[2m۱۷:۱۹:۵۷[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/reminders.ts[22m
-[2m۱۷:۲۵:۱۸[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/reminders.ts[22m
-[2m۱۷:۳۶:۲۱[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/ui/router.ts[22m
-[2m۱۷:۳۶:۳۱[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/reminders.ts[22m
-[2m۱۷:۳۶:۴۵[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/reminders.ts[22m
-[2m۱۷:۳۶:۵۹[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/services.ts[22m
-[2m۱۷:۳۷:۲۸[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/services.ts[22m
-[2m۱۷:۳۷:۴۵[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/services.ts[22m
-[2m۱۷:۳۸:۰۸[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/i18n/fa.ts[22m
-[2m۱۷:۳۸:۲۵[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/styles/components.css[22m
-[2m۱۷:۴۹:۴۰[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/views/services.ts[22m
-[2m۱۷:۴۹:۴۳[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2msrc/i18n/fa.ts[22m

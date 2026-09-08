@@ -1,7 +1,6 @@
 import type { CalendarPreference, Currency, Dataset, ThemePreference } from "../domain/types";
 import {
   notificationPermission,
-  notificationsSupported,
   requestNotificationPermission,
   runReminderCheck,
 } from "../domain/reminder-checker";
@@ -38,9 +37,16 @@ interface SettingsViewState {
   issues: ImportIssue[] | null;
   /** True right after a successful import (dismissible). */
   imported: boolean;
+  /** Revoke guidance shown under the notifications status (dismissible). */
+  notificationNotice: string | null;
 }
 
-const state: SettingsViewState = { pending: null, issues: null, imported: false };
+const state: SettingsViewState = {
+  pending: null,
+  issues: null,
+  imported: false,
+  notificationNotice: null,
+};
 
 const THEME_KEYS: Record<ThemePreference, MessageKey> = {
   system: "settings.themeSystem",
@@ -180,33 +186,70 @@ function appearanceCardHtml(dataset: Dataset): string {
 /* --- Notifications (browser permission) card --- */
 
 function notificationsCardHtml(): string {
+  // Both the pill and the action derive from the LIVE browser state every
+  // render — never from a cached flag — so the card can never claim a
+  // permission state the browser disagrees with.
   const permission = notificationPermission();
-  const supported = notificationsSupported();
-  let statusText: string;
+  const enabled = permission === "granted";
+  const statusText = enabled
+    ? t("notifications.stateEnabled")
+    : t("notifications.stateDefault");
   let actionHtml = "";
-  if (!supported || permission === "unsupported") {
-    statusText = t("notifications.stateUnsupported");
-  } else if (permission === "granted") {
-    statusText = t("notifications.stateEnabled");
-  } else if (permission === "denied") {
-    statusText = t("notifications.stateDenied");
-  } else {
-    statusText = t("notifications.stateDefault");
+  if (permission === "default") {
+    // Undecided: request the browser permission from this explicit gesture.
     actionHtml = `
-      <div class="settings-action-row">
-        <button type="button" class="btn btn--filled js-enable-notifications">
-          <span data-lucide="bell"></span>
-          ${t("notifications.enableButton")}
-        </button>
-      </div>`;
+      <button type="button" class="btn btn--filled js-enable-notifications">
+        <span data-lucide="bell"></span>
+        ${t("notifications.enableButton")}
+      </button>`;
+  } else if (enabled) {
+    // Granted: the browser has no programmatic revoke, so the button
+    // reveals guidance instead of pretending access was removed.
+    actionHtml = `
+      <button type="button" class="btn btn--text js-disable-notifications">
+        <span data-lucide="bell-off"></span>
+        ${t("notifications.disableButton")}
+      </button>`;
   }
   return `
     <section class="card">
       <h2 class="card__title">${t("notifications.settingsTitle")}</h2>
       <p class="card__text">${t("notifications.settingsHint")}</p>
-      <p class="settings-note" role="status">${statusText}</p>
-      ${actionHtml}
+      <div class="settings-status">
+        <span class="settings-status__indicator${enabled ? " settings-status__indicator--on" : ""}" role="status">
+          <span class="settings-status__dot" aria-hidden="true"></span>
+          <span>${statusText}</span>
+        </span>
+        ${actionHtml}
+      </div>
+      ${notificationGuideHtml()}
     </section>
+  `;
+}
+
+/** Guidance under the status row: why enabling is blocked (denied /
+ * unsupported) or how to revoke access (browsers never let a page turn
+ * notifications off programmatically). */
+function notificationGuideHtml(): string {
+  const permission = notificationPermission();
+  let text: string | null = null;
+  let dismissible = false;
+  if (permission === "denied") {
+    text = t("notifications.stateDenied");
+  } else if (permission === "unsupported") {
+    text = t("notifications.stateUnsupported");
+  } else if (permission === "granted" && state.notificationNotice != null) {
+    // Only meaningful while access is still granted; a later re-render
+    // after the user revokes in the browser drops it automatically.
+    text = state.notificationNotice;
+    dismissible = true;
+  }
+  if (text == null) return "";
+  return `
+    <div class="settings-status__guide">
+      <p class="settings-note">${text}</p>
+      ${dismissible ? `<button type="button" class="btn btn--text js-dismiss-notification-notice">${t("settings.dismiss")}</button>` : ""}
+    </div>
   `;
 }
 
@@ -357,6 +400,19 @@ function bind(container: HTMLElement): void {
       }
       redraw(container);
     });
+  });
+  /* Disable notifications — the Notification API has no programmatic
+   * revoke, so show the browser/site-settings guidance instead of
+   * pretending access was removed. The pill keeps mirroring the real
+   * Notification.permission and refreshes on the next re-render (e.g. the
+   * visibilitychange reminder check) once the user changes it there. */
+  container.querySelector<HTMLButtonElement>(".js-disable-notifications")?.addEventListener("click", () => {
+    state.notificationNotice = t("notifications.revokeGuide");
+    redraw(container);
+  });
+  container.querySelector<HTMLButtonElement>(".js-dismiss-notification-notice")?.addEventListener("click", () => {
+    state.notificationNotice = null;
+    redraw(container);
   });
   container.querySelector<HTMLButtonElement>(".js-export")?.addEventListener("click", onExport);
   const fileInput = container.querySelector<HTMLInputElement>("#import-file");

@@ -1351,6 +1351,58 @@ textarea.field__input {
   margin: 0;
 }
 
+/* --- Notifications status row (Settings) --- */
+.settings-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--md-space-3);
+  margin-top: var(--md-space-3);
+}
+
+/* Status pill — neutral "off" look by default; the --on modifier flips it
+ * to the same positive pairing the status chips use (§29). */
+.settings-status__indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-space-2);
+  padding: 4px var(--md-space-3);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-shape-full);
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-typescale-label-medium);
+  font-weight: 600;
+}
+
+.settings-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--md-shape-full);
+  background-color: currentcolor;
+  flex: none;
+}
+
+.settings-status__indicator--on {
+  border-color: transparent;
+  background-color: var(--md-status-ok-container);
+  color: var(--md-status-on-ok-container);
+}
+
+/* Guidance line under the status (denied / unsupported / revoke note). */
+.settings-status__guide {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--md-space-2);
+  margin-top: var(--md-space-3);
+}
+
+.settings-status__guide .btn--text {
+  flex: none;
+}
+
 /* Import dropzone: click opens the file picker; drag-and-drop feeds the
  * same validation path as choosing a file. */
 .settings-dropzone {
