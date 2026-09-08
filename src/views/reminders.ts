@@ -523,27 +523,29 @@ function reminderCardHtml(reminder: Reminder, vehicle: Vehicle | null, dataset: 
   return `
     <article class="card service-card reminder-card js-reminder-card${reminder.enabled ? "" : " reminder-card--disabled"}" data-id="${escHtml(reminder.id)}"
       tabindex="0" role="button" aria-label="${escHtml(t("reminders.editTitle"))}">
-      <div class="service-card__head">
-        <div class="service-card__info">
-          <div class="service-card__name">${escHtml(reminder.title)}</div>
-          ${
-            service
-              ? `<a class="reminder-card__service" href="${maintenanceDetailHash(service.id)}"><span data-lucide="link"></span>${escHtml(service.name)}</a>`
-              : ""
-          }
+      <div class="reminder-card__content">
+        <div class="service-card__head">
+          <div class="service-card__info">
+            <div class="service-card__name">${escHtml(reminder.title)}</div>
+            ${
+              service
+                ? `<a class="reminder-card__service" href="${maintenanceDetailHash(service.id)}"><span data-lucide="link"></span>${escHtml(service.name)}</a>`
+                : ""
+            }
+          </div>
+        </div>
+        <div class="service-card__body reminder-card__body">
+          <div class="service-card__detail reminder-card__detail">
+            ${schedule.map((line) => `<div class="metric service-card__last"><span data-lucide="${line.includes("—") ? "activity" : "calendar"}"></span>${escHtml(line)}</div>`).join("")}
+            ${repeatLabel ? `<div class="metric service-card__last metric--muted reminder-card__repeat"><span data-lucide="repeat"></span>${escHtml(repeatLabel)}</div>` : ""}
+          </div>
         </div>
       </div>
-      <div class="service-card__body reminder-card__body">
-        <div class="service-card__detail reminder-card__detail">
-          ${schedule.map((line) => `<div class="metric service-card__last"><span data-lucide="${line.includes("—") ? "activity" : "calendar"}"></span>${escHtml(line)}</div>`).join("")}
-          ${repeatLabel ? `<div class="metric service-card__last metric--muted reminder-card__repeat"><span data-lucide="repeat"></span>${escHtml(repeatLabel)}</div>` : ""}
-        </div>
-        <label class="toggle reminder-card__toggle" title="${t("reminders.enabledLabel")}">
-          <input type="checkbox" class="js-reminder-toggle" data-id="${escHtml(reminder.id)}"
-            role="switch" aria-label="${t("reminders.enabledLabel")}" ${reminder.enabled ? "checked" : ""} />
-          <span class="toggle__track" aria-hidden="true"><span class="toggle__thumb"></span></span>
-        </label>
-      </div>
+      <label class="toggle reminder-card__toggle" title="${t("reminders.enabledLabel")}">
+        <input type="checkbox" class="js-reminder-toggle" data-id="${escHtml(reminder.id)}"
+          role="switch" aria-label="${t("reminders.enabledLabel")}" ${reminder.enabled ? "checked" : ""} />
+        <span class="toggle__track" aria-hidden="true"><span class="toggle__thumb"></span></span>
+      </label>
     </article>
   `;
 }

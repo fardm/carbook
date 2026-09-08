@@ -1681,11 +1681,6 @@ input.affix-field__input {
   font-size: var(--md-typescale-body-small);
 }
 
-.reminder-card__toggle {
-  flex-shrink: 0;
-  align-self: center;
-}
-
 /* Reminder list reuses the services grid sizing. */
 .reminders-grid {
   /* inherits .services-grid */
@@ -2272,6 +2267,30 @@ a.card-menu__item:hover {
   margin-top: var(--md-space-3);
   padding-top: var(--md-space-3);
   border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+
+/* Reminder card body without horizontal divider */
+.reminder-card__body {
+  border-top: none;
+}
+
+/* Reminder card layout: toggle on left, content on right */
+.reminder-card {
+  display: flex;
+  align-items: center;
+  gap: var(--md-space-3);
+}
+
+.reminder-card__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.reminder-card__toggle {
+  flex-shrink: 0;
+  align-self: center;
 }
 
 .service-card__detail {
