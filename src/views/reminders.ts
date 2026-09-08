@@ -1338,11 +1338,11 @@ function bind(container: HTMLElement): void {
   });
   /* تکرار toggle: OFF = no recurrence (config fields stay visible but
    * disabled — nothing submitted); ON resumes the last recurrence choice,
-   * defaulting to weekly. */
+   * defaulting to daily. */
   container.querySelectorAll<HTMLInputElement>(".js-reminder-repeat-toggle").forEach((input) => {
     input.addEventListener("change", () => {
       if (input.checked) {
-        if (state.formRepeat === "none") state.formRepeat = "weekly";
+        if (state.formRepeat === "none") state.formRepeat = "daily";
         if (state.formRepeat === "weekly" && state.formWeekday == null) {
           state.formWeekday = defaultWeekdayFor(fieldValue("dueDate") || null);
         }

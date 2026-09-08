@@ -135,7 +135,7 @@ export interface Settings {
 export type ReminderType = "date" | "mileage" | "date_mileage";
 
 /** Recurrence policy (extensible union — add new members without reshaping). */
-export type RepeatMode = "none" | "weekly" | "monthly" | "yearly" | "km";
+export type RepeatMode = "none" | "daily" | "weekly" | "monthly" | "yearly" | "km";
 
 /** A single notification lead time. Units are separated so each type stays
  * machine-comparable: days for date triggers, km for mileage triggers. */
