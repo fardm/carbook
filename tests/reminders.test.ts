@@ -45,6 +45,25 @@ describe("validateReminderDraft — weekly", () => {
   });
 });
 
+describe("validateReminderDraft — optional due date", () => {
+  it("accepts a general reminder with no due date", () => {
+    expect(validateReminderDraft({ ...baseDraft, serviceId: null, dueDate: null })).toEqual([]);
+    expect(validateReminderDraft({ ...baseDraft, serviceId: null, dueDate: "" })).toEqual([]);
+  });
+
+  it("still requires a due date for service-linked reminders", () => {
+    expect(validateReminderDraft({ ...baseDraft, serviceId: "svc1", dueDate: null })).toContain(
+      "dueDateRequired",
+    );
+  });
+
+  it("still rejects an invalid due date when one is provided", () => {
+    expect(validateReminderDraft({ ...baseDraft, serviceId: null, dueDate: "not-a-date" })).toContain(
+      "dueDateInvalid",
+    );
+  });
+});
+
 function weeklyReminder(overrides: Partial<Reminder>): Reminder {
   return {
     id: "r1",

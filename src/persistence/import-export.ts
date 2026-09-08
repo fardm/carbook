@@ -350,8 +350,11 @@ function validateReminders(
     checkField(issues, row, "updatedAt", `${path}.updatedAt`, { type: "string", nonEmpty: true });
 
     // Type/condition coherence: a reminder must carry the data its type needs.
+    // General reminders (no serviceId) may omit dueDate even when type watches date.
     if (row.type === "date" || row.type === "date_mileage") {
-      if (row.dueDate == null) issues.push({ path: `${path}.dueDate`, kind: "invalidValue" });
+      if (row.dueDate == null && row.serviceId != null) {
+        issues.push({ path: `${path}.dueDate`, kind: "invalidValue" });
+      }
     }
     if (row.type === "mileage" || row.type === "date_mileage") {
       if (row.dueMileage == null) issues.push({ path: `${path}.dueMileage`, kind: "invalidValue" });

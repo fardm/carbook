@@ -730,19 +730,18 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
   // visible-but-disabled (no-repeat = toggle off, so nothing is submitted).
   const repeatDisabled = state.formRepeat === "none";
 
-  // Day-of-week select — part of the WEEKLY recurrence config (Req 4). It
-  // stays in the DOM for every date-based form: while the تکرار toggle is
-  // OFF it renders visible-but-disabled (matching the repeat select), so
-  // the layout never jumps on toggle; it only hides for non-weekly
-  // recurrences, where a weekday is meaningless. Switching away from
-  // weekly clears the stored weekday.
+  // Day-of-week select — always visible on the general form so the layout
+  // never jumps. Enabled only for repeat "weekly"; disabled for every other
+  // repeat mode (and while the تکرار toggle is OFF). Switching away from
+  // weekly clears the stored weekday so a disabled value is never used.
+  const weekdayDisabled = state.formRepeat !== "weekly";
   const weekdayField =
-    isGeneralMode && watchesDate && (state.formRepeat === "weekly" || repeatDisabled)
+    isGeneralMode && watchesDate
       ? `
     <div class="field">
       <label class="field__label" for="reminder-weekday">${t("reminders.weekdayLabel")}</label>
       <select class="field__input js-reminder-weekday" id="reminder-weekday"
-        ${repeatDisabled ? "disabled" : ""}>
+        ${weekdayDisabled ? "disabled" : ""}>
         ${WEEKDAY_KEYS.map(
           (key, index) => `
         <option value="${index}" ${state.formWeekday === index ? "selected" : ""}>${t(key)}</option>`,
@@ -1098,6 +1097,8 @@ function openEditForm(reminderId: string): void {
   state.form = { mode: "edit", reminderId: stored.id };
   const reminder = resolveReminder(stored, dataset);
   state.formType = reminder.type;
+  // Determine form mode based on whether the reminder has a service association
+  state.formMode = stored.serviceId != null ? "service" : "general";
   // The toggle reflects the STORED sync state; when ON the resolved values
   // display read-only, when OFF the stored snapshot values are editable.
   state.formSynced = stored.syncWithService;
@@ -1117,6 +1118,7 @@ function openEditForm(reminderId: string): void {
     advanceDays: firstDays?.days != null ? String(firstDays.days) : "",
     advanceKm: firstKm?.km != null ? String(firstKm.km) : "",
     repeatEveryKm: reminder.repeatEveryKm != null ? String(reminder.repeatEveryKm) : "",
+    serviceId: stored.serviceId ?? "",
   };
 }
 
@@ -1357,7 +1359,7 @@ function bind(container: HTMLElement): void {
       const repeat = select.value as RepeatMode;
       state.formRepeat = repeat;
       // Weekly needs a day: default to the due date's weekday, else
-      // Saturday. Switching away hides the selector and clears the value.
+      // Saturday. Switching away disables the selector and clears the value.
       state.formWeekday =
         repeat === "weekly" ? (state.formWeekday ?? defaultWeekdayFor(fieldValue("dueDate") || null)) : null;
       redraw(container);

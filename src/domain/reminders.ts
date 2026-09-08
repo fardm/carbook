@@ -297,8 +297,12 @@ export function validateReminderDraft(draft: ReminderDraft): ReminderDraftError[
 
   if (watchesDate) {
     if (draft.dueDate == null || draft.dueDate === "") {
-      // Synced reminders cannot type a date in — the service must provide it.
-      errors.push(draft.synced ? "syncDateUnavailable" : "dueDateRequired");
+      // General reminders (no service link) may omit the date. Synced
+      // service reminders cannot type one in — the service must provide it.
+      // Manual service reminders still require a date when the type watches one.
+      if (draft.serviceId != null) {
+        errors.push(draft.synced ? "syncDateUnavailable" : "dueDateRequired");
+      }
     } else if (!isValidIso(draft.dueDate)) errors.push("dueDateInvalid");
   }
   if (watchesKm) {
