@@ -86,6 +86,10 @@ interface ReminderViewState {
   permissionNotice: string | null;
   /** Vehicle picker popover is open. */
   vehicleMenuOpen: boolean;
+  /** Add Reminder action menu is open. */
+  addMenuOpen: boolean;
+  /** Which form mode: "general" or "service" */
+  formMode: "general" | "service";
 }
 
 /** Values carried into the add form.
@@ -127,6 +131,8 @@ const state: ReminderViewState = {
   permissionPrompt: null,
   permissionNotice: null,
   vehicleMenuOpen: false,
+  addMenuOpen: false,
+  formMode: "general",
 };
 
 /** Typed form-field value that survives re-renders. */
@@ -280,31 +286,59 @@ function remindersViewHtml(): string {
 }
 
 /**
- * Floating add button — the SAME fab-bar--page pattern the Services page
- * uses: the FAB renders here (mobile) and the inline toolbar button
- * (.services-toolbar__add) takes over on desktop via CSS. One shared
- * js-add-reminder class + handler, so there is no duplicated logic.
+ * Floating add button — uses the FAB/Action Menu pattern from Service Details.
+ * The button opens a floating action menu with General Reminder and Service Reminder options.
  */
 function fabBarHtml(disabled: boolean): string {
+  const open = state.addMenuOpen;
   return `
     <div class="fab-bar fab-bar--page">
-      <button type="button" class="btn btn--filled js-add-reminder" ${disabled ? "disabled" : ""}>
-        <span data-lucide="plus"></span>
-        ${t("reminders.addReminder")}
+      <div class="fab-menu fab-menu--up${open ? " fab-menu--open" : ""}">
+        ${addReminderMenuHtml(open, disabled)}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Add Reminder action menu — offers General Reminder and Service Reminder options.
+ * Reuses the same FAB/Action Menu pattern as Service Details.
+ */
+function addReminderMenuHtml(open: boolean, disabled: boolean): string {
+  return `
+    <div class="card-menu__backdrop js-add-menu-close"></div>
+    <div class="fab-menu__actions" role="menu" aria-label="${t("reminders.addReminder")}">
+      <button type="button" class="card-menu__item fab-menu__action js-add-service-reminder"
+        role="menuitem" style="--fab-stagger: 1">
+        <span data-lucide="wrench" aria-hidden="true"></span>
+        ${t("reminders.serviceReminder")}
+      </button>
+      <button type="button" class="card-menu__item fab-menu__action js-add-general-reminder"
+        role="menuitem" style="--fab-stagger: 0">
+        <span data-lucide="bell" aria-hidden="true"></span>
+        ${t("reminders.generalReminder")}
       </button>
     </div>
+    <button type="button" class="btn btn--filled fab-menu__toggle js-add-menu-toggle"
+      aria-haspopup="menu" aria-expanded="${open}"
+      aria-label="${t("reminders.addReminder")}" ${disabled ? "disabled" : ""}>
+      <span class="fab-menu__toggle-icon" aria-hidden="true">
+        <span class="fab-menu__toggle-ico fab-menu__toggle-ico--open" data-lucide="x"></span>
+        <span class="fab-menu__toggle-ico fab-menu__toggle-ico--closed" data-lucide="plus"></span>
+      </span>
+      <span>${t("reminders.addReminder")}</span>
+    </button>
   `;
 }
 
 /** Toolbar: the SAME vehicle selector as Services + the add action. */
 function remindersToolbarHtml(dataset: ReturnType<typeof store.get>, selectedId: string | null): string {
   const noVehicles = dataset.vehicles.length === 0;
+  const open = state.addMenuOpen;
   const addButton = `
-    <button type="button" class="btn btn--filled js-add-reminder services-toolbar__add"
-      ${noVehicles ? "disabled" : ""}>
-      <span data-lucide="plus"></span>
-      ${t("reminders.addReminder")}
-    </button>`;
+    <div class="fab-menu fab-menu--topbar${open ? " fab-menu--open" : ""}">
+      ${addReminderMenuHtml(open, noVehicles)}
+    </div>`;
   return `<div class="services-toolbar"><div class="services-toolbar__controls">${vehicleMenuHtml(dataset, selectedId)}${filterMenuHtml(noVehicles)}</div>${addButton}</div>`;
 }
 
@@ -538,7 +572,8 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
   const editing = state.form?.mode === "edit";
   const prefill = !editing && state.form?.mode === "add" ? state.form.prefill : null;
   const vehicle = vehicleId != null ? (dataset.vehicles.find((v) => v.id === vehicleId) ?? null) : null;
-  const title = editing ? t("reminders.editTitle") : t("reminders.addTitle");
+  const isGeneralMode = state.formMode === "general";
+  const title = editing ? t("reminders.editTitle") : (isGeneralMode ? t("reminders.addGeneralTitle") : t("reminders.addServiceTitle"));
 
   // Service-based forms (service page entry point, or editing any reminder
   // that has a serviceId): the همگام با تعویض پیشنهادی toggle decides
@@ -550,7 +585,7 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
     : null;
   const serviceLinked = editing
     ? (editingReminder?.serviceId ?? null)
-    : (prefill?.serviceId ?? null);
+    : (prefill?.serviceId ?? fieldValue("serviceId") ?? null);
   const synced = serviceLinked != null && state.formSynced;
   const syncSource = (() => {
     if (serviceLinked == null) return null;
@@ -575,19 +610,13 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
     date_mileage: "reminders.typeDateMileageHint",
   };
 
-  // Recurrence choices (Req 3): a date-based concept, so the section only
-  // renders for date/date_mileage reminders. No-repeat is the toggle being
-  // OFF, so the select carries only real recurrences. "هر چند کیلومتر"
-  // stays listed ONLY for date_mileage — the km recurrence advances the
-  // due mileage there; a pure-date reminder has no mileage to advance.
+  // Recurrence choices (Req 3): only for general reminders
   const repeatOptions: Array<{ value: RepeatMode; key: Parameters<typeof t>[0] }> = [
+    { value: "daily", key: "reminders.repeatDaily" },
     { value: "weekly", key: "reminders.repeatWeekly" },
     { value: "monthly", key: "reminders.repeatMonthly" },
     { value: "yearly", key: "reminders.repeatYearly" },
   ];
-  if (state.formType === "date_mileage") {
-    repeatOptions.push({ value: "km", key: "reminders.repeatKm" });
-  }
 
   const watchesDate = state.formType === "date" || state.formType === "date_mileage";
   const watchesKm = state.formType === "mileage" || state.formType === "date_mileage";
@@ -598,6 +627,25 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
   // the service cannot provide a value, a clear hint replaces it.
   const syncDate = synced ? (syncSource?.dueDate ?? null) : null;
   const syncKm = synced ? (syncSource?.dueMileage ?? null) : null;
+
+  // Service selection dropdown for service reminder mode - always visible for service reminders
+  const serviceSelectField = !isGeneralMode
+    ? `
+    <div class="field">
+      <label class="field__label" for="reminder-service">${t("reminders.serviceLabel")}</label>
+      <select class="field__input js-reminder-service" id="reminder-service" name="serviceId" ${editing && serviceLinked != null ? "disabled" : ""}>
+        <option value="">${t("reminders.selectService")}</option>
+        ${dataset.maintenanceItems
+          .filter((item) => item.active && item.vehicleId === vehicleId)
+          .map(
+            (item) => `
+        <option value="${escHtml(item.id)}" ${fieldValue("serviceId") === item.id || serviceLinked === item.id ? "selected" : ""}>${escHtml(item.name)}</option>`,
+          )
+          .join("")}
+      </select>
+      <p class="field__error" id="reminder-error-service" hidden></p>
+    </div>`
+    : "";
 
   const dateSection = watchesDate
     ? synced
@@ -611,13 +659,14 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
     </div>`
       : `
     <div class="field">
-      <label class="field__label" for="reminder-date">${t("reminders.dueDateLabel")}</label>
+      <label class="field__label" for="reminder-date">${t("reminders.dueDateLabel")}${isGeneralMode ? "" : ""}</label>
       ${dateFieldHtml({
         fieldId: "reminder-date",
         name: "dueDate",
         value: fieldValue("dueDate"),
         label: t("reminders.dueDateLabel"),
       })}
+      ${isGeneralMode ? `<p class="field__hint">${t("reminders.dateOptionalHint")}</p>` : ""}
       <p class="field__error" id="reminder-error-date" hidden></p>
     </div>`
     : "";
@@ -679,18 +728,6 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
   // visible-but-disabled (no-repeat = toggle off, so nothing is submitted).
   const repeatDisabled = state.formRepeat === "none";
 
-  const repeatKmField =
-    state.formRepeat === "km" && watchesDate
-      ? `
-    <div class="field">
-      <label class="field__label" for="reminder-repeat-km">${t("reminders.repeatEveryKmLabel")}</label>
-      <input class="field__input" id="reminder-repeat-km" name="repeatEveryKm" type="number"
-        inputmode="numeric" min="1" step="1" ${repeatDisabled ? "disabled" : ""}
-        value="${escHtml(fieldValue("repeatEveryKm"))}" />
-      <p class="field__error" id="reminder-error-repeat-km" hidden></p>
-    </div>`
-      : "";
-
   // Day-of-week select — part of the WEEKLY recurrence config (Req 4). It
   // stays in the DOM for every date-based form: while the تکرار toggle is
   // OFF it renders visible-but-disabled (matching the repeat select), so
@@ -698,7 +735,7 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
   // recurrences, where a weekday is meaningless. Switching away from
   // weekly clears the stored weekday.
   const weekdayField =
-    watchesDate && (state.formRepeat === "weekly" || repeatDisabled)
+    isGeneralMode && watchesDate && (state.formRepeat === "weekly" || repeatDisabled)
       ? `
     <div class="field">
       <label class="field__label" for="reminder-weekday">${t("reminders.weekdayLabel")}</label>
@@ -728,13 +765,9 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
             <p class="field__error" id="reminder-error-title" hidden></p>
           </div>
 
-          <div class="field">
-            <label class="field__label" for="reminder-description">${t("reminders.descriptionLabel")}</label>
-            <textarea class="field__input" id="reminder-description" name="description" rows="2"
-              placeholder="${t("reminders.descriptionPlaceholder")}">${escHtml(fieldValue("description"))}</textarea>
-          </div>
+          ${serviceSelectField}
 
-          ${serviceLinked != null ? `
+          ${!isGeneralMode && (serviceLinked != null || fieldValue("serviceId") !== "") ? `
           <div class="field field--static">
             <label class="toggle-row">
               <span class="toggle-row__label">${t("reminders.syncToggleLabel")}</span>
@@ -747,7 +780,8 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
             ${synced ? `<p class="field__hint reminder-sync-hint">${t("reminders.syncHint")}</p>` : ""}
           </div>` : ""}
 
-          <!-- Reminder type group: segmented control + dynamic hint. -->
+          <!-- Reminder type group: segmented control + dynamic hint. Only for service reminders. -->
+          ${!isGeneralMode ? `
           <div class="field form__gap--1">
             <span class="field__label" id="reminder-type-label">${t("reminders.typeLabel")}</span>
             <div class="settings-theme segmented" role="radiogroup" aria-labelledby="reminder-type-label">
@@ -762,7 +796,7 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
                 .join("")}
             </div>
             <p class="field__hint">${t(typeHintKey[state.formType])}</p>
-          </div>
+          </div>` : ""}
 
           ${dateSection}
           ${kmSection}
@@ -786,10 +820,8 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
             <p class="field__error" id="reminder-error-offsets" hidden></p>
           </div>
 
-          <!-- Repeat group (date-based reminders only): toggle + config.
-               OFF = no recurrence (fields visible but disabled); ON = the
-               select + weekly-day controls become editable. -->
-          ${watchesDate ? `
+          <!-- Repeat group: only for general reminders. -->
+          ${isGeneralMode ? `
           <div class="field field--static form__gap--3">
             <label class="toggle-row">
               <span class="toggle-row__label">${t("reminders.repeatLabel")}</span>
@@ -816,8 +848,14 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
               </div>
               ${weekdayField}
             </div>
-            ${repeatKmField}
           </div>` : ""}
+
+          <!-- Description field: at end for both general and service reminders -->
+          <div class="field">
+            <label class="field__label" for="reminder-description">${t("reminders.descriptionLabel")}</label>
+            <textarea class="field__input" id="reminder-description" name="description" rows="2"
+              placeholder="${t("reminders.descriptionPlaceholder")}">${escHtml(fieldValue("description"))}</textarea>
+          </div>
 
           <div class="form__actions">
             ${editing ? `
@@ -922,6 +960,46 @@ function openAddForm(prefill: ReminderPrefill | null): void {
 }
 
 /**
+ * Opens the General Reminder form — no service linkage, no type selection.
+ * Date is optional, repeat functionality is available.
+ */
+function openGeneralReminderForm(prefill: ReminderPrefill | null): void {
+  closeForm();
+  state.form = { mode: "add", prefill };
+  state.formType = "date"; // General reminders are date-based by default
+  state.formRepeat = "none";
+  state.formWeekday = null;
+  state.formNotifications = false;
+  state.formSynced = false; // Never synced for general reminders
+  state.formMode = "general";
+  if (prefill != null) {
+    if (prefill.title !== "") state.formValues.title = prefill.title;
+    if (prefill.dueDate != null) state.formValues.dueDate = prefill.dueDate;
+  }
+}
+
+/**
+ * Opens the Service Reminder form — requires service selection, no repeat.
+ * The user selects a service and then the reminder basis (date/mileage/both).
+ */
+function openServiceReminderForm(prefill: ReminderPrefill | null): void {
+  closeForm();
+  state.form = { mode: "add", prefill };
+  state.formType = "date"; // Will be updated based on service selection
+  state.formRepeat = "none"; // No repeat for service reminders
+  state.formWeekday = null;
+  state.formNotifications = false;
+  state.formSynced = prefill?.synced ?? false; // Use synced from prefill (true when from Service Details)
+  state.formMode = "service";
+  if (prefill != null) {
+    if (prefill.title !== "") state.formValues.title = prefill.title;
+    if (prefill.dueDate != null) state.formValues.dueDate = prefill.dueDate;
+    if (prefill.dueMileage != null) state.formValues.dueMileage = String(prefill.dueMileage);
+    if (prefill.serviceId != null) state.formValues.serviceId = prefill.serviceId;
+  }
+}
+
+/**
  * Prefill for the SERVICE-BASED form (service page → یادآوری): title from
  * the service name, due values from the service's CURRENT next-recommended
  * schedule — only what the service actually provides, never invented. The
@@ -968,7 +1046,10 @@ function consumeReminderHash(): void {
       if (existing != null) {
         openEditForm(existing.id);
       } else {
-        openAddForm(serviceSyncedPrefill(item, dataset));
+        // Open Service Reminder form with sync enabled by default
+        const prefill = serviceSyncedPrefill(item, dataset);
+        prefill.synced = true; // Enable sync by default when coming from Service Details
+        openServiceReminderForm(prefill);
       }
     }
     clearReminderHashQuery();
@@ -1092,13 +1173,44 @@ function bind(container: HTMLElement): void {
     });
   });
 
-  /* Add reminder — uses the currently selected vehicle (never asks again).
-   * Both the toolbar button and the mobile FAB share this handler. */
-  container.querySelectorAll<HTMLButtonElement>(".js-add-reminder").forEach((button) => {
+  /* Add Reminder menu toggle — opens/closes the floating action menu. */
+  container.querySelectorAll<HTMLButtonElement>(".js-add-menu-toggle").forEach((button) => {
     button.addEventListener("click", () => {
+      state.addMenuOpen = !state.addMenuOpen;
+      redraw(container);
+    });
+  });
+
+  /* Add Reminder menu close — closes when clicking the backdrop. */
+  container.querySelectorAll<HTMLElement>(".js-add-menu-close").forEach((backdrop) => {
+    backdrop.addEventListener("click", () => {
+      state.addMenuOpen = false;
+      redraw(container);
+    });
+  });
+
+  /* General Reminder option — opens the general reminder form. */
+  container.querySelectorAll<HTMLButtonElement>(".js-add-general-reminder").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.addMenuOpen = false;
       const dataset = store.get();
       const vehicleId = resolveSelectedVehicleId(dataset);
-      openAddForm(
+      openGeneralReminderForm(
+        vehicleId == null
+          ? null
+          : { vehicleId, serviceId: null, title: "", dueDate: null, dueMileage: null, currentOdometer: null, synced: false },
+      );
+      redraw(container);
+    });
+  });
+
+  /* Service Reminder option — opens the service reminder form. */
+  container.querySelectorAll<HTMLButtonElement>(".js-add-service-reminder").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.addMenuOpen = false;
+      const dataset = store.get();
+      const vehicleId = resolveSelectedVehicleId(dataset);
+      openServiceReminderForm(
         vehicleId == null
           ? null
           : { vehicleId, serviceId: null, title: "", dueDate: null, dueMileage: null, currentOdometer: null, synced: false },
@@ -1173,6 +1285,19 @@ function bind(container: HTMLElement): void {
     });
   });
 
+  /* Modal backdrop click - closes modal when clicking outside the content. */
+  container.querySelectorAll<HTMLElement>(".modal-overlay").forEach((overlay) => {
+    overlay.addEventListener("click", (event) => {
+      // Only close if clicking directly on the overlay, not on the modal content
+      if (event.target === overlay) {
+        closeForm();
+        state.deleteConfirmId = null;
+        state.permissionPrompt = null;
+        redraw(container);
+      }
+    });
+  });
+
   /* Delete action in the edit form: opens the confirmation dialog over
    * the still-open form (canceling returns to the form). */
   container.querySelectorAll<HTMLButtonElement>(".js-reminder-delete").forEach((button) => {
@@ -1244,6 +1369,40 @@ function bind(container: HTMLElement): void {
     });
   });
 
+  /* Service selection dropdown (Service Reminder form from Reminders page) */
+  container.querySelectorAll<HTMLSelectElement>(".js-reminder-service").forEach((select) => {
+    select.addEventListener("change", () => {
+      const serviceId = select.value || null;
+      const dataset = store.get();
+      
+      if (serviceId != null) {
+        const item = dataset.maintenanceItems.find((candidate) => candidate.id === serviceId);
+        if (item != null) {
+          // Populate form with service data and enable sync
+          const prefill = serviceSyncedPrefill(item, dataset);
+          prefill.synced = true; // Enable sync by default when service is selected
+          state.formSynced = true;
+          state.formValues.serviceId = serviceId;
+          state.formValues.title = prefill.title;
+          // Populate both date and mileage from service suggestions
+          if (prefill.dueDate != null) state.formValues.dueDate = prefill.dueDate;
+          if (prefill.dueMileage != null) state.formValues.dueMileage = String(prefill.dueMileage);
+          // Update form type based on available data
+          state.formType = prefill.dueDate != null && prefill.dueMileage != null ? "date_mileage" : prefill.dueMileage != null ? "mileage" : "date";
+        }
+      } else {
+        // Clear service-specific data when no service selected
+        state.formSynced = false;
+        state.formValues.serviceId = "";
+        state.formValues.title = "";
+        state.formValues.dueDate = "";
+        state.formValues.dueMileage = "";
+        state.formType = "date";
+      }
+      redraw(container);
+    });
+  });
+
   /* اعلان پیش از موعد toggle (Req 4): the advance fields are ALWAYS in the
    * DOM — this only enables/disables them (OFF = disabled, never
    * submitted). Turning ON prefills sensible defaults so they are ready. */
@@ -1276,7 +1435,7 @@ function bind(container: HTMLElement): void {
             ? null
             : form.mode === "edit"
               ? (dataset.reminders.find((r) => r.id === form.reminderId)?.serviceId ?? null)
-              : (form.prefill?.serviceId ?? null);
+              : (form.prefill?.serviceId ?? fieldValue("serviceId") ?? null);
         if (serviceId != null) {
           const item = dataset.maintenanceItems.find((candidate) => candidate.id === serviceId);
           if (item) {

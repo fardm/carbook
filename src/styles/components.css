@@ -2952,8 +2952,8 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
   align-items: center;
   justify-content: center;
   transition:
-    opacity var(--md-motion-duration-short) var(--md-motion-easing),
-    transform var(--md-motion-duration-short) var(--md-motion-easing);
+    opacity var(--md-motion-duration-medium) cubic-bezier(0.4, 0.0, 0.2, 1),
+    transform var(--md-motion-duration-medium) cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 
 .fab-menu__toggle-ico--closed {
@@ -2963,12 +2963,12 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
 
 .fab-menu__toggle-ico--open {
   opacity: 0;
-  transform: rotate(-90deg) scale(0.75);
+  transform: rotate(-135deg) scale(0.5);
 }
 
 .fab-menu--open .fab-menu__toggle-ico--closed {
   opacity: 0;
-  transform: rotate(90deg) scale(0.75);
+  transform: rotate(135deg) scale(0.5);
 }
 
 .fab-menu--open .fab-menu__toggle-ico--open {
