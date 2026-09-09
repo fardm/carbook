@@ -44,8 +44,6 @@ interface AccountUiState {
   /** Field-level validation error keys. */
   emailErrorKey: string | null;
   passwordErrorKey: string | null;
-  /** Logout confirmation step. */
-  confirmLogout: boolean;
   /** Migration offer state after a successful sign-in. */
   migration: (MigrationChoice | "offer") | null;
   migrationCounts: DatasetCounts | null;
@@ -58,7 +56,6 @@ const state: AccountUiState = {
   errorKey: null,
   emailErrorKey: null,
   passwordErrorKey: null,
-  confirmLogout: false,
   migration: null,
   migrationCounts: null,
   migrationErrorKey: null,
@@ -103,13 +100,11 @@ export function openAccountModal(): void {
   state.errorKey = null;
   state.emailErrorKey = null;
   state.passwordErrorKey = null;
-  state.confirmLogout = false;
   const user = auth.getUser();
   // After a fresh sign-in the migration offer (if any) is shown here.
   drawModal(user);
   unsubscribeAuth = auth.subscribe(() => {
     state.errorKey = null;
-    state.confirmLogout = false;
     drawModal(auth.getUser());
   });
 }
@@ -218,18 +213,6 @@ function unauthenticatedModalHtml(): string {
 
 /** Modal body while signed in: email + logout (+ one-time migration offer). */
 function authenticatedModalHtml(user: AccountUser): string {
-  const logoutHtml = state.confirmLogout
-    ? `
-      <div class="box box--warn account-logout-confirm" role="alert">
-        <span>${escHtml(t("account.logoutConfirm"))}</span>
-        <span class="account-logout-confirm__note">${escHtml(t("account.logoutKeepCloudNote"))}</span>
-        <div class="form__actions">
-          <button type="button" class="btn btn--text js-logout-cancel">${t("common.cancel")}</button>
-          <button type="button" class="btn btn--danger js-logout-confirm">${t("account.logoutButton")}</button>
-        </div>
-      </div>
-    `
-    : "";
   const migrationHtml = migrationHtmlSection();
   return `
     <div class="modal account-modal" role="dialog" aria-modal="true" aria-label="${t("account.signedInTitle")}">
@@ -244,7 +227,6 @@ function authenticatedModalHtml(user: AccountUser): string {
         <span class="account-profile__email" dir="ltr">${escHtml(user.email)}</span>
       </div>
       ${migrationHtml}
-      ${logoutHtml}
       <div class="form__actions account-actions">
         <button type="button" class="btn btn--text js-account-close">${t("common.close")}</button>
         <button type="button" class="btn btn--danger-text js-logout-start">
@@ -307,14 +289,6 @@ function bindModal(overlay: HTMLElement, user: AccountUser | null): void {
   }
 
   overlay.querySelector(".js-logout-start")?.addEventListener("click", () => {
-    state.confirmLogout = true;
-    drawModal(user);
-  });
-  overlay.querySelector(".js-logout-cancel")?.addEventListener("click", () => {
-    state.confirmLogout = false;
-    drawModal(user);
-  });
-  overlay.querySelector(".js-logout-confirm")?.addEventListener("click", () => {
     void performLogout();
   });
   overlay.querySelector(".js-migration-accept")?.addEventListener("click", () => {
@@ -456,7 +430,6 @@ async function performLogout(): Promise<void> {
     // store back to IndexedDB; the modal closes on the auth event.
     closeAccountModal();
   } catch (error) {
-    state.confirmLogout = false;
     state.errorKey = mapAuthError(error);
     drawModal(auth.getUser());
   }

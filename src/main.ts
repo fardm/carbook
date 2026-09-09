@@ -117,9 +117,6 @@ function bindNavAccount(): void {
     if (target.closest(".js-nav-account")) {
       openAccountModal();
     } else if (target.closest(".js-nav-logout")) {
-      // Same entry point for logout: open the modal on the signed-in view;
-      // it confirms, then signs out (one click too many is worse than one
-      // confirmation for a destructive-ish action).
       openAccountModal();
     }
   });
