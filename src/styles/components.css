@@ -3170,3 +3170,129 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
     display: inline-flex;
   }
 }
+
+/* --- Account (sign in / sign up / logout) --- */
+.account-overlay {
+  z-index: 60; /* above the FAB + nav so the modal always sits on top */
+}
+
+.account-modal {
+  width: min(420px, 100%);
+}
+
+.account-tabs {
+  display: flex;
+  gap: var(--md-space-1);
+  margin-bottom: var(--md-space-4);
+  padding: var(--md-space-1);
+  border-radius: var(--md-shape-full);
+  background-color: var(--md-sys-color-surface-container);
+}
+
+.account-tabs__tab {
+  flex: 1;
+  min-height: 36px;
+  border-radius: var(--md-shape-full);
+  font-size: var(--md-typescale-label-large);
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface-variant);
+  transition:
+    background-color var(--md-motion-duration-short) var(--md-motion-easing),
+    color var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+.account-tabs__tab:hover {
+  color: var(--md-sys-color-on-surface);
+}
+
+.account-tabs__tab--active {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+.account-form {
+  margin-top: var(--md-space-4);
+}
+
+.account-error {
+  margin-top: var(--md-space-3);
+}
+
+.account-note {
+  margin-top: var(--md-space-4);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-typescale-label-small);
+  line-height: 1.7;
+}
+
+.account-spinner {
+  display: inline-flex;
+  animation: account-spin 1s linear infinite;
+}
+
+.account-spinner svg {
+  width: 16px;
+  height: 16px;
+}
+
+@keyframes account-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Signed-in profile row */
+.account-profile {
+  display: flex;
+  align-items: center;
+  gap: var(--md-space-3);
+  padding: var(--md-space-3);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-shape-medium);
+  background-color: var(--md-sys-color-surface-container);
+  margin-bottom: var(--md-space-4);
+}
+
+.account-profile__avatar svg {
+  width: 28px;
+  height: 28px;
+  color: var(--md-sys-color-primary);
+}
+
+.account-profile__email {
+  font-size: var(--md-typescale-body-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* One-time guest→cloud migration offer */
+.account-migration {
+  margin-bottom: var(--md-space-4);
+}
+
+.account-migration__counts {
+  margin-bottom: var(--md-space-3);
+  font-size: var(--md-typescale-label-medium);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.account-actions {
+  justify-content: space-between;
+}
+
+/* Logout confirmation block */
+.account-logout-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-2);
+  margin-bottom: var(--md-space-4);
+}
+
+.account-logout-confirm__note {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-typescale-label-small);
+}

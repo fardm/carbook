@@ -157,6 +157,24 @@
   text-decoration: none;
 }
 
+/* Account entry: a button that visually matches the other nav items (it
+ * shares .nav__item) but is an action, not a route. Icons stay in sync
+ * with the route items; the label changes with auth state (حساب کاربری /
+ * خروج از حساب). */
+.nav__item--account {
+  font-family: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.nav__item--account:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: -2px;
+  border-radius: var(--md-shape-medium);
+}
+
 /* --- Bottom navigation (mobile only) --- */
 @media (max-width: 899.98px) {
   .nav {

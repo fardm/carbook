@@ -19,7 +19,7 @@
  * - Works from any sub-path (GitHub Pages): all URLs are relative to the
  *   worker scope, so `./` resolution is scope-relative.
  */
-const CACHE = "car-maintenance-shell-v4";
+const CACHE = "car-maintenance-shell-v5";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(precache());

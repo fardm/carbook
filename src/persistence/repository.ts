@@ -39,6 +39,13 @@ export interface Repository {
   load(): Dataset;
   save(dataset: Dataset): void;
   clear(): void;
+  /** Promise for the repository's own initial async load, if any. Resolves
+   * once load() reflects the real stored data (Store.ready awaits it). */
+  initialLoad?(): Promise<void>;
+  /** Awaits completion of all queued async write operations. Fire-and-forget
+   * saves need this before a repository swap (e.g. before migrating guest
+   * data to the cloud, so nothing is lost mid-flight). */
+  flush?(): Promise<void>;
 }
 
 export function createRepository(backend: StorageBackend): Repository {
@@ -224,6 +231,21 @@ export class SyncRepositoryAdapter implements Repository {
     }).catch(() => {
       this.loadPromise = null;
     });
+  }
+
+  /** Promise that resolves once the background load has settled and the
+   * cache reflects the real stored data (Store.ready awaits this). */
+  initialLoad(): Promise<void> {
+    if (this.loadPromise) return this.loadPromise.then(() => undefined, () => undefined);
+    return Promise.resolve();
+  }
+
+  /** Resolves when every queued save/clear has been handed to the async
+   * backend (used before a repository swap so no write is lost). */
+  flush(): Promise<void> {
+    return (this.savePromise ?? Promise.resolve())
+      .catch(() => undefined)
+      .then(() => (this.clearPromise ?? Promise.resolve()).catch(() => undefined));
   }
 
   load(): Dataset {

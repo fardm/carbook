@@ -2,6 +2,12 @@ import { t } from "./i18n";
 import { applyIcons } from "./ui/icons";
 import { routes, parseHash, type RouteId } from "./ui/router";
 import { registerThemeSync } from "./ui/theme";
+import {
+  navAccountItemHtml,
+  openAccountModal,
+} from "./ui/account";
+import { auth } from "./supabase/auth";
+import { initializeDataSource } from "./supabase/data-source";
 import { renderView } from "./views";
 import {
   advanceRecurringReminders,
@@ -43,6 +49,7 @@ function renderNav(): void {
           `,
         )
         .join("")}
+      ${navAccountItemHtml(auth.getUser())}
     </div>
   `;
   applyIcons();
@@ -86,6 +93,38 @@ function render(): void {
   applyIcons();
 }
 
+/** Re-renders ONLY the navigation (auth state changes the account/logout
+ * item; routes never change). Cheaper than renderNav + keeps the current
+ * page intact. */
+function refreshNavAccountItem(): void {
+  const nav = document.getElementById("app-nav");
+  if (!nav) return;
+  const list = nav.querySelector(".nav__list");
+  if (!list) return;
+  const accountItem = list.querySelector(".nav__item--account");
+  if (!accountItem) return;
+  accountItem.outerHTML = navAccountItemHtml(auth.getUser());
+  applyIcons();
+}
+
+/** Wires the account entry (open modal / logout button) inside the nav. */
+function bindNavAccount(): void {
+  const nav = document.getElementById("app-nav");
+  if (!nav) return;
+  nav.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+    if (target.closest(".js-nav-account")) {
+      openAccountModal();
+    } else if (target.closest(".js-nav-logout")) {
+      // Same entry point for logout: open the modal on the signed-in view;
+      // it confirms, then signs out (one click too many is worse than one
+      // confirmation for a destructive-ish action).
+      openAccountModal();
+    }
+  });
+}
+
 /** Runs `fn` now if the document already finished loading; otherwise on load.
  * Installed Android PWAs often restore with readyState already "complete",
  * so a bare window "load" listener would never fire. */
@@ -101,10 +140,24 @@ function boot(): void {
   registerThemeSync();
   renderNav();
   setAppTitles();
+  bindNavAccount();
   render();
   window.addEventListener("hashchange", render);
   registerServiceWorker();
   registerReminderChecks();
+
+  // Account boot: restore the session, route the data layer to Supabase or
+  // IndexedDB, and keep the nav's account/logout item in sync. When no
+  // Supabase env vars exist the app stays in guest mode (unchanged). The
+  // initial render above already painted the guest view; once the data
+  // layer is ready the views re-render from the (possibly cloud) dataset.
+  void initializeDataSource().then(() => {
+    refreshNavAccountItem();
+    // Any later login/logout also updates the nav entry immediately.
+    auth.subscribe(refreshNavAccountItem);
+    // Re-render the active view with the settled backend data.
+    render();
+  });
 }
 
 /**

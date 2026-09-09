@@ -13,6 +13,8 @@ export default defineConfig({
     },
   },
   test: {
+    // "node" keeps the existing suite fast; DOM/UI tests declare jsdom
+    // per-file via @vitest-environment (account modal tests).
     environment: "node",
     include: ["tests/**/*.test.ts"],
   },
