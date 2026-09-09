@@ -4,7 +4,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { defaultDataset } from "../src/domain/defaults";
 import type { Dataset } from "../src/domain/types";
 import { createId } from "../src/domain/ids";
-import { IndexedDBRepository } from "../src/persistence/repository";
 import { store } from "../src/state/store";
 import { auth } from "../src/supabase/auth";
 import {
