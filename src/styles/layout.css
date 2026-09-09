@@ -158,9 +158,9 @@
 }
 
 /* Account entry: a button that visually matches the other nav items (it
- * shares .nav__item) but is an action, not a route. Icons stay in sync
- * with the route items; the label changes with auth state (حساب کاربری /
- * خروج از حساب). */
+ * shares .nav__item) but is an action, not a route. The label and icon are
+ * IDENTICAL in both auth states (حساب کاربری): guests get the login/signup
+ * modal, authenticated users navigate to the Account page. */
 .nav__item--account {
   font-family: inherit;
   background: none;

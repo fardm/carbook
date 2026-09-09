@@ -17,6 +17,8 @@ export type AuthErrorCode =
   | "rateLimited"
   | "sessionExpired"
   | "migrationFailed"
+  | "passwordMismatch"
+  | "noSession"
   | "generic";
 
 /** Client-side email/password validation (mirrors Supabase's own rules). */
@@ -31,6 +33,11 @@ export function validateEmail(email: string): AuthErrorCode | null {
 export function validatePassword(password: string): AuthErrorCode | null {
   if (password.length < 6) return "shortPassword";
   return null;
+}
+
+/** True only when the two entered passwords are exactly identical. */
+export function passwordsMatch(a: string, b: string): boolean {
+  return a === b;
 }
 
 /**

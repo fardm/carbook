@@ -129,6 +129,18 @@ class AuthController {
     if (error) throw error;
   }
 
+  /**
+   * Changes the signed-in user's password through Supabase Auth
+   * (`auth.updateUser({ password })`) — the password is never stored or
+   * managed by this app. Requires an active session; throws mapped errors
+   * (errors.ts) on failure.
+   */
+  async updatePassword(password: string): Promise<void> {
+    const client = this.requireClient();
+    const { error } = await client.auth.updateUser({ password });
+    if (error) throw error;
+  }
+
   /** Signs the user out server-side. The data-layer swap happens in the
    * auth listener registered by the app (data-source.ts). */
   async signOut(): Promise<void> {

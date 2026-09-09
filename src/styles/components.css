@@ -3244,34 +3244,31 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
   }
 }
 
-/* Signed-in profile row */
+/* Signed-in profile row (Account page) */
 .account-profile {
   display: flex;
   align-items: center;
   gap: var(--md-space-3);
-  padding: var(--md-space-3);
-  border: 1px solid var(--md-sys-color-outline-variant);
-  border-radius: var(--md-shape-medium);
-  background-color: var(--md-sys-color-surface-container);
-  margin-bottom: var(--md-space-4);
+  padding: var(--md-space-2) 0;
 }
 
 .account-profile__avatar svg {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   color: var(--md-sys-color-primary);
 }
 
 .account-profile__email {
-  font-size: var(--md-typescale-body-medium);
+  font-size: var(--md-typescale-body-large);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* One-time guest→cloud migration offer */
+/* Account page: the migration offer card sits inside the profile card and
+ * needs a top margin; the logout card groups its danger action. */
 .account-migration {
-  margin-bottom: var(--md-space-4);
+  margin-top: var(--md-space-4);
 }
 
 .account-migration__counts {
@@ -3281,7 +3278,7 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
 }
 
 .account-actions {
-  justify-content: space-between;
+  justify-content: flex-start;
 }
 
 /* --- Toast notifications --- */

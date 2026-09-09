@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   authErrorCode,
   mapAuthError,
+  passwordsMatch,
   validateEmail,
   validatePassword,
 } from "../src/supabase/errors";
@@ -32,6 +33,32 @@ describe("client-side validation", () => {
   it("rejects passwords shorter than 6 characters", () => {
     expect(validatePassword("12345")).toBe("shortPassword");
     expect(validatePassword("123456")).toBeNull();
+  });
+
+  it("requires the confirmation to exactly match the new password", () => {
+    expect(passwordsMatch("abc123", "abc123")).toBe(true);
+    expect(passwordsMatch("abc123", "abc124")).toBe(false);
+    expect(passwordsMatch("abc123", "")).toBe(false);
+  });
+});
+
+describe("change-password classification", () => {
+  it("maps a wrong-current-password update to invalidCredentials", () => {
+    // Supabase rejects an updateUser() with a wrong existing password
+    // (session reauthentication failed).
+    expect(authErrorCode(authError("Invalid login credentials", 400, "invalid_credentials"))).toBe(
+      "invalidCredentials",
+    );
+  });
+
+  it("maps a too-short new password to weakPassword", () => {
+    expect(
+      authErrorCode(authError("New password should be at least 6 characters", 422, "weak_password")),
+    ).toBe("weakPassword");
+  });
+
+  it("maps a missing/expired session to invalidCredentials (401)", () => {
+    expect(authErrorCode(authError("no session", 401))).toBe("invalidCredentials");
   });
 });
 

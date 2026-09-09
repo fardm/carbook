@@ -6,6 +6,7 @@ import {
   maintenanceItemIdFromHash,
   parseHash,
   remindersEditIdFromHash,
+  navRoutes,
   remindersFocusIdFromHash,
   remindersHash,
   remindersServiceIdFromHash,
@@ -41,6 +42,16 @@ describe("router", () => {
     expect(maintenanceItemIdFromHash("#/maintenance/")).toBe(null);
     expect(maintenanceItemIdFromHash("#/maintenance")).toBe(null);
     expect(maintenanceItemIdFromHash("#/dashboard")).toBe(null);
+  });
+
+  it("keeps the Account page routable but out of the bottom navigation", () => {
+    const account = routes.find((r) => r.id === "account");
+    expect(account).toBeDefined();
+    expect(parseHash("#/account")).toBe("account");
+    expect(parseHash("/account")).toBe("account");
+    // Real route (deep-linkable, refresh-safe) but never a nav link.
+    expect(navRoutes.map((r) => r.id)).not.toContain("account");
+    expect(navRoutes).toHaveLength(routes.length - 1);
   });
 
   it("exposes unique ids and hashes", () => {

@@ -1,10 +1,15 @@
 import { t } from "./i18n";
 import { applyIcons } from "./ui/icons";
-import { routes, parseHash, type RouteId } from "./ui/router";
+import {
+  navRoutes,
+  parseHash,
+  type RouteId,
+} from "./ui/router";
 import { registerThemeSync } from "./ui/theme";
 import {
   navAccountItemHtml,
-  openAccountModal,
+  onNavAccountClicked,
+  closeAccountModal,
 } from "./ui/account";
 import { auth } from "./supabase/auth";
 import { initializeDataSource } from "./supabase/data-source";
@@ -39,7 +44,7 @@ function renderNav(): void {
       </span>
     </div>
     <div class="nav__list">
-      ${routes
+      ${navRoutes
         .map(
           (route) => `
             <a class="nav__item" href="#${route.hash}" data-route="${route.id}">
@@ -49,7 +54,7 @@ function renderNav(): void {
           `,
         )
         .join("")}
-      ${navAccountItemHtml(auth.getUser())}
+      ${navAccountItemHtml()}
     </div>
   `;
   applyIcons();
@@ -93,9 +98,9 @@ function render(): void {
   applyIcons();
 }
 
-/** Re-renders ONLY the navigation (auth state changes the account/logout
- * item; routes never change). Cheaper than renderNav + keeps the current
- * page intact. */
+/** Re-renders ONLY the navigation (auth state changes the account item;
+ * routes never change). Cheaper than renderNav + keeps the current page
+ * intact. */
 function refreshNavAccountItem(): void {
   const nav = document.getElementById("app-nav");
   if (!nav) return;
@@ -103,11 +108,12 @@ function refreshNavAccountItem(): void {
   if (!list) return;
   const accountItem = list.querySelector(".nav__item--account");
   if (!accountItem) return;
-  accountItem.outerHTML = navAccountItemHtml(auth.getUser());
+  accountItem.outerHTML = navAccountItemHtml();
   applyIcons();
 }
 
-/** Wires the account entry (open modal / logout button) inside the nav. */
+/** Wires the account nav button: authenticated → Account page, guest →
+ * login/signup modal (see ui/account.ts). */
 function bindNavAccount(): void {
   const nav = document.getElementById("app-nav");
   if (!nav) return;
@@ -115,9 +121,7 @@ function bindNavAccount(): void {
     const target = event.target as HTMLElement | null;
     if (!target) return;
     if (target.closest(".js-nav-account")) {
-      openAccountModal();
-    } else if (target.closest(".js-nav-logout")) {
-      openAccountModal();
+      onNavAccountClicked();
     }
   });
 }
@@ -144,14 +148,18 @@ function boot(): void {
   registerReminderChecks();
 
   // Account boot: restore the session, route the data layer to Supabase or
-  // IndexedDB, and keep the nav's account/logout item in sync. When no
-  // Supabase env vars exist the app stays in guest mode (unchanged). The
-  // initial render above already painted the guest view; once the data
-  // layer is ready the views re-render from the (possibly cloud) dataset.
+  // IndexedDB, and keep the nav's account item in sync. When no Supabase env
+  // vars exist the app stays in guest mode (unchanged). The initial render
+  // above already painted the guest view; once the data layer is ready the
+  // views re-render from the (possibly cloud) dataset.
   void initializeDataSource().then(() => {
     refreshNavAccountItem();
-    // Any later login/logout also updates the nav entry immediately.
-    auth.subscribe(refreshNavAccountItem);
+    // Any later login/logout also updates the nav entry immediately, and a
+    // logout while the Account page is open closes any modal remnants.
+    auth.subscribe((user) => {
+      refreshNavAccountItem();
+      if (!user) closeAccountModal();
+    });
     // Re-render the active view with the settled backend data.
     render();
   });

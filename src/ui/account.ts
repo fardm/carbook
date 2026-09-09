@@ -2,39 +2,53 @@ import { t } from "../i18n";
 import { applyIcons } from "../ui/icons";
 import { bindFloatingFields } from "../ui/floating-field";
 import { escHtml } from "../ui/escape";
-import { store } from "../state/store";
-import { auth, type AccountUser } from "../supabase/auth";
-import { getSupabase } from "../supabase/client";
+import { hashFor } from "../ui/router";
+import { auth } from "../supabase/auth";
 import { mapAuthError, validateEmail, validatePassword } from "../supabase/errors";
-import {
-  applyAuthState,
-  currentGuestRepository,
-  reloadActiveRepository,
-} from "../supabase/data-source";
-import { hasMeaningfulData, countDataset, type DatasetCounts } from "../supabase/cloud-dataset";
-import { migrateGuestDataToCloud } from "../supabase/migration";
+import { afterAuthenticated } from "../views/account";
 
 /**
- * Account UI — the single account entry point in the navigation.
+ * Account entry point — the single account button in the navigation
+ * (mobile bottom bar + desktop sidebar).
  *
- * Unauthenticated: a user button (mobile bottom bar + desktop sidebar)
- * opens the account modal with Sign in / Sign up tabs.
- * Authenticated: the button becomes a logout icon; the modal shows the
- * account email and the logout action. After logout the app switches back
- * to guest mode immediately — the previous user's cloud data is never
- * rendered (the repository swap is atomic) and never copied into IndexedDB.
+ * The button ALWAYS reads «حساب کاربری» (label never changes with auth
+ * state):
+ *   - Guest: opens the account modal with Sign in / Sign up tabs (the only
+ *     remaining role of the modal — the authenticated modal was removed;
+ *     signed-in users get the dedicated Account page at #/account instead).
+ *   - Authenticated: navigates to the Account page like any other route.
  *
  * Guest→cloud migration: right after signing in, if the local guest dataset
- * holds meaningful data, a one-time offer appears inside the modal. The
- * local data is NEVER deleted — only read for the upload.
+ * holds meaningful data, a one-time offer appears on the Account page
+ * (see views/account.ts). The local data is NEVER deleted — only read for
+ * the upload.
  */
 
 /* ------------------------------------------------------------------ */
-/* State (module-local, like the other views)                          */
+/* Navigation entry (rendered by main.ts renderNav)                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The account navigation item markup appended to .nav__list. One markup for
+ * BOTH auth states: identical label and icon, so the nav never changes
+ * appearance on login/logout. It is a <button> (not a route link) because
+ * the guest click must open the modal instead of navigating.
+ */
+export function navAccountItemHtml(): string {
+  return `
+    <button type="button" class="nav__item nav__item--account js-nav-account"
+      aria-label="${t("nav.account")}">
+      <span data-lucide="circle-user-round"></span>
+      <span>${t("nav.account")}</span>
+    </button>
+  `;
+}
+
+/* ------------------------------------------------------------------ */
+/* Modal (sign in / sign up — signed-out users only)                   */
 /* ------------------------------------------------------------------ */
 
 type Mode = "signIn" | "signUp";
-type MigrationChoice = "pending" | "accepted" | "declined";
 
 interface AccountUiState {
   mode: Mode;
@@ -44,10 +58,6 @@ interface AccountUiState {
   /** Field-level validation error keys. */
   emailErrorKey: string | null;
   passwordErrorKey: string | null;
-  /** Migration offer state after a successful sign-in. */
-  migration: (MigrationChoice | "offer") | null;
-  migrationCounts: DatasetCounts | null;
-  migrationErrorKey: string | null;
 }
 
 const state: AccountUiState = {
@@ -56,56 +66,35 @@ const state: AccountUiState = {
   errorKey: null,
   emailErrorKey: null,
   passwordErrorKey: null,
-  migration: null,
-  migrationCounts: null,
-  migrationErrorKey: null,
 };
-
-/* ------------------------------------------------------------------ */
-/* Navigation entry (rendered by main.ts renderNav)                    */
-/* ------------------------------------------------------------------ */
-
-/** The account/logout navigation item markup appended to .nav__list. */
-export function navAccountItemHtml(user: AccountUser | null): string {
-  if (user) {
-    return `
-      <button type="button" class="nav__item nav__item--account js-nav-logout"
-        aria-label="${t("nav.account")}">
-        <span data-lucide="log-out"></span>
-        <span>${t("account.logoutButton")}</span>
-      </button>
-    `;
-  }
-  return `
-    <button type="button" class="nav__item nav__item--account js-nav-account"
-      aria-haspopup="dialog" aria-label="${t("nav.account")}">
-      <span data-lucide="circle-user-round"></span>
-      <span>${t("nav.account")}</span>
-    </button>
-  `;
-}
-
-/* ------------------------------------------------------------------ */
-/* Modal                                                               */
-/* ------------------------------------------------------------------ */
 
 let modalOpen = false;
 let unsubscribeAuth: (() => void) | null = null;
 let outsideClickListener: ((event: MouseEvent) => void) | null = null;
 
-/** Opens the account modal (from the nav button). */
+/**
+ * Nav button click. Authenticated → go to the dedicated Account page
+ * (normal route navigation); guest → open the login/signup modal.
+ */
+export function onNavAccountClicked(): void {
+  if (auth.getUser()) {
+    window.location.hash = hashFor("account");
+    return;
+  }
+  openAccountModal();
+}
+
+/** Opens the account modal (from the nav button, guests only). */
 export function openAccountModal(): void {
   if (modalOpen) return;
   modalOpen = true;
   state.errorKey = null;
   state.emailErrorKey = null;
   state.passwordErrorKey = null;
-  const user = auth.getUser();
-  // After a fresh sign-in the migration offer (if any) is shown here.
-  drawModal(user);
+  drawModal();
   unsubscribeAuth = auth.subscribe(() => {
     state.errorKey = null;
-    drawModal(auth.getUser());
+    drawModal();
   });
 }
 
@@ -122,12 +111,8 @@ export function closeAccountModal(): void {
   }
 }
 
-export function isAccountModalOpen(): boolean {
-  return modalOpen;
-}
-
 /* ------------------------------------------------------------------ */
-/* Rendering                                                           */
+/* Rendering (sign in / sign up only)                                  */
 /* ------------------------------------------------------------------ */
 
 function ensureOverlay(): HTMLElement {
@@ -141,10 +126,10 @@ function ensureOverlay(): HTMLElement {
   return overlay;
 }
 
-function drawModal(user: AccountUser | null): void {
+function drawModal(): void {
   const overlay = ensureOverlay();
-  overlay.innerHTML = user ? authenticatedModalHtml(user) : unauthenticatedModalHtml();
-  bindModal(overlay, user);
+  overlay.innerHTML = unauthenticatedModalHtml();
+  bindModal(overlay);
   applyIcons();
   bindFloatingFields(overlay);
 }
@@ -211,66 +196,11 @@ function unauthenticatedModalHtml(): string {
   `;
 }
 
-/** Modal body while signed in: email + logout (+ one-time migration offer). */
-function authenticatedModalHtml(user: AccountUser): string {
-  const migrationHtml = migrationHtmlSection();
-  return `
-    <div class="modal account-modal" role="dialog" aria-modal="true" aria-label="${t("account.signedInTitle")}">
-      <div class="modal__head">
-        <div class="form__title">${t("account.signedInTitle")}</div>
-        <button type="button" class="icon-btn js-account-close" aria-label="${t("common.close")}">
-          <span data-lucide="x"></span>
-        </button>
-      </div>
-      <div class="account-profile">
-        <span class="account-profile__avatar" data-lucide="circle-user-round" aria-hidden="true"></span>
-        <span class="account-profile__email" dir="ltr">${escHtml(user.email)}</span>
-      </div>
-      ${migrationHtml}
-      <div class="form__actions account-actions">
-        <button type="button" class="btn btn--text js-account-close">${t("common.close")}</button>
-        <button type="button" class="btn btn--danger-text js-logout-start">
-          <span data-lucide="log-out"></span>
-          ${t("account.logoutButton")}
-        </button>
-      </div>
-    </div>
-  `;
-}
-
-/** The one-time guest→cloud migration offer (after a fresh sign-in). */
-function migrationHtmlSection(): string {
-  if (state.migration !== "offer" || !state.migrationCounts) return "";
-  const counts = state.migrationCounts;
-  const countsText = t("account.migrationCounts")
-    .replace("{vehicles}", String(counts.vehicles))
-    .replace("{items}", String(counts.items))
-    .replace("{services}", String(counts.services))
-    .replace("{reminders}", String(counts.reminders));
-  const errorHtml = state.migrationErrorKey
-    ? `<div class="box box--error" role="alert"><span>${escHtml(t(state.migrationErrorKey as never))}</span></div>`
-    : "";
-  return `
-    <section class="card account-migration">
-      <h3 class="card__title">${t("account.migrationTitle")}</h3>
-      <p class="card__text">${t("account.migrationIntro")}</p>
-      <p class="account-migration__counts">${escHtml(countsText)}</p>
-      ${errorHtml}
-      <div class="form__actions">
-        <button type="button" class="btn btn--text js-migration-decline">${t("account.migrationDecline")}</button>
-        <button type="button" class="btn btn--filled js-migration-accept" ${state.busy ? "disabled" : ""}>
-          ${state.busy ? `<span class="account-spinner" data-lucide="loader-circle"></span>${t("account.working")}` : t("account.migrationButton")}
-        </button>
-      </div>
-    </section>
-  `;
-}
-
 /* ------------------------------------------------------------------ */
 /* Events                                                              */
 /* ------------------------------------------------------------------ */
 
-function bindModal(overlay: HTMLElement, user: AccountUser | null): void {
+function bindModal(overlay: HTMLElement): void {
   overlay.querySelectorAll(".js-account-close").forEach((button) => {
     button.addEventListener("click", closeAccountModal);
   });
@@ -283,24 +213,6 @@ function bindModal(overlay: HTMLElement, user: AccountUser | null): void {
     overlay.addEventListener("mousedown", outsideClickListener);
   }
 
-  if (user == null) {
-    bindAuthForm(overlay);
-    return;
-  }
-
-  overlay.querySelector(".js-logout-start")?.addEventListener("click", () => {
-    void performLogout();
-  });
-  overlay.querySelector(".js-migration-accept")?.addEventListener("click", () => {
-    void performMigration(user.id);
-  });
-  overlay.querySelector(".js-migration-decline")?.addEventListener("click", () => {
-    state.migration = "declined";
-    drawModal(user);
-  });
-}
-
-function bindAuthForm(overlay: HTMLElement): void {
   overlay.querySelector(".js-tab-sign-in")?.addEventListener("click", () => {
     switchMode("signIn");
   });
@@ -319,7 +231,7 @@ function switchMode(mode: Mode): void {
   state.errorKey = null;
   state.emailErrorKey = null;
   state.passwordErrorKey = null;
-  drawModal(null);
+  drawModal();
   document.getElementById("account-email")?.focus();
 }
 
@@ -334,13 +246,13 @@ async function submitAuthForm(form: HTMLFormElement): Promise<void> {
   state.passwordErrorKey = validatePassword(password) ? "account.errors.shortPassword" : null;
   if (state.emailErrorKey || state.passwordErrorKey) {
     state.errorKey = null;
-    drawModal(null);
+    drawModal();
     return;
   }
 
   state.busy = true;
   state.errorKey = null;
-  drawModal(null);
+  drawModal();
   let loginSucceeded = false;
   try {
     if (state.mode === "signUp") {
@@ -363,86 +275,17 @@ async function submitAuthForm(form: HTMLFormElement): Promise<void> {
     if (loginSucceeded) {
       closeAccountModal();
       showLoginToast();
+      // Enter the app on the Account page: it carries the one-time
+      // guest→cloud migration offer (when guest data exists) plus the new
+      // account management actions.
+      window.location.hash = hashFor("account");
     } else {
-      drawModal(auth.getUser());
+      drawModal();
     }
   }
 }
 
-/** Runs once after a successful sign-in: swap the data layer to the cloud
- * backend, then prepare the one-time migration offer if guest data exists. */
-async function afterAuthenticated(): Promise<void> {
-  const user = auth.getUser();
-  if (!user) return;
-  // Snapshot the GUEST dataset straight from the guest repository (NOT from
-  // the store): the auth listener may already have swapped the store to the
-  // user's cloud backend, and IndexedDB must never be read through the
-  // wrong lens. Waiting for initialLoad guarantees the async IndexedDB load
-  // has settled before we read it.
-  const guestRepo = currentGuestRepository();
-  await guestRepo.initialLoad?.();
-  await guestRepo.flush?.();
-  const guestSnapshot = guestRepo.load();
-  // Swap the store to the user's Supabase repository (idempotent if the
-  // auth listener already did it).
-  await applyAuthState();
-  // One-time migration offer only when the guest dataset was meaningful.
-  if (hasMeaningfulData(guestSnapshot) && getSupabase()) {
-    state.migration = "offer";
-    state.migrationCounts = countDataset(guestSnapshot);
-    state.migrationErrorKey = null;
-  } else {
-    state.migration = "pending";
-  }
-  // Keep a reference for the migration upload (reads local data only).
-  lastGuestSnapshot = guestSnapshot;
-}
-
-/* Snapshot kept for the migration flow (module-local, one sign-in at a time). */
-let lastGuestSnapshot: ReturnType<typeof store.get> | null = null;
-
-async function performMigration(userId: string): Promise<void> {
-  const client = getSupabase();
-  const dataset = lastGuestSnapshot;
-  if (!client || !dataset) {
-    state.migration = "declined";
-    drawModal(auth.getUser());
-    return;
-  }
-  state.busy = true;
-  drawModal(auth.getUser());
-  const result = await migrateGuestDataToCloud(client, userId, dataset);
-  state.busy = false;
-  if (result.status === "migrated") {
-    state.migration = "accepted";
-    state.migrationErrorKey = null;
-    // Reload the store from the cloud so the migrated rows are visible.
-    await reloadActiveRepository();
-    closeAccountModal();
-  } else if (result.status === "conflict") {
-    state.migration = "declined";
-    state.migrationErrorKey = "account.migrationConflict";
-  } else if (result.status === "error") {
-    // Keep the offer open for retry; local data is untouched.
-    state.migrationErrorKey = "account.errors.migrationFailed";
-  } else {
-    state.migration = "declined";
-  }
-  drawModal(auth.getUser());
-}
-
-async function performLogout(): Promise<void> {
-  try {
-    await auth.signOut();
-    // onAuthStateChange → auth subscribers → applyAuthState() swaps the
-    // store back to IndexedDB; the modal closes on the auth event.
-    closeAccountModal();
-  } catch (error) {
-    state.errorKey = mapAuthError(error);
-    drawModal(auth.getUser());
-  }
-}
-
+/** The toast shown right after a successful sign-in/sign-up. */
 function showLoginToast(): void {
   const toast = document.createElement("div");
   toast.className = "toast";

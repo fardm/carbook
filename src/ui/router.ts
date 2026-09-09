@@ -20,7 +20,7 @@
 /** Matches `#/maintenance/<id>` (single path segment after the view). */
 const MAINTENANCE_DETAIL_RE = /^\/maintenance\/([^/]+)$/;
 
-export type RouteId = "maintenance" | "vehicle" | "reminders" | "settings";
+export type RouteId = "maintenance" | "vehicle" | "reminders" | "settings" | "account";
 
 export interface RouteDef {
   id: RouteId;
@@ -30,12 +30,27 @@ export interface RouteDef {
   icon: string;
 }
 
+/**
+ * The four bottom-nav routes plus the Account page. The account route is a
+ * REAL route (deep-linkable, survives refresh) but never appears in the
+ * bottom nav — it is reached through the account nav entry (see main.ts),
+ * which is a button, not a route link.
+ */
 export const routes: readonly RouteDef[] = [
   { id: "vehicle", hash: "/vehicle", icon: "car-front" },
   { id: "maintenance", hash: "/maintenance", icon: "wrench" },
   { id: "reminders", hash: "/reminders", icon: "bell" },
   { id: "settings", hash: "/settings", icon: "settings" },
+  { id: "account", hash: "/account", icon: "circle-user-round" },
 ];
+
+/**
+ * The routes listed in the bottom navigation (mobile) / sidebar (desktop).
+ * The Account page is a real route but is NOT listed here: its nav entry is
+ * the always-visible account button (see ui/account.ts), which either opens
+ * the login/signup modal (guest) or navigates here (authenticated).
+ */
+export const navRoutes: readonly RouteDef[] = routes.filter((route) => route.id !== "account");
 
 /** The Vehicles page is the first/default page after login. */
 export const DEFAULT_ROUTE: RouteId = "vehicle";
