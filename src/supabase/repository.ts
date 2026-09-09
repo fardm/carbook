@@ -117,11 +117,26 @@ export class SupabaseRepository implements AsyncRepository {
   }
 
   private async saveSettings(dataset: Dataset): Promise<void> {
-    await this.upsert(CLOUD_TABLES.settings, [datasetToSettingsRow(dataset, this.userId)]);
+    // app_settings is keyed by user_id (one row per user) — there is no `id`
+    // column, so the conflict target MUST be user_id. Upserting with an
+    // `id` conflict target produced PostgREST error 400 on every save.
+    await this.upsert(CLOUD_TABLES.settings, [datasetToSettingsRow(dataset, this.userId)], {
+      onConflict: "user_id",
+    });
   }
 
-  private async upsert(table: string, rows: Array<object>): Promise<void> {
-    const { error } = await this.client.from(table).upsert(rows, { onConflict: "id" });
+  /** Upserts rows with an explicit conflict target: the primary key of the
+   * target table (`id` everywhere except app_settings, which is keyed by
+   * user_id). Sending a conflict column that does not exist makes PostgREST
+   * reject the request with 400. */
+  private async upsert(
+    table: string,
+    rows: Array<object>,
+    options?: { onConflict: string },
+  ): Promise<void> {
+    const { error } = await this.client
+      .from(table)
+      .upsert(rows, { onConflict: options?.onConflict ?? "id" });
     if (error) throw error;
   }
 

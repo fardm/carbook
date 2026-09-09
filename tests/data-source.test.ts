@@ -119,12 +119,31 @@ function fakeSupabase(options?: { loadError?: Error }) {
         state.single = true;
         return builder;
       },
-      upsert: async (rows: Array<Record<string, unknown>>) => {
+      upsert: async (
+        rows: Array<Record<string, unknown>>,
+        opts?: { onConflict?: string },
+      ) => {
         if (authUid == null) return { data: null, error: { message: "RLS: not authenticated" } };
+        // Emulate PostgREST: an on_conflict column that the table does not
+        // have is rejected with 400 Bad Request (this is exactly the bug
+        // this suite guards against for app_settings).
+        const conflictColumn = opts?.onConflict ?? "id";
+        const hasColumn =
+          conflictColumn === "id"
+            ? table !== "app_settings" // app_settings has no id column
+            : rows.every((row) => conflictColumn in row);
+        if (!hasColumn) {
+          return {
+            data: null,
+            error: { message: `column ${table}.${conflictColumn} does not exist`, status: 400 },
+          };
+        }
         const scoped = rows.filter((row) => row.user_id === authUid);
         const existing = tables.get(table) ?? [];
         for (const row of scoped) {
-          const index = existing.findIndex((candidate) => candidate.id === row.id);
+          const index = existing.findIndex(
+            (candidate) => candidate[conflictColumn] === row[conflictColumn],
+          );
           if (index >= 0) existing[index] = row;
           else existing.push(row);
         }
@@ -466,5 +485,79 @@ describe("guest → cloud migration", () => {
     await applyAuthState();
     expect(store.get().vehicles[0]?.name).toBe("خودروی مهمان");
     expect(store.get().reminders[0]?.title).toBe("یادآوری مهمان");
+  });
+});
+
+describe("app_settings persistence — conflict target", () => {
+  let idb: ReturnType<typeof installFakeIndexedDB>;
+  let supabase: ReturnType<typeof fakeSupabase>;
+
+  beforeEach(() => {
+    idb = installFakeIndexedDB();
+    supabase = fakeSupabase();
+    setSupabaseOverride(supabase.client);
+    resetDataSourceForTests();
+  });
+
+  afterEach(() => {
+    setSupabaseOverride(null);
+    setUser(null);
+    idb.restore();
+    resetDataSourceForTests();
+  });
+
+  it("saving settings upserts with on_conflict=user_id and succeeds (no 400)", async () => {
+    setUser(USER);
+    supabase.setAuthUser(USER);
+    await applyAuthState();
+
+    // Change a setting through the real store flow — triggers a save.
+    store.update((draft) => {
+      draft.settings.theme = "dark";
+    });
+    await new Promise((resolve) => setTimeout(resolve, 30)); // let the write land
+
+    const settingsRows = supabase.rowsOf("app_settings", USER);
+    expect(settingsRows).toHaveLength(1);
+    expect(settingsRows[0].theme).toBe("dark");
+  });
+
+  it("updating settings twice replaces the row instead of duplicating it", async () => {
+    setUser(USER);
+    supabase.setAuthUser(USER);
+    await applyAuthState();
+
+    store.update((draft) => {
+      draft.settings.theme = "dark";
+    });
+    store.update((draft) => {
+      draft.settings.theme = "light";
+    });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    const settingsRows = supabase.rowsOf("app_settings", USER);
+    expect(settingsRows).toHaveLength(1);
+    expect(settingsRows[0].theme).toBe("light");
+  });
+
+  it("an id conflict target on app_settings would fail (regression guard)", async () => {
+    // The fake rejects on_conflict=id for app_settings exactly like
+    // PostgREST (column does not exist → 400). Seed the row and attempt a
+    // raw repository save with the OLD behavior to prove the guard works.
+    supabase.setAuthUser(USER);
+    const { SupabaseRepository } = await import("../src/supabase/repository");
+    const repository = new SupabaseRepository(supabase.client, USER);
+
+    // A save through the CURRENT code must succeed end to end.
+    await expect(repository.save(defaultDataset())).resolves.toBeUndefined();
+    expect(supabase.rowsOf("app_settings", USER)).toHaveLength(1);
+
+    // And a deliberately wrong conflict target must be rejected by the fake,
+    // demonstrating the guard actually detects the bug class.
+    const builder = supabase.client.from("app_settings") as unknown as {
+      upsert: (rows: unknown[], opts?: { onConflict?: string }) => Promise<{ error: unknown }>;
+    };
+    const bad = await builder.upsert([{ user_id: USER }], { onConflict: "id" });
+    expect(bad.error).toMatchObject({ status: 400 });
   });
 });
