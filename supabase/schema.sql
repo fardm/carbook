@@ -118,7 +118,7 @@ do $$
 declare
   t text;
 begin
-  foreach t in array array['vehicles', 'maintenance_items', 'service_history', 'reminders', 'app_settings']
+  for t in select * from unnest(array['vehicles', 'maintenance_items', 'service_history', 'reminders', 'app_settings'])
   loop
     execute format('alter table public.%I enable row level security;', t);
     execute format('alter table public.%I force row level security;', t);

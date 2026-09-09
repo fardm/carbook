@@ -400,11 +400,17 @@ async function submitAuthForm(form: HTMLFormElement): Promise<void> {
 async function afterAuthenticated(): Promise<void> {
   const user = auth.getUser();
   if (!user) return;
-  // Snapshot the GUEST dataset from IndexedDB before the store swaps to the
-  // cloud backend (afterAuthenticated runs while still on the guest repo).
-  const guestSnapshot = store.get();
-  await currentGuestRepository().flush?.();
-  // Swap the store to the user's Supabase repository.
+  // Snapshot the GUEST dataset straight from the guest repository (NOT from
+  // the store): the auth listener may already have swapped the store to the
+  // user's cloud backend, and IndexedDB must never be read through the
+  // wrong lens. Waiting for initialLoad guarantees the async IndexedDB load
+  // has settled before we read it.
+  const guestRepo = currentGuestRepository();
+  await guestRepo.initialLoad?.();
+  await guestRepo.flush?.();
+  const guestSnapshot = guestRepo.load();
+  // Swap the store to the user's Supabase repository (idempotent if the
+  // auth listener already did it).
   await applyAuthState();
   // One-time migration offer only when the guest dataset was meaningful.
   if (hasMeaningfulData(guestSnapshot) && getSupabase()) {
