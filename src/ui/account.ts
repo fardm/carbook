@@ -44,8 +44,6 @@ interface AccountUiState {
   /** Field-level validation error keys. */
   emailErrorKey: string | null;
   passwordErrorKey: string | null;
-  /** Successful sign-up without a session (email confirmation required). */
-  confirmationSent: boolean;
   /** Logout confirmation step. */
   confirmLogout: boolean;
   /** Migration offer state after a successful sign-in. */
@@ -60,7 +58,6 @@ const state: AccountUiState = {
   errorKey: null,
   emailErrorKey: null,
   passwordErrorKey: null,
-  confirmationSent: false,
   confirmLogout: false,
   migration: null,
   migrationCounts: null,
@@ -182,9 +179,6 @@ function unauthenticatedModalHtml(): string {
   const passwordError = state.passwordErrorKey
     ? `<p class="field__error">${escHtml(t(state.passwordErrorKey as never))}</p>`
     : "";
-  const confirmationHtml = state.confirmationSent
-    ? `<div class="box box--success" role="status"><span data-lucide="circle-check"></span><span>${escHtml(t("account.emailConfirmationSent"))}</span></div>`
-    : "";
 
   return `
     <div class="modal account-modal" role="dialog" aria-modal="true" aria-label="${t("account.title")}">
@@ -195,7 +189,6 @@ function unauthenticatedModalHtml(): string {
         </button>
       </div>
       ${tabs}
-      ${confirmationHtml}
       ${errorHtml}
       <form class="form account-form" novalidate>
         <div class="field">
@@ -377,11 +370,10 @@ async function submitAuthForm(form: HTMLFormElement): Promise<void> {
   try {
     if (state.mode === "signUp") {
       await auth.signUp(email, password);
-      // Email-confirmation projects keep the user signed out here.
+      // With "Confirm email" disabled (project setting), signUp returns an
+      // active session and the user enters the app immediately.
       if (auth.getUser()) {
         await afterAuthenticated();
-      } else {
-        state.confirmationSent = true;
       }
     } else {
       await auth.signIn(email, password);

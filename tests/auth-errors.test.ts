@@ -49,12 +49,6 @@ describe("mapAuthError — Supabase auth failures", () => {
     expect(authErrorCode(authError("any", 401))).toBe("invalidCredentials");
   });
 
-  it("maps unconfirmed email to emailNotConfirmed", () => {
-    expect(authErrorCode(authError("Email not confirmed", 400, "email_not_confirmed"))).toBe(
-      "emailNotConfirmed",
-    );
-  });
-
   it("maps invalid email to invalidEmail", () => {
     expect(authErrorCode(authError("Unable to validate email address: invalid format", 422))).toBe(
       "invalidEmail",
@@ -81,7 +75,7 @@ describe("mapAuthError — Supabase auth failures", () => {
 
   it("never leaks raw error text — output is always a known i18n key", () => {
     const key = mapAuthError(new Error("secret internal detail: db=xyz pass=hunter2"));
-    expect(key).toMatch(/^account\.errors\.(invalidEmail|weakPassword|shortPassword|emailInUse|invalidCredentials|emailNotConfirmed|network|rateLimited|sessionExpired|migrationFailed|generic)$/);
+    expect(key).toMatch(/^account\.errors\.(invalidEmail|weakPassword|shortPassword|emailInUse|invalidCredentials|network|rateLimited|sessionExpired|migrationFailed|generic)$/);
     expect(key).toBe("account.errors.generic");
   });
 

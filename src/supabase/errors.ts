@@ -13,7 +13,6 @@ export type AuthErrorCode =
   | "shortPassword"
   | "emailInUse"
   | "invalidCredentials"
-  | "emailNotConfirmed"
   | "network"
   | "rateLimited"
   | "sessionExpired"
@@ -80,9 +79,6 @@ function classify(error: unknown): AuthErrorCode {
     }
     if (codeProp === "invalid_credentials" || /invalid login credentials/.test(message)) {
       return "invalidCredentials";
-    }
-    if (codeProp === "email_not_confirmed" || /email not confirmed|confirm/.test(message)) {
-      return "emailNotConfirmed";
     }
     if (/email address.*invalid|invalid email|unable to validate email/.test(message)) {
       return "invalidEmail";
