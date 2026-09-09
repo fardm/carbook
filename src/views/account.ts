@@ -46,10 +46,11 @@ import { migrateGuestDataToCloud } from "../supabase/migration";
 /* ------------------------------------------------------------------ */
 
 type MigrationChoice = "pending" | "accepted" | "declined";
-type Modal = null | "password";
+type Modal = null | "password" | "logout";
 
 interface AccountViewState {
-  /** Which modal is open (only the change-password dialog exists). */
+  /** Which modal is open: the change-password dialog or the logout
+   * confirmation (only one at a time). */
   modal: Modal;
   busy: boolean;
   /** Current/new/confirm password fields (client-side validation errors). */
@@ -147,24 +148,22 @@ function accountViewHtml(): string {
   return `
     <div class="view-stack">
       <h1 class="view-title">${t("view.account.title")}</h1>
-      <div class="account-list">
-        <div class="account-list__row account-list__row--static">
-          <span class="account-list__label">${t("account.emailLabel")}</span>
-          <span class="account-list__value" dir="ltr">${escHtml(user.email)}</span>
-        </div>
-        <div class="account-list__divider" role="separator"></div>
-        <button type="button" class="account-list__row account-list__row--action js-open-password">
-          <span>${t("account.changePasswordTitle")}</span>
-          <span class="account-list__chevron" data-lucide="chevron-left" aria-hidden="true"></span>
+      <div class="account-email">
+        <span class="account-list__label">${t("account.emailLabel")}</span>
+        <span class="account-list__value" dir="ltr">${escHtml(user.email)}</span>
+      </div>
+      <div class="account-actions">
+        <button type="button" class="btn btn--secondary js-open-password">
+          ${t("account.changePasswordTitle")}
         </button>
-        <div class="account-list__divider" role="separator"></div>
-        <button type="button" class="account-list__row account-list__row--action account-list__row--danger js-logout-start">
-          <span>${t("account.logoutButton")}</span>
+        <button type="button" class="btn btn--danger-outline js-logout-start">
+          ${t("account.logoutButton")}
         </button>
       </div>
       ${migrationHtmlSection()}
     </div>
     ${passwordModalHtml()}
+    ${logoutConfirmModalHtml()}
   `;
 }
 
@@ -231,6 +230,28 @@ function fieldErrorHtml(key: string | null): string {
   return key ? `<p class="field__error">${escHtml(t(key as never))}</p>` : "";
 }
 
+/* --- Logout confirmation (asks before signing out) --- */
+
+/** Same alertdialog shape as the delete confirms (services/reminders), but
+ * the question is plain neutral text — no warning box or colors. */
+function logoutConfirmModalHtml(): string {
+  if (state.modal !== "logout") return "";
+  return `
+    <div class="modal-overlay account-overlay">
+      <div class="modal account-modal" role="alertdialog" aria-modal="true"
+        aria-label="${t("account.logoutButton")}">
+        <div class="form">
+          <p>${t("account.logoutConfirmText")}</p>
+          <div class="form__actions">
+            <button type="button" class="btn btn--text js-logout-cancel">${t("common.cancel")}</button>
+            <button type="button" class="btn btn--danger js-logout-confirm">${t("account.logoutConfirmButton")}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 /* --- One-time guest→cloud migration offer (after a fresh sign-in) --- */
 
 function migrationHtmlSection(): string {
@@ -281,7 +302,7 @@ function bind(container: HTMLElement): void {
     document.getElementById("account-current-password")?.focus();
   });
 
-  const closePassword = (): void => {
+  const closeModal = (): void => {
     state.modal = null;
     state.formValues = {};
     state.changeErrorKey = null;
@@ -291,14 +312,14 @@ function bind(container: HTMLElement): void {
     redraw(container);
   };
   container.querySelectorAll(".js-password-close").forEach((button) => {
-    button.addEventListener("click", closePassword);
+    button.addEventListener("click", closeModal);
   });
 
-  // Backdrop click closes the modal without changing the password (same
+  // Backdrop click closes whichever modal is open without acting (same
   // pattern as the reminders view).
   container.querySelectorAll<HTMLElement>(".modal-overlay").forEach((overlay) => {
     overlay.addEventListener("click", (event) => {
-      if (event.target === overlay) closePassword();
+      if (event.target === overlay) closeModal();
     });
   });
 
@@ -309,6 +330,15 @@ function bind(container: HTMLElement): void {
   });
 
   container.querySelector(".js-logout-start")?.addEventListener("click", () => {
+    // Ask first: only the confirm button signs out.
+    state.modal = "logout";
+    redraw(container);
+  });
+  container.querySelector(".js-logout-cancel")?.addEventListener("click", () => {
+    closeModal();
+  });
+  container.querySelector(".js-logout-confirm")?.addEventListener("click", () => {
+    closeModal();
     void performLogout(container);
   });
   container.querySelector(".js-migration-accept")?.addEventListener("click", () => {

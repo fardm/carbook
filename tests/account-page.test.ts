@@ -125,7 +125,7 @@ describe("account page", () => {
     window.location.hash = "";
   });
 
-  it("renders a minimal list — title, email, change-password and logout rows", async () => {
+  it("renders title, email, change-password and logout actions — no inline form", async () => {
     const { container } = await renderSignedIn();
 
     const html = container.innerHTML;
@@ -133,11 +133,10 @@ describe("account page", () => {
     expect(html).toContain(EMAIL); // signup/login email
     expect(container.querySelector(".js-open-password")?.textContent).toContain("تغییر رمز عبور");
     expect(container.querySelector(".js-logout-start")?.textContent).toContain("خروج از حساب");
-    // Minimal list, not a form page: no password fields inline, no cards.
+    // Not a form page: no password fields inline, no cards.
     expect(html).not.toContain('id="account-current-password"');
     expect(html).not.toContain('id="account-new-password"');
     expect(html).not.toContain('id="account-confirm-password"');
-    expect(container.querySelector(".account-list__divider")).not.toBeNull();
     // No explanatory paragraphs / helper text.
     expect(html).not.toContain("باقی می‌مانند"); // old logout cloud note
     expect(html).not.toContain("احراز هویت"); // old change-password intro
@@ -231,12 +230,30 @@ describe("account page", () => {
     expect(modal!.innerHTML).toContain("ایمیل یا گذرواژه اشتباه است");
   });
 
-  it("logs out through auth.signOut and returns to the guest default route", async () => {
+  it("asks for confirmation before logout, then signs out on confirm", async () => {
     const { container, supabase } = await renderSignedIn();
 
-    const logout = container.querySelector<HTMLButtonElement>(".js-logout-start");
-    expect(logout).not.toBeNull();
-    logout!.click();
+    // Step 1: clicking خروج از حساب opens the confirm dialog, nothing more.
+    container.querySelector<HTMLButtonElement>(".js-logout-start")!.click();
+    const confirmModal = container.querySelector(".modal[role='alertdialog']");
+    expect(confirmModal).not.toBeNull();
+    expect(confirmModal!.innerHTML).toContain("آیا از خروج از حساب مطمئن هستید؟");
+    // Neutral text — no warning box, no red background.
+    expect(confirmModal!.querySelector(".box--danger")).toBeNull();
+    expect(container.querySelector(".js-logout-confirm")?.textContent).toContain("خروج");
+    // No session change has happened yet.
+    expect(supabase.calls).toEqual([]);
+    expect(auth.isAuthenticated()).toBe(true);
+
+    // Step 2: انصراف closes the dialog without signing out.
+    container.querySelector<HTMLButtonElement>(".js-logout-cancel")!.click();
+    expect(container.querySelector(".modal")).toBeNull();
+    expect(supabase.calls).toEqual([]);
+    expect(auth.isAuthenticated()).toBe(true);
+
+    // Step 3: confirming performs the existing logout flow.
+    container.querySelector<HTMLButtonElement>(".js-logout-start")!.click();
+    container.querySelector<HTMLButtonElement>(".js-logout-confirm")!.click();
     await new Promise((r) => setTimeout(r, 0));
 
     expect(supabase.calls).toEqual([{ fn: "signOut", args: null }]);

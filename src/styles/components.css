@@ -3204,40 +3204,34 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
   width: min(420px, 100%);
 }
 
-/* Account page — a minimal settings-style list: one static row (email) and
- * two action rows (change password, logout) separated by the same hairline
- * dividers the card menus use. No cards, no headings, no helper text. */
-.account-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.account-list__row {
+/* Account page — email box and compact action buttons. */
+.account-email {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--md-space-3);
   min-height: 56px;
-  width: 100%;
-  text-align: start;
-  font-size: var(--md-typescale-body-large);
-  color: var(--md-sys-color-on-surface);
-}
-
-.account-list__row--action {
+  padding: var(--md-space-3) var(--md-space-4);
+  border: 1px solid var(--md-sys-color-outline-variant);
   border-radius: var(--md-shape-medium);
-  transition: background-color var(--md-motion-duration-short) var(--md-motion-easing);
 }
 
-.account-list__row--action:hover {
-  background-color: var(--md-sys-color-surface-container-high);
+.account-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--md-space-3);
+  flex-wrap: wrap;
 }
 
-.account-list__row--danger {
+.btn--danger-outline {
   color: var(--md-sys-color-error);
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-error) 35%, transparent);
+  background-color: transparent;
+  box-shadow: none;
 }
 
-.account-list__row--danger:hover {
+.btn--danger-outline:hover {
   background-color: color-mix(in srgb, var(--md-sys-color-error) 10%, transparent);
 }
 
@@ -3249,22 +3243,6 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.account-list__chevron {
-  display: inline-flex;
-  color: var(--md-sys-color-on-surface-variant);
-}
-
-.account-list__chevron svg {
-  width: 18px;
-  height: 18px;
-}
-
-.account-list__divider {
-  height: 1px;
-  margin: var(--md-space-1) 0;
-  background-color: var(--md-sys-color-outline-variant);
 }
 
 .account-tabs {

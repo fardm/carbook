@@ -29,6 +29,8 @@ export const fa = {
     loginSuccess: "ورود موفقیت‌آمیز بود",
     working: "لطفاً صبر کنید…",
     logoutButton: "خروج از حساب",
+    logoutConfirmText: "آیا از خروج از حساب مطمئن هستید؟",
+    logoutConfirmButton: "خروج",
     changePasswordTitle: "تغییر رمز عبور",
     changePasswordButton: "تغییر رمز عبور",
     changePasswordSuccess: "گذرواژه با موفقیت تغییر کرد.",
