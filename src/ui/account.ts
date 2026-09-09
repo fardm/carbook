@@ -32,11 +32,15 @@ import { afterAuthenticated } from "../views/account";
  * The account navigation item markup appended to .nav__list. One markup for
  * BOTH auth states: identical label and icon, so the nav never changes
  * appearance on login/logout. It is a <button> (not a route link) because
- * the guest click must open the modal instead of navigating.
+ * the guest click must open the modal instead of navigating — but it carries
+ * data-route="account" so the shared setActiveNav() in main.ts marks it
+ * aria-current exactly like the other (route-link) items while the Account
+ * page is open. Same mobile active state, zero extra CSS.
  */
 export function navAccountItemHtml(): string {
   return `
     <button type="button" class="nav__item nav__item--account js-nav-account"
+      data-route="account"
       aria-label="${t("nav.account")}">
       <span data-lucide="circle-user-round"></span>
       <span>${t("nav.account")}</span>
@@ -191,7 +195,6 @@ function unauthenticatedModalHtml(): string {
           </button>
         </div>
       </form>
-      <p class="account-note">${t("account.storageGuestNote")}</p>
     </div>
   `;
 }

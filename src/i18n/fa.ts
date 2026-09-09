@@ -18,7 +18,6 @@ export const fa = {
   },
   account: {
     title: "حساب کاربری",
-    storageGuestNote: "داده‌ها روی همین دستگاه ذخیره می‌شوند. با ورود یا ثبت‌نام، داده‌ها در حساب کاربری شما نگه‌داری می‌شوند.",
     signInTab: "ورود",
     signUpTab: "ثبت‌نام",
     emailLabel: "ایمیل",
@@ -30,10 +29,7 @@ export const fa = {
     loginSuccess: "ورود موفقیت‌آمیز بود",
     working: "لطفاً صبر کنید…",
     logoutButton: "خروج از حساب",
-    logoutKeepCloudNote: "داده‌های حساب شما در فضای ابری باقی می‌مانند و با ورود دوباره در دسترس خواهند بود.",
-    logoutSectionTitle: "خروج از حساب",
     changePasswordTitle: "تغییر رمز عبور",
-    changePasswordIntro: "گذرواژه حساب کاربری خود را از همین‌جا عوض کنید؛ تغییر از طریق سرویس احراز هویت انجام می‌شود.",
     changePasswordButton: "تغییر رمز عبور",
     changePasswordSuccess: "گذرواژه با موفقیت تغییر کرد.",
     currentPasswordLabel: "گذرواژه فعلی",
@@ -41,17 +37,13 @@ export const fa = {
     newPasswordLabel: "گذرواژه جدید",
     confirmPasswordLabel: "تکرار گذرواژه جدید",
     confirmPasswordPlaceholder: "گذرواژه جدید را دوباره وارد کنید",
-    guestBadge: "حالت مهمان",
-    guestBadgeHint: "بدون حساب کاربری",
     migrationTitle: "انتقال داده‌های محلی به حساب",
     migrationIntro: "داده‌های ذخیره‌شده روی این دستگاه به حساب کاربری شما منتقل می‌شود. این کار فقط یک‌بار انجام می‌شود.",
     migrationCounts: "خودروها {vehicles} — نگهداری‌ها {items} — سرویس‌ها {services} — یادآوری‌ها {reminders}",
     migrationButton: "انتقال داده‌ها",
     migrationDecline: "فعلاً نه",
-    migrationSuccess: "داده‌ها با موفقیت به حساب شما منتقل شد.",
     migrationConflict:
       "حساب شما از قبل داده دارد. برای جلوگیری از از دست رفتن اطلاعات، داده‌های محلی منتقل نشد. می‌توانید از تنظیمات، داده‌های فعلی را خروجی بگیرید و در دستگاه دیگر وارد کنید.",
-    migrationEmpty: "داده‌ای برای انتقال وجود ندارد.",
     errors: {
       invalidEmail: "ایمیل معتبر نیست.",
       weakPassword: "گذرواژه ضعیف است؛ گذرواژه‌ای قوی‌تر انتخاب کنید.",
@@ -465,6 +457,10 @@ export const fa = {
     errorRepeatKmRequired: "بازه تکرار کیلومتری را وارد کنید.",
     errorRepeatKmInvalid: "بازه تکرار باید عددی صحیح و مثبت باشد.",
     errorOffsetInvalid: "فاصله اعلان باید عددی صحیح و غیرمنفی باشد.",
+    helpAria: "راهنمای یادآوری‌ها",
+    helpTitle: "راهنمای یادآوری‌ها",
+    helpText:
+      "در حال حاضر این یادآوری‌ها فقط زمانی ارسال می‌شوند که این صفحه وب باز باشد و در حال اجرا باشد. وقتی اپ بسته باشد، نوتیفیکیشنی ارسال نمی‌شود. برای ارسال نوتیفیکیشن هم حتماً باید دسترسی مرورگر به نوتیفیکیشن اجازه داده شده باشد.",
   },
   notifications: {
     settingsTitle: "اعلان‌ها",

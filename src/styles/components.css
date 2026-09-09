@@ -81,6 +81,23 @@
   height: 20px;
 }
 
+.icon-btn--subtle {
+  width: 32px;
+  height: 32px;
+  color: var(--md-sys-color-on-surface-variant);
+  opacity: 0.7;
+}
+
+.icon-btn--subtle:hover {
+  opacity: 1;
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+.icon-btn--subtle svg {
+  width: 18px;
+  height: 18px;
+}
+
 /* --- Cards --- */
 .card {
   background-color: var(--md-sys-color-surface-container-low);
@@ -3121,6 +3138,12 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
   margin-bottom: var(--md-space-4);
 }
 
+.page-header__title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-space-2);
+}
+
 /* Inline action slot: hidden on mobile — the FAB handles it there. */
 .page-header__actions {
   display: none;
@@ -3172,12 +3195,76 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
 }
 
 /* --- Account (sign in / sign up / logout) --- */
+
 .account-overlay {
   z-index: 60; /* above the FAB + nav so the modal always sits on top */
 }
 
 .account-modal {
   width: min(420px, 100%);
+}
+
+/* Account page — a minimal settings-style list: one static row (email) and
+ * two action rows (change password, logout) separated by the same hairline
+ * dividers the card menus use. No cards, no headings, no helper text. */
+.account-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.account-list__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--md-space-3);
+  min-height: 56px;
+  width: 100%;
+  text-align: start;
+  font-size: var(--md-typescale-body-large);
+  color: var(--md-sys-color-on-surface);
+}
+
+.account-list__row--action {
+  border-radius: var(--md-shape-medium);
+  transition: background-color var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+.account-list__row--action:hover {
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+.account-list__row--danger {
+  color: var(--md-sys-color-error);
+}
+
+.account-list__row--danger:hover {
+  background-color: color-mix(in srgb, var(--md-sys-color-error) 10%, transparent);
+}
+
+.account-list__label {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.account-list__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-list__chevron {
+  display: inline-flex;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.account-list__chevron svg {
+  width: 18px;
+  height: 18px;
+}
+
+.account-list__divider {
+  height: 1px;
+  margin: var(--md-space-1) 0;
+  background-color: var(--md-sys-color-outline-variant);
 }
 
 .account-tabs {
@@ -3244,29 +3331,7 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
   }
 }
 
-/* Signed-in profile row (Account page) */
-.account-profile {
-  display: flex;
-  align-items: center;
-  gap: var(--md-space-3);
-  padding: var(--md-space-2) 0;
-}
-
-.account-profile__avatar svg {
-  width: 36px;
-  height: 36px;
-  color: var(--md-sys-color-primary);
-}
-
-.account-profile__email {
-  font-size: var(--md-typescale-body-large);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Account page: the migration offer card sits inside the profile card and
- * needs a top margin; the logout card groups its danger action. */
+/* Account page: the migration offer card sits below the list. */
 .account-migration {
   margin-top: var(--md-space-4);
 }
@@ -3275,10 +3340,6 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
   margin-bottom: var(--md-space-3);
   font-size: var(--md-typescale-label-medium);
   color: var(--md-sys-color-on-surface-variant);
-}
-
-.account-actions {
-  justify-content: flex-start;
 }
 
 /* --- Toast notifications --- */

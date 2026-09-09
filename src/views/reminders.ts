@@ -91,6 +91,8 @@ interface ReminderViewState {
   addMenuOpen: boolean;
   /** Which form mode: "general" or "service" */
   formMode: "general" | "service";
+  /** Help modal is open. */
+  helpOpen: boolean;
 }
 
 /** Values carried into the add form.
@@ -134,6 +136,7 @@ const state: ReminderViewState = {
   vehicleMenuOpen: false,
   addMenuOpen: false,
   formMode: "general",
+  helpOpen: false,
 };
 
 /** Typed form-field value that survives re-renders. */
@@ -276,11 +279,18 @@ function remindersViewHtml(): string {
   return `
     <div class="view-stack view-stack--fab">
       <div class="page-header">
-        <h1 class="view-title">${t("view.reminders.title")}</h1>
+        <div class="page-header__title-row">
+          <h1 class="view-title">${t("view.reminders.title")}</h1>
+          <button type="button" class="icon-btn icon-btn--subtle js-reminders-help"
+            aria-label="${t("reminders.helpAria")}" title="${t("reminders.helpAria")}">
+            <span data-lucide="lightbulb" aria-hidden="true"></span>
+          </button>
+        </div>
       </div>
       <div class="services-toolbar-row">${toolbar}</div>
       ${body}
       ${overlay}
+      ${state.helpOpen ? helpModalHtml() : ""}
       ${fabBarHtml(noVehicles)}
     </div>
   `;
@@ -577,6 +587,24 @@ function reminderOverlayHtml(dataset: ReturnType<typeof store.get>, vehicleId: s
   if (state.permissionPrompt) return permissionPromptModalHtml();
   if (state.form) return reminderFormModalHtml(dataset, vehicleId);
   return state.permissionNotice != null ? permissionNoticeHtml() : "";
+}
+
+/* --- Help modal --- */
+
+function helpModalHtml(): string {
+  return `
+    <div class="modal-overlay">
+      <div class="modal" role="dialog" aria-modal="true" aria-label="${t("reminders.helpTitle")}">
+        <div class="modal__head">
+          <div class="form__title">${t("reminders.helpTitle")}</div>
+          <button type="button" class="icon-btn js-close-help" aria-label="${t("common.close")}">
+            <span data-lucide="x" aria-hidden="true"></span>
+          </button>
+        </div>
+        <p>${t("reminders.helpText")}</p>
+      </div>
+    </div>
+  `;
 }
 
 /** The soft info note shown after saving without browser permission. */
@@ -1324,8 +1352,23 @@ function bind(container: HTMLElement): void {
         closeForm();
         state.deleteConfirmId = null;
         state.permissionPrompt = null;
+        state.helpOpen = false;
         redraw(container);
       }
+    });
+  });
+
+  /* Help modal. */
+  container.querySelectorAll<HTMLButtonElement>(".js-reminders-help").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.helpOpen = true;
+      redraw(container);
+    });
+  });
+  container.querySelectorAll<HTMLButtonElement>(".js-close-help").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.helpOpen = false;
+      redraw(container);
     });
   });
 

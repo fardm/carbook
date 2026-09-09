@@ -74,11 +74,12 @@ async function renderSignedIn(
   return { container, supabase };
 }
 
-/** Fills and submits the change-password form. */
+/** Opens the change-password modal and submits it with the given values. */
 async function submitPasswordForm(
   container: HTMLElement,
   values: { current: string; next: string; confirm: string },
 ): Promise<void> {
+  container.querySelector<HTMLButtonElement>(".js-open-password")!.click();
   const form = container.querySelector<HTMLFormElement>(".account-form")!;
   const set = (sel: string, value: string): void => {
     form.querySelector<HTMLInputElement>(sel)!.value = value;
@@ -124,19 +125,50 @@ describe("account page", () => {
     window.location.hash = "";
   });
 
-  it("renders the title, the user's email, change-password fields, and logout", async () => {
+  it("renders a minimal list — title, email, change-password and logout rows", async () => {
     const { container } = await renderSignedIn();
 
     const html = container.innerHTML;
-    expect(html).toContain("حساب کاربری"); // page title
+    expect(container.querySelector(".view-title")?.textContent).toContain("حساب کاربری");
     expect(html).toContain(EMAIL); // signup/login email
-    expect(html).toContain("تغییر رمز عبور"); // section title + submit
-    expect(html).toContain("خروج از حساب"); // logout button
-    expect(html).toContain("id=\"account-current-password\"");
-    expect(html).toContain("id=\"account-new-password\"");
-    expect(html).toContain("id=\"account-confirm-password\"");
-    // The old logged-in modal markup must not leak onto the page.
-    expect(html).not.toContain("js-account-close");
+    expect(container.querySelector(".js-open-password")?.textContent).toContain("تغییر رمز عبور");
+    expect(container.querySelector(".js-logout-start")?.textContent).toContain("خروج از حساب");
+    // Minimal list, not a form page: no password fields inline, no cards.
+    expect(html).not.toContain('id="account-current-password"');
+    expect(html).not.toContain('id="account-new-password"');
+    expect(html).not.toContain('id="account-confirm-password"');
+    expect(container.querySelector(".account-list__divider")).not.toBeNull();
+    // No explanatory paragraphs / helper text.
+    expect(html).not.toContain("باقی می‌مانند"); // old logout cloud note
+    expect(html).not.toContain("احراز هویت"); // old change-password intro
+  });
+
+  it("opens the change-password modal (the shared .modal component) on click", async () => {
+    const { container } = await renderSignedIn();
+
+    container.querySelector<HTMLButtonElement>(".js-open-password")!.click();
+
+    const modal = container.querySelector<HTMLElement>(".modal.account-modal");
+    expect(modal).not.toBeNull();
+    expect(modal!.getAttribute("role")).toBe("dialog");
+    expect(modal!.innerHTML).toContain('id="account-current-password"');
+    expect(modal!.innerHTML).toContain('id="account-new-password"');
+    expect(modal!.innerHTML).toContain('id="account-confirm-password"');
+
+    // Cancel closes the modal without touching Supabase.
+    modal!.querySelector<HTMLButtonElement>(".js-password-close")!.click();
+    expect(container.querySelector(".modal")).toBeNull();
+  });
+
+  it("closes the modal when the overlay itself is clicked", async () => {
+    const { container } = await renderSignedIn();
+
+    container.querySelector<HTMLButtonElement>(".js-open-password")!.click();
+    const overlay = container.querySelector<HTMLElement>(".modal-overlay");
+    expect(overlay).not.toBeNull();
+    overlay!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    expect(container.querySelector(".modal")).toBeNull();
   });
 
   it("blocks submission until the new password and confirmation agree", async () => {
@@ -166,7 +198,7 @@ describe("account page", () => {
     expect(supabase.calls).toEqual([]);
   });
 
-  it("changes the password through Supabase Auth and shows the success message", async () => {
+  it("changes the password through Supabase Auth, then closes the modal with a toast", async () => {
     const { container, supabase } = await renderSignedIn();
 
     await submitPasswordForm(container, {
@@ -176,11 +208,12 @@ describe("account page", () => {
     });
 
     expect(supabase.calls).toEqual([{ fn: "updateUser", args: { password: "abc123" } }]);
-    expect(container.querySelector(".box--success")).not.toBeNull();
-    expect(container.innerHTML).toContain("گذرواژه با موفقیت تغییر کرد");
+    // Success feedback + modal closed (nothing left inline on the page).
+    expect(document.querySelector(".toast")?.textContent).toContain("گذرواژه با موفقیت تغییر کرد");
+    expect(container.querySelector(".modal")).toBeNull();
   });
 
-  it("shows a friendly error when Supabase rejects the change", async () => {
+  it("shows a friendly error inside the (still open) modal on Supabase failure", async () => {
     const { container, supabase } = await renderSignedIn({
       updateError: { message: "Invalid login credentials", status: 400 },
     });
@@ -192,8 +225,10 @@ describe("account page", () => {
     });
 
     expect(supabase.calls).toEqual([{ fn: "updateUser", args: { password: "abc123" } }]);
-    expect(container.querySelector(".box--error")).not.toBeNull();
-    expect(container.innerHTML).toContain("ایمیل یا گذرواژه اشتباه است");
+    const modal = container.querySelector(".modal.account-modal");
+    expect(modal).not.toBeNull();
+    expect(modal!.querySelector(".box--error")).not.toBeNull();
+    expect(modal!.innerHTML).toContain("ایمیل یا گذرواژه اشتباه است");
   });
 
   it("logs out through auth.signOut and returns to the guest default route", async () => {

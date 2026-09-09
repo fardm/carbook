@@ -20,17 +20,20 @@ import { hasMeaningfulData, countDataset, type DatasetCounts } from "../supabase
 import { migrateGuestDataToCloud } from "../supabase/migration";
 
 /**
- * Account page — the dedicated, always-reachable account route (#/account).
+ * Account page — the dedicated account route (#/account), deliberately
+ * minimal. Four visual rows separated by the app's hairline dividers:
  *
- * Reached only while authenticated (the guest entry point is the login/
- * signup modal instead, see ui/account.ts). Deliberately minimal:
- *   1. Profile — the signed-in user's email.
- *   2. تغییر رمز عبور — current + new + confirm; the update itself goes
- *      through Supabase Auth (`auth.updateUser({ password })`); no password
- *      is ever stored or managed by this app.
- *   3. خروج از حساب — the existing `auth.signOut()` flow; the data layer
- *      swaps back to the guest IndexedDB repository on the auth event and
- *      the app returns to the normal guest state.
+ *   # حساب کاربری
+ *   ایمیل  <user email>
+ *   ────────────────
+ *   تغییر رمز عبور      ← opens the change-password modal
+ *   ────────────────
+ *   خروج از حساب        ← the existing auth.signOut() flow
+ *
+ * No explanatory text anywhere. The password form lives in the modal (the
+ * project's .modal component, like add/edit/delete vehicle); the update
+ * itself goes through Supabase Auth (`auth.updateUser({ password })`) — no
+ * password is ever stored or managed by this app.
  *
  * Guest→cloud migration: when the user signs in while the local guest
  * dataset holds meaningful data, the one-time offer is shown here (the same
@@ -43,8 +46,11 @@ import { migrateGuestDataToCloud } from "../supabase/migration";
 /* ------------------------------------------------------------------ */
 
 type MigrationChoice = "pending" | "accepted" | "declined";
+type Modal = null | "password";
 
 interface AccountViewState {
+  /** Which modal is open (only the change-password dialog exists). */
+  modal: Modal;
   busy: boolean;
   /** Current/new/confirm password fields (client-side validation errors). */
   currentErrorKey: string | null;
@@ -52,8 +58,9 @@ interface AccountViewState {
   confirmErrorKey: string | null;
   /** Supabase update failure (mapped key); null = hidden. */
   changeErrorKey: string | null;
-  /** Set right after a successful password change (dismissible). */
-  changeSuccess: boolean;
+  /** Half-typed modal fields, preserved across re-renders (the same seam
+   * the vehicle/item forms use). Keyed by input id. */
+  formValues: Record<string, string>;
   /** Migration offer state after a fresh sign-in. */
   migration: (MigrationChoice | "offer") | null;
   migrationCounts: DatasetCounts | null;
@@ -61,12 +68,13 @@ interface AccountViewState {
 }
 
 const state: AccountViewState = {
+  modal: null,
   busy: false,
   currentErrorKey: null,
   newPasswordErrorKey: null,
   confirmErrorKey: null,
   changeErrorKey: null,
-  changeSuccess: false,
+  formValues: {},
   migration: null,
   migrationCounts: null,
   migrationErrorKey: null,
@@ -74,12 +82,13 @@ const state: AccountViewState = {
 
 /** Clears the view-local state when the user navigates away from the page. */
 export function leaveAccountView(): void {
+  state.modal = null;
   state.busy = false;
   state.currentErrorKey = null;
   state.newPasswordErrorKey = null;
   state.confirmErrorKey = null;
   state.changeErrorKey = null;
-  state.changeSuccess = false;
+  state.formValues = {};
   // Migration state survives navigation on purpose: it is a ONE-TIME offer
   // after sign-in, not page-local form state. It is consumed by showing the
   // offer (accepted / declined) or by the next auth transition.
@@ -118,9 +127,9 @@ export function renderAccount(container: HTMLElement): (() => void) | void {
     bindFloatingFields(container);
   };
   draw();
-  // Password fields + the offer must NOT be redrawn (and their typed input
-  // wiped) by unrelated store updates — the view subscribes only to the
-  // auth controller while mounted.
+  // The modal's half-typed fields and the offer must NOT be redrawn (and
+  // their input wiped) by unrelated store updates — the view subscribes
+  // only to the auth controller while mounted.
   return auth.subscribe((next) => {
     if (!next) {
       // Logged out while the page was open: the data layer has already
@@ -138,98 +147,88 @@ function accountViewHtml(): string {
   return `
     <div class="view-stack">
       <h1 class="view-title">${t("view.account.title")}</h1>
-      ${profileCardHtml(user.email)}
-      ${changePasswordCardHtml()}
-      ${logoutCardHtml()}
-    </div>
-  `;
-}
-
-/* --- 1. Profile card: the signup/login email --- */
-
-function profileCardHtml(email: string): string {
-  return `
-    <section class="card">
-      <div class="account-profile">
-        <span class="account-profile__avatar" data-lucide="circle-user-round" aria-hidden="true"></span>
-        <span class="account-profile__email" dir="ltr">${escHtml(email)}</span>
+      <div class="account-list">
+        <div class="account-list__row account-list__row--static">
+          <span class="account-list__label">${t("account.emailLabel")}</span>
+          <span class="account-list__value" dir="ltr">${escHtml(user.email)}</span>
+        </div>
+        <div class="account-list__divider" role="separator"></div>
+        <button type="button" class="account-list__row account-list__row--action js-open-password">
+          <span>${t("account.changePasswordTitle")}</span>
+          <span class="account-list__chevron" data-lucide="chevron-left" aria-hidden="true"></span>
+        </button>
+        <div class="account-list__divider" role="separator"></div>
+        <button type="button" class="account-list__row account-list__row--action account-list__row--danger js-logout-start">
+          <span>${t("account.logoutButton")}</span>
+        </button>
       </div>
       ${migrationHtmlSection()}
-    </section>
+    </div>
+    ${passwordModalHtml()}
   `;
 }
 
-/* --- 2. Change password (Supabase Auth updateUser) --- */
+/* --- Change-password modal (the project's .modal component) --- */
 
-function changePasswordCardHtml(): string {
+function passwordModalHtml(): string {
+  if (state.modal !== "password") return "";
   const errorHtml = state.changeErrorKey
     ? `<div class="box box--error" role="alert"><span data-lucide="circle-alert"></span><span>${escHtml(t(state.changeErrorKey as never))}</span></div>`
-    : "";
-  const successHtml = state.changeSuccess
-    ? `<div class="box box--success" role="status"><span data-lucide="circle-check"></span><span>${t("account.changePasswordSuccess")}</span></div>`
     : "";
   const submitLabel = state.busy
     ? `<span class="account-spinner" data-lucide="loader-circle"></span>${t("account.working")}`
     : t("account.changePasswordButton");
 
   return `
-    <section class="card">
-      <h2 class="card__title">${t("account.changePasswordTitle")}</h2>
-      <p class="card__text">${t("account.changePasswordIntro")}</p>
-      <form class="form account-form" novalidate>
-        <div class="field">
-          <label class="field__label" for="account-current-password">${t("account.currentPasswordLabel")}</label>
-          <input class="field__input" id="account-current-password" name="currentPassword" type="password"
-            dir="ltr" autocomplete="current-password"
-            placeholder="${t("account.currentPasswordPlaceholder")}" />
-          ${fieldErrorHtml(state.currentErrorKey)}
-        </div>
-        <div class="field">
-          <label class="field__label" for="account-new-password">${t("account.newPasswordLabel")}</label>
-          <input class="field__input" id="account-new-password" name="newPassword" type="password"
-            dir="ltr" autocomplete="new-password"
-            placeholder="${t("account.passwordPlaceholder")}" />
-          ${fieldErrorHtml(state.newPasswordErrorKey)}
-        </div>
-        <div class="field">
-          <label class="field__label" for="account-confirm-password">${t("account.confirmPasswordLabel")}</label>
-          <input class="field__input" id="account-confirm-password" name="confirmPassword" type="password"
-            dir="ltr" autocomplete="new-password"
-            placeholder="${t("account.confirmPasswordPlaceholder")}" />
-          ${fieldErrorHtml(state.confirmErrorKey)}
-        </div>
-        ${errorHtml}
-        ${successHtml}
-        <div class="form__actions">
-          <button type="submit" class="btn btn--filled js-change-password" ${state.busy ? "disabled" : ""}>
-            ${submitLabel}
+    <div class="modal-overlay account-overlay">
+      <div class="modal account-modal" role="dialog" aria-modal="true" aria-label="${t("account.changePasswordTitle")}">
+        <div class="modal__head">
+          <div class="form__title">${t("account.changePasswordTitle")}</div>
+          <button type="button" class="icon-btn js-password-close" aria-label="${t("common.close")}">
+            <span data-lucide="x"></span>
           </button>
         </div>
-      </form>
-    </section>
+        <form class="form account-form" novalidate>
+          <div class="field">
+            <label class="field__label" for="account-current-password">${t("account.currentPasswordLabel")}</label>
+            <input class="field__input" id="account-current-password" name="currentPassword" type="password"
+              dir="ltr" autocomplete="current-password"
+              value="${escHtml(state.formValues["account-current-password"] ?? "")}"
+              placeholder="${t("account.currentPasswordPlaceholder")}" />
+            ${fieldErrorHtml(state.currentErrorKey)}
+          </div>
+          <div class="field">
+            <label class="field__label" for="account-new-password">${t("account.newPasswordLabel")}</label>
+            <input class="field__input" id="account-new-password" name="newPassword" type="password"
+              dir="ltr" autocomplete="new-password"
+              value="${escHtml(state.formValues["account-new-password"] ?? "")}"
+              placeholder="${t("account.passwordPlaceholder")}" />
+            ${fieldErrorHtml(state.newPasswordErrorKey)}
+          </div>
+          <div class="field">
+            <label class="field__label" for="account-confirm-password">${t("account.confirmPasswordLabel")}</label>
+            <input class="field__input" id="account-confirm-password" name="confirmPassword" type="password"
+              dir="ltr" autocomplete="new-password"
+              value="${escHtml(state.formValues["account-confirm-password"] ?? "")}"
+              placeholder="${t("account.confirmPasswordPlaceholder")}" />
+            ${fieldErrorHtml(state.confirmErrorKey)}
+          </div>
+          ${errorHtml}
+          <div class="form__actions">
+            <button type="button" class="btn btn--text js-password-close">${t("common.cancel")}</button>
+            <button type="submit" class="btn btn--filled js-change-password" ${state.busy ? "disabled" : ""}>
+              ${submitLabel}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   `;
 }
 
 /** One inline validation error under a field; null = nothing rendered. */
 function fieldErrorHtml(key: string | null): string {
   return key ? `<p class="field__error">${escHtml(t(key as never))}</p>` : "";
-}
-
-/* --- 3. Logout (existing auth.signOut flow) --- */
-
-function logoutCardHtml(): string {
-  return `
-    <section class="card account-logout-card">
-      <h2 class="card__title">${t("account.logoutSectionTitle")}</h2>
-      <p class="card__text">${t("account.logoutKeepCloudNote")}</p>
-      <div class="form__actions account-actions">
-        <button type="button" class="btn btn--danger-text js-logout-start" ${state.busy ? "disabled" : ""}>
-          <span data-lucide="log-out"></span>
-          ${t("account.logoutButton")}
-        </button>
-      </div>
-    </section>
-  `;
 }
 
 /* --- One-time guest→cloud migration offer (after a fresh sign-in) --- */
@@ -268,11 +267,47 @@ function migrationHtmlSection(): string {
 /* ------------------------------------------------------------------ */
 
 function bind(container: HTMLElement): void {
+  // Capture half-typed modal fields before any redraw (the same seam the
+  // vehicle/item forms use so re-renders never wipe user input).
+  container.addEventListener("input", onModalInput);
+
+  container.querySelector(".js-open-password")?.addEventListener("click", () => {
+    state.modal = "password";
+    state.changeErrorKey = null;
+    state.currentErrorKey = null;
+    state.newPasswordErrorKey = null;
+    state.confirmErrorKey = null;
+    redraw(container);
+    document.getElementById("account-current-password")?.focus();
+  });
+
+  const closePassword = (): void => {
+    state.modal = null;
+    state.formValues = {};
+    state.changeErrorKey = null;
+    state.currentErrorKey = null;
+    state.newPasswordErrorKey = null;
+    state.confirmErrorKey = null;
+    redraw(container);
+  };
+  container.querySelectorAll(".js-password-close").forEach((button) => {
+    button.addEventListener("click", closePassword);
+  });
+
+  // Backdrop click closes the modal without changing the password (same
+  // pattern as the reminders view).
+  container.querySelectorAll<HTMLElement>(".modal-overlay").forEach((overlay) => {
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) closePassword();
+    });
+  });
+
   const form = container.querySelector<HTMLFormElement>(".account-form");
   form?.addEventListener("submit", (event) => {
     event.preventDefault();
     void submitPasswordChange(container, form);
   });
+
   container.querySelector(".js-logout-start")?.addEventListener("click", () => {
     void performLogout(container);
   });
@@ -285,6 +320,15 @@ function bind(container: HTMLElement): void {
   });
 }
 
+function onModalInput(event: Event): void {
+  const input = event.target as HTMLElement | null;
+  if (!input || !input.id) return;
+  if (state.modal !== "password") return;
+  if (input instanceof HTMLInputElement && input.type === "password") {
+    state.formValues[input.id] = input.value;
+  }
+}
+
 /** Re-renders without notifying the store (pure view-local transitions). */
 function redraw(container: HTMLElement): void {
   container.innerHTML = accountViewHtml();
@@ -293,7 +337,7 @@ function redraw(container: HTMLElement): void {
   bindFloatingFields(container);
 }
 
-/* --- Change password --- */
+/* --- Change password (in the modal; Supabase Auth updateUser) --- */
 
 async function submitPasswordChange(container: HTMLElement, form: HTMLFormElement): Promise<void> {
   const read = (selector: string): string =>
@@ -312,7 +356,6 @@ async function submitPasswordChange(container: HTMLElement, form: HTMLFormElemen
     ? null
     : "account.errors.passwordMismatch";
   state.changeErrorKey = null;
-  state.changeSuccess = false;
   if (state.currentErrorKey || state.newPasswordErrorKey || state.confirmErrorKey) {
     redraw(container);
     return;
@@ -322,16 +365,31 @@ async function submitPasswordChange(container: HTMLElement, form: HTMLFormElemen
   redraw(container);
   try {
     await auth.updatePassword(next);
-    state.changeSuccess = true;
+    // Success: close the modal and confirm with the shared toast.
+    state.modal = null;
+    state.formValues = {};
+    state.busy = false;
+    redraw(container);
+    showToast(t("account.changePasswordSuccess"));
   } catch (error) {
     state.changeErrorKey = mapAuthError(error);
-  } finally {
     state.busy = false;
     redraw(container);
   }
 }
 
-/* --- Logout (unchanged flow; no extra confirmation dialog) --- */
+/** The shared toast (same element/style as the login toast in ui/account). */
+function showToast(message: string): void {
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.remove();
+  }, 3000);
+}
+
+/* --- Logout (existing auth.signOut flow) --- */
 
 async function performLogout(container: HTMLElement): Promise<void> {
   try {
