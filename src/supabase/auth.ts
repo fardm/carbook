@@ -8,6 +8,14 @@ import { getSupabase } from "./client";
  * renders or data loads), subscribes to Supabase's auth state changes, and
  * notifies subscribers on every transition so UI + data layer react
  * immediately after login/logout.
+ *
+ * Session persistence across refreshes: the Supabase client is created with
+ * `persistSession: true` + `autoRefreshToken: true` (client.ts), so the
+ * session lives in localStorage. initialize() explicitly AWAITS
+ * `auth.getSession()` — the SDK resolves it only after it has restored (or
+ * definitively failed to restore) the persisted session. No timeout and no
+ * guesswork: a normal F5 boots as authenticated exactly when a session is
+ * actually stored, and as guest exactly when it is not.
  */
 
 export interface AccountUser {
@@ -57,9 +65,13 @@ class AuthController {
   }
 
   /**
-   * Reads the initial session (waiting for Supabase to restore it from
-   * storage) and registers the onAuthStateChange listener. Safe to call
-   * once; subsequent calls are no-ops.
+   * Reads the persisted session and registers the onAuthStateChange
+   * listener. Safe to call once; subsequent calls are no-ops.
+   *
+   * Order matters: the lifetime listener is registered BEFORE the initial
+   * session is applied, so the INITIAL_SESSION event (and any SIGNED_IN
+   * event fired while initialization is still running) can never fall into
+   * the gap and be lost.
    */
   async initialize(): Promise<AuthInitResult> {
     if (this.initialized) {
@@ -72,30 +84,31 @@ class AuthController {
     }
     this.client = client;
 
-    // onAuthStateChange fires INITIAL_SESSION after the stored session is
-    // resolved — await that first event so `user` is correct before any
-    // consumer reads it (no race between UI and data layer).
-    const initialSession = new Promise<Session | null>((resolve) => {
-      const timeout = setTimeout(() => resolve(null), 4000);
-      const {
-        data: { subscription },
-      } = client.auth.onAuthStateChange((event, session) => {
-        if (event === "INITIAL_SESSION") {
-          clearTimeout(timeout);
-          resolve(session);
-          subscription.unsubscribe();
-        }
-      });
-    });
-    const restoredSession = await initialSession;
-
-    // Keep ONE subscription alive for the app's lifetime.
+    // ONE subscription for the app's lifetime: it receives the SDK's
+    // INITIAL_SESSION event, then every later SIGNED_IN / SIGNED_OUT /
+    // TOKEN_REFRESHED / USER_UPDATED event. TOKEN_REFRESHED carries the
+    // same user, so applySession() keeps it a no-op (it must never flip
+    // the app back to guest mode).
     const {
       data: { subscription },
     } = client.auth.onAuthStateChange((_event, session) => {
       this.applySession(session);
     });
     this.unsubscribe = () => subscription.unsubscribe();
+
+    // Explicitly wait for the persisted session. getSession() awaits the
+    // SDK's own initialization (localStorage restore + token refresh), so
+    // its result is the FINAL answer about the stored session — never a
+    // provisional guess. A failing restore (offline, corrupt storage)
+    // degrades to guest mode; the listener above still applies a session
+    // if the SDK recovers one afterwards.
+    let restoredSession: Session | null = null;
+    try {
+      const { data, error } = await client.auth.getSession();
+      if (!error) restoredSession = data.session;
+    } catch {
+      restoredSession = null;
+    }
 
     this.applySession(restoredSession);
     this.initialized = true;
@@ -129,11 +142,15 @@ class AuthController {
     this.applySession(user ? ({ user: { id: user.id, email: user.email } } as unknown as Session) : null);
   }
 
-  /** Detaches the auth listener (used by tests). */
-  dispose(): void {
+  /** Test hook: resets the controller to its pre-initialize state so a
+   * fresh boot sequence can be exercised. */
+  resetForTests(): void {
     this.unsubscribe?.();
     this.unsubscribe = null;
     this.listeners.clear();
+    this.client = null;
+    this.initialized = false;
+    this.user = null;
   }
 
   private requireClient(): SupabaseClient {

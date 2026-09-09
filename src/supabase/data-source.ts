@@ -52,17 +52,24 @@ let swapChain: Promise<void> = Promise.resolve();
 let lastAppliedUserId: string | null | undefined = undefined;
 
 /**
- * Boots the data layer: initializes auth state, then applies the correct
- * repository for the restored session. Views must await this before their
- * first data read (main.ts does).
+ * Boots the data layer: initializes auth state (which resolves the persisted
+ * Supabase session from localStorage), then applies the correct repository
+ * for the restored session. Views must await this before their first data
+ * read (main.ts does).
+ *
+ * Ordering: the auth-event subscription is registered BEFORE the initial
+ * apply, and both funnel through the same serialized swap chain. So if a
+ * login/logout event arrives while the initial swap is still in flight, it
+ * is queued behind it instead of being lost — the first decision about the
+ * active backend always happens after auth state is final.
  */
 export async function initializeDataSource(): Promise<void> {
   await auth.initialize();
-  await applyAuthState();
   // Subsequent login/logout transitions swap the backend immediately.
   auth.subscribe(() => {
     void applyAuthState();
   });
+  await applyAuthState();
 }
 
 /**
@@ -82,9 +89,12 @@ export function applyAuthState(): Promise<void> {
 async function applyAuthStateInner(): Promise<void> {
   const user = auth.getUser();
   // Same backend already active (e.g. periodic TOKEN_REFRESHED) → no-op.
-  if (user?.id === lastAppliedUserId || (user == null && lastAppliedUserId === null)) {
-    return;
-  }
+  // `undefined` means NOTHING was applied yet and must never match the
+  // guest state (null): treating "no decision made" as "guest active"
+  // would skip the initial guest bind and let a stale dataset survive a
+  // repository swap.
+  if (user?.id != null && user.id === lastAppliedUserId) return;
+  if (user == null && lastAppliedUserId === null) return;
   if (user) {
     const cloudRepository = repositoryForUser(user.id);
     if (!cloudRepository) return; // no Supabase env — stay in guest mode

@@ -8,6 +8,7 @@ import { store } from "../src/state/store";
 import { auth } from "../src/supabase/auth";
 import {
   applyAuthState,
+  initializeDataSource,
   resetDataSourceForTests,
 } from "../src/supabase/data-source";
 import { setSupabaseOverride } from "../src/supabase/client";
@@ -99,15 +100,32 @@ function installFakeIndexedDB(): { restore: () => void; db: FakeIDB } {
   };
 }
 
+/** Shape of an emulated Supabase session (only what auth.ts reads). */
+interface SessionLike {
+  user: { id: string; email: string };
+}
+
 /** Minimal SupabaseClient double: per-user row store + recorded calls.
  * Emulates the two behaviors the repository relies on: RLS-style row
  * scoping (rows are only ever visible to their owner) and the exact
- * `head/count` + `maybeSingle` response shapes of PostgREST. */
-function fakeSupabase(options?: { loadError?: Error }) {
+ * `head/count` + `maybeSingle` response shapes of PostgREST. The auth
+ * namespace emulates the async GoTrueClient: `getSession()` resolves after
+ * `sessionDelay` ms with the STORED session (localStorage stand-in), and
+ * `onAuthStateChange` receives INITIAL_SESSION + later SIGNED_IN /
+ * SIGNED_OUT / TOKEN_REFRESHED events. */
+function fakeSupabase(options?: {
+  loadError?: Error;
+  storedSession?: SessionLike | null;
+  sessionDelay?: number;
+}) {
   const tables = new Map<string, Array<Record<string, unknown>>>();
   const authCalls: Array<{ fn: string; args: unknown }> = [];
-  // The "authenticated user" for RLS emulation (auth.uid()); null = anon.
-  let authUid: string | null = null;
+  // RLS emulation (auth.uid()): derived from the active session like the
+  // real SDK; setAuthUser() overrides it for tests that drive auth state
+  // directly without a stored session.
+  let authUidOverride: string | null | undefined = undefined;
+  const currentAuthUid = (): string | null =>
+    authUidOverride !== undefined ? authUidOverride : (currentSession?.user.id ?? null);
 
   const builderFor = (table: string, state: { count: boolean; single: boolean }) => {
     const builder = {
@@ -123,7 +141,7 @@ function fakeSupabase(options?: { loadError?: Error }) {
         rows: Array<Record<string, unknown>>,
         opts?: { onConflict?: string },
       ) => {
-        if (authUid == null) return { data: null, error: { message: "RLS: not authenticated" } };
+        if (currentAuthUid() == null) return { data: null, error: { message: "RLS: not authenticated" } };
         // Emulate PostgREST: an on_conflict column that the table does not
         // have is rejected with 400 Bad Request (this is exactly the bug
         // this suite guards against for app_settings).
@@ -138,7 +156,7 @@ function fakeSupabase(options?: { loadError?: Error }) {
             error: { message: `column ${table}.${conflictColumn} does not exist`, status: 400 },
           };
         }
-        const scoped = rows.filter((row) => row.user_id === authUid);
+        const scoped = rows.filter((row) => row.user_id === currentAuthUid());
         const existing = tables.get(table) ?? [];
         for (const row of scoped) {
           const index = existing.findIndex(
@@ -159,8 +177,9 @@ function fakeSupabase(options?: { loadError?: Error }) {
           return;
         }
         // RLS: a user sees ONLY their own rows (anon sees none).
+        const uid = currentAuthUid();
         const visible = (tables.get(table) ?? []).filter(
-          (row) => authUid != null && row.user_id === authUid,
+          (row) => uid != null && row.user_id === uid,
         );
         if (state.count) {
           resolve({ data: null, count: visible.length, error: null });
@@ -176,9 +195,29 @@ function fakeSupabase(options?: { loadError?: Error }) {
     return builder;
   };
 
+  // --- Auth SDK emulation (async, like the real GoTrueClient) ---
+  type AuthEventCallback = (event: string, session: SessionLike | null) => void;
+  const authListeners = new Set<AuthEventCallback>();
+  let currentSession: SessionLike | null = options?.storedSession ?? null;
+  const sessionDelay = options?.sessionDelay ?? 0;
+
   const client = {
     from: (table: string) => builderFor(table, { count: false, single: false }),
     auth: {
+      getSession: vi.fn(async () => {
+        if (sessionDelay > 0) await new Promise((resolve) => setTimeout(resolve, sessionDelay));
+        return { data: { session: currentSession }, error: null };
+      }),
+      onAuthStateChange: vi.fn((callback: AuthEventCallback) => {
+        authListeners.add(callback);
+        // INITIAL_SESSION carries the same state getSession() resolves with;
+        // delivering it synchronously keeps that invariant airtight (the
+        // real SDK may defer it, but never with different data).
+        callback("INITIAL_SESSION", currentSession);
+        return {
+          data: { subscription: { unsubscribe: () => authListeners.delete(callback) } },
+        };
+      }),
       signInWithPassword: vi.fn(async (args: unknown) => {
         authCalls.push({ fn: "signInWithPassword", args });
         return { data: { user: null }, error: null };
@@ -189,19 +228,30 @@ function fakeSupabase(options?: { loadError?: Error }) {
       }),
       signOut: vi.fn(async () => {
         authCalls.push({ fn: "signOut", args: null });
+        currentSession = null;
+        for (const callback of authListeners) callback("SIGNED_OUT", null);
         return { error: null };
       }),
-      onAuthStateChange: vi.fn(() => ({
-        data: { subscription: { unsubscribe: vi.fn() } },
-      })),
     },
   } as unknown as SupabaseClient;
 
   return {
     client,
     authCalls,
+    /** Simulates a successful login: stores the session and emits SIGNED_IN
+     * through the real onAuthStateChange listeners (like the SDK does). */
+    signInAs: (userId: string, email = "user@mail.com") => {
+      currentSession = { user: { id: userId, email } };
+      for (const callback of authListeners) callback("SIGNED_IN", currentSession);
+    },
+    /** Emits an arbitrary auth event with the current session (e.g.
+     * TOKEN_REFRESHED) to all registered listeners. */
+    emitAuthEvent: (event: string) => {
+      for (const callback of authListeners) callback(event, currentSession);
+    },
+    sessionSnapshot: (): SessionLike | null => currentSession,
     setAuthUser: (userId: string | null) => {
-      authUid = userId;
+      authUidOverride = userId;
     },
     seed: (table: string, rows: Array<Record<string, unknown>>) => tables.set(table, rows),
     rowsOf: (table: string, userId?: string) =>
@@ -485,6 +535,182 @@ describe("guest → cloud migration", () => {
     await applyAuthState();
     expect(store.get().vehicles[0]?.name).toBe("خودروی مهمان");
     expect(store.get().reminders[0]?.title).toBe("یادآوری مهمان");
+  });
+});
+
+describe("auth initialization and refresh persistence", () => {
+  let idb: ReturnType<typeof installFakeIndexedDB>;
+
+  beforeEach(() => {
+    idb = installFakeIndexedDB();
+    resetDataSourceForTests();
+  });
+
+  afterEach(() => {
+    setSupabaseOverride(null);
+    auth.resetForTests();
+    idb.restore();
+    resetDataSourceForTests();
+  });
+
+  it("F5 after login restores the persisted session and stays on Supabase", async () => {
+    // A previous visit logged in; localStorage now holds the session.
+    const supabase = fakeSupabase({
+      storedSession: { user: { id: USER, email: "user@mail.com" } },
+    });
+    supabase.seedDataset(vehicleNamed("خودروی پس از رفرش"), USER);
+    setSupabaseOverride(supabase.client);
+
+    // Boot = a normal refresh.
+    await initializeDataSource();
+
+    expect(auth.isAuthenticated()).toBe(true);
+    expect(auth.getUser()?.id).toBe(USER);
+    expect(store.get().vehicles[0]?.name).toBe("خودروی پس از رفرش");
+  });
+
+  it("refresh with NO stored session boots as guest on IndexedDB", async () => {
+    const supabase = fakeSupabase({ storedSession: null });
+    setSupabaseOverride(supabase.client);
+
+    await initializeDataSource();
+
+    expect(auth.isAuthenticated()).toBe(false);
+    expect(store.get()).toEqual(defaultDataset());
+  });
+
+  it("the initial backend decision waits for the persisted session (no provisional guest state)", async () => {
+    // Slow session storage: a refresh where restoring takes a while.
+    const supabase = fakeSupabase({
+      storedSession: { user: { id: USER, email: "user@mail.com" } },
+      sessionDelay: 30,
+    });
+    supabase.seedDataset(vehicleNamed("ابر پس از تاخیر"), USER);
+    setSupabaseOverride(supabase.client);
+
+    const booting = initializeDataSource();
+    // While the session is still being resolved, NOTHING swaps: the app
+    // never commits a provisional guest state.
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await booting;
+
+    // The only backend decision happens AFTER the session is final.
+    expect(auth.isAuthenticated()).toBe(true);
+    expect(store.get().vehicles[0]?.name).toBe("ابر پس از تاخیر");
+  });
+
+  it("multiple consecutive refreshes keep restoring the session", async () => {
+    const supabase = fakeSupabase({
+      storedSession: { user: { id: USER, email: "user@mail.com" } },
+    });
+    supabase.seedDataset(vehicleNamed("ابر پایدار"), USER);
+    setSupabaseOverride(supabase.client);
+
+    for (let i = 0; i < 3; i += 1) {
+      auth.resetForTests();
+      resetDataSourceForTests();
+      await initializeDataSource();
+      expect(auth.isAuthenticated()).toBe(true);
+      expect(store.get().vehicles[0]?.name).toBe("ابر پایدار");
+    }
+  });
+
+  it("TOKEN_REFRESHED keeps the user authenticated and never swaps back to guest", async () => {
+    const supabase = fakeSupabase({
+      storedSession: { user: { id: USER, email: "user@mail.com" } },
+    });
+    supabase.seedDataset(vehicleNamed("ابر الف"), USER);
+    setSupabaseOverride(supabase.client);
+    await initializeDataSource();
+    expect(auth.isAuthenticated()).toBe(true);
+
+    supabase.emitAuthEvent("TOKEN_REFRESHED");
+
+    expect(auth.isAuthenticated()).toBe(true);
+    expect(store.get().vehicles[0]?.name).toBe("ابر الف");
+  });
+
+  it("a SIGNED_IN event racing the initial swap is queued, not lost", async () => {
+    const supabase = fakeSupabase({ storedSession: null, sessionDelay: 20 });
+    supabase.seedDataset(vehicleNamed("ورود در میانه بوت"), USER);
+    setSupabaseOverride(supabase.client);
+
+    const booting = initializeDataSource();
+    // While the initial swap is still resolving, the user logs in.
+    setTimeout(() => supabase.signInAs(USER), 5);
+    await booting;
+    await new Promise((resolve) => setTimeout(resolve, 10)); // queued swap runs
+
+    expect(auth.isAuthenticated()).toBe(true);
+    expect(store.get().vehicles[0]?.name).toBe("ورود در میانه بوت");
+  });
+
+  it("logout fully signs out; a refresh afterwards stays in guest mode", async () => {
+    const supabase = fakeSupabase({
+      storedSession: { user: { id: USER, email: "user@mail.com" } },
+    });
+    supabase.seedDataset(vehicleNamed("ابر خصوصی"), USER);
+    setSupabaseOverride(supabase.client);
+    await initializeDataSource();
+    expect(store.get().vehicles).toHaveLength(1);
+
+    await auth.signOut();
+    await new Promise((resolve) => setTimeout(resolve, 0)); // swap to guest
+    expect(auth.isAuthenticated()).toBe(false);
+    expect(store.get()).toEqual(defaultDataset());
+
+    // "Refresh": re-initialize with the now-cleared stored session.
+    auth.resetForTests();
+    resetDataSourceForTests();
+    await initializeDataSource();
+    expect(auth.isAuthenticated()).toBe(false);
+    expect(store.get()).toEqual(defaultDataset());
+    // The user's cloud data was never copied into guest IndexedDB.
+    expect(idb.db.raw()).toBeUndefined();
+  });
+
+  it("another user's restored session never touches guest IndexedDB data", async () => {
+    // First: a guest writes data locally.
+    const guestSupabase = fakeSupabase({ storedSession: null });
+    setSupabaseOverride(guestSupabase.client);
+    await initializeDataSource();
+    store.update((draft) => {
+      draft.vehicles.push({
+        id: createId(),
+        name: "خودروی مهمان",
+        make: "",
+        model: "",
+        year: null,
+        fuelType: null,
+        averageAnnualDistance: null,
+        currentOdometer: null,
+        odometerUpdatedAt: null,
+        createdAt: "2026-09-01T00:00:00.000Z",
+        updatedAt: "2026-09-01T00:00:00.000Z",
+      });
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20)); // IndexedDB flush
+
+    // Then: a DIFFERENT user's session is restored on refresh.
+    const otherSupabase = fakeSupabase({
+      storedSession: { user: { id: OTHER_USER, email: "other@mail.com" } },
+    });
+    otherSupabase.seedDataset(vehicleNamed("ابر شخص دیگر"), OTHER_USER);
+    setSupabaseOverride(otherSupabase.client);
+    auth.resetForTests();
+    resetDataSourceForTests();
+    await initializeDataSource();
+
+    // The app shows the other user's cloud data while authenticated…
+    expect(auth.getUser()?.id).toBe(OTHER_USER);
+    expect(store.get().vehicles[0]?.name).toBe("ابر شخص دیگر");
+    // …and the guest's IndexedDB data survived untouched.
+    expect(idb.db.raw()).not.toBeUndefined();
+
+    // Back to guest (logout) → the guest's own data is back, unmodified.
+    await auth.signOut();
+    await applyAuthState(); // wait for the serialized swap chain, not a timer
+    expect(store.get().vehicles[0]?.name).toBe("خودروی مهمان");
   });
 });
 

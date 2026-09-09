@@ -19,7 +19,7 @@
  * - Works from any sub-path (GitHub Pages): all URLs are relative to the
  *   worker scope, so `./` resolution is scope-relative.
  */
-const CACHE = "car-maintenance-shell-v5";
+const CACHE = "car-maintenance-shell-v6";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(precache());
@@ -43,6 +43,15 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return; // never touch external calls
+  // Page navigations: network-first. A cache-first shell would serve the
+  // PREVIOUS release's index.html on a plain refresh (F5), which loads the
+  // old hashed JS bundle — while a hard refresh (bypassing the worker) got
+  // the fresh one. Network-first keeps F5 current; the cache is the offline
+  // fallback only.
+  if (request.mode === "navigate") {
+    event.respondWith(networkFirstNavigation(request));
+    return;
+  }
   event.respondWith(cacheFirst(request));
 });
 
@@ -107,6 +116,22 @@ async function precache() {
     );
   } catch {
     /* offline during first install: the shell is cached next time */
+  }
+}
+
+/** Network-first for navigations: fresh shell when online, cached shell
+ * when offline. The fresh document is stored so the next offline load
+ * still boots. */
+async function networkFirstNavigation(request) {
+  const cache = await caches.open(CACHE);
+  try {
+    const response = await fetch(request);
+    if (response.ok) cache.put("./index.html", response.clone());
+    return response;
+  } catch {
+    const cached = (await cache.match(request)) ?? (await cache.match("./index.html"));
+    if (cached) return cached;
+    return Response.error();
   }
 }
 
