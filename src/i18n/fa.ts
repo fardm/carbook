@@ -28,6 +28,7 @@ export const fa = {
     passwordPlaceholder: "حداقل ۶ کاراکتر",
     signInButton: "ورود",
     signUpButton: "ایجاد حساب",
+    loginSuccess: "ورود موفقیت‌آمیز بود",
     working: "لطفاً صبر کنید…",
     logoutButton: "خروج از حساب",
     logoutConfirm: "از حساب کاربری خارج می‌شوید؟ داده‌ها پس از خروج روی این دستگاه ذخیره می‌مانند.",

@@ -341,6 +341,7 @@ async function submitAuthForm(form: HTMLFormElement): Promise<void> {
   state.busy = true;
   state.errorKey = null;
   drawModal(null);
+  let loginSucceeded = false;
   try {
     if (state.mode === "signUp") {
       await auth.signUp(email, password);
@@ -348,16 +349,23 @@ async function submitAuthForm(form: HTMLFormElement): Promise<void> {
       // active session and the user enters the app immediately.
       if (auth.getUser()) {
         await afterAuthenticated();
+        loginSucceeded = true;
       }
     } else {
       await auth.signIn(email, password);
       await afterAuthenticated();
+      loginSucceeded = true;
     }
   } catch (error) {
     state.errorKey = mapAuthError(error);
   } finally {
     state.busy = false;
-    drawModal(auth.getUser());
+    if (loginSucceeded) {
+      closeAccountModal();
+      showLoginToast();
+    } else {
+      drawModal(auth.getUser());
+    }
   }
 }
 
@@ -433,4 +441,14 @@ async function performLogout(): Promise<void> {
     state.errorKey = mapAuthError(error);
     drawModal(auth.getUser());
   }
+}
+
+function showLoginToast(): void {
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.textContent = t("account.loginSuccess");
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.remove();
+  }, 3000);
 }
