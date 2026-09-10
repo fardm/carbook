@@ -24,6 +24,7 @@ const baseDraft: ReminderDraft = {
   repeatWeekday: null,
   repeatEveryKm: null,
   enabled: true,
+  formMode: "general",
 };
 
 describe("validateReminderDraft — weekly", () => {

@@ -462,6 +462,7 @@ export const fa = {
     errorDueDateRequired: "تاریخ یادآوری را وارد کنید.",
     errorDueDateInvalid: "تاریخ معتبر نیست.",
     errorDueMileageRequired: "کیلومتر یادآوری را وارد کنید.",
+    errorServiceRequired: "انتخاب سرویس الزامی است.",
     errorDueMileageInvalid: "کیلومتر باید عددی صحیح و غیرمنفی باشد.",
     errorConditionRequired: "حداقل یکی از شرایط (تاریخ یا کیلومتر) را مشخص کنید.",
     errorSyncDateUnavailable: "این سرویس تاریخ پیشنهادی ندارد؛ نوع یادآوری را تغییر دهید.",

@@ -329,6 +329,7 @@ describe("validateReminderDraft — synced drafts", () => {
     repeatWeekday: null,
     repeatEveryKm: null,
     enabled: true,
+    formMode: "service",
   };
 
   it("reports syncDateUnavailable (not dueDateRequired) when the service has no date", () => {

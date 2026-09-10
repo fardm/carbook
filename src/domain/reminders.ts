@@ -270,6 +270,8 @@ export interface ReminderDraft {
   repeatWeekday: number | null;
   repeatEveryKm: number | null;
   enabled: boolean;
+  /** Whether the form is in service-based mode (requires service selection). */
+  formMode: "general" | "service";
 }
 
 export type ReminderDraftError =
@@ -281,6 +283,7 @@ export type ReminderDraftError =
   | "conditionRequired"
   | "syncDateUnavailable"
   | "syncKmUnavailable"
+  | "serviceRequired"
   | "repeatWeekdayInvalid"
   | "repeatKmRequired"
   | "repeatKmInvalid"
@@ -291,6 +294,11 @@ export function validateReminderDraft(draft: ReminderDraft): ReminderDraftError[
   const errors: ReminderDraftError[] = [];
 
   if (draft.title.trim() === "") errors.push("titleRequired");
+
+  // Service-based reminders require a service to be selected
+  if (draft.formMode === "service" && draft.serviceId == null) {
+    errors.push("serviceRequired");
+  }
 
   const watchesDate = draft.type === "date" || draft.type === "date_mileage";
   const watchesKm = draft.type === "mileage" || draft.type === "date_mileage";

@@ -160,6 +160,7 @@ const ERROR_KEYS: Record<ReminderDraftError, Parameters<typeof t>[0]> = {
   conditionRequired: "reminders.errorConditionRequired",
   syncDateUnavailable: "reminders.errorSyncDateUnavailable",
   syncKmUnavailable: "reminders.errorSyncKmUnavailable",
+  serviceRequired: "reminders.errorServiceRequired",
   repeatWeekdayInvalid: "reminders.errorRepeatWeekday",
   repeatKmRequired: "reminders.errorRepeatKmRequired",
   repeatKmInvalid: "reminders.errorRepeatKmInvalid",
@@ -1653,6 +1654,7 @@ function submitReminderForm(container: HTMLElement, form: HTMLFormElement): void
     repeatWeekday: state.formRepeat === "weekly" ? state.formWeekday : null,
     repeatEveryKm,
     enabled,
+    formMode: state.formMode,
   };
 
   const errors = validateReminderDraft(draft);
@@ -1731,6 +1733,7 @@ function showReminderErrors(container: HTMLElement, errors: [ReminderDraftError,
     dueMileageInvalid: "reminder-error-km",
     syncDateUnavailable: "reminder-error-date",
     syncKmUnavailable: "reminder-error-km",
+    serviceRequired: "reminder-error-service",
     repeatWeekdayInvalid: "reminder-error-repeat-weekday",
     repeatKmRequired: "reminder-error-repeat-km",
     repeatKmInvalid: "reminder-error-repeat-km",
