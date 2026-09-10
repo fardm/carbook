@@ -64,7 +64,7 @@ export const CATALOG: readonly CatalogEntry[] = [
     id: "timingChain",
     category: "engine",
     icon: "link",
-    name: { fa: "زنجیر تایم", en: "Timing Chain" },
+    name: { fa: "تسمه تایم", en: "Timing Chain" },
     suggestedKm: null,
     kmRange: null,
     suggestedMonths: 120,
