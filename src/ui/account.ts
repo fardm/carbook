@@ -200,8 +200,7 @@ function unauthenticatedModalHtml(): string {
           ${passwordError}
         </div>
         <div class="form__actions">
-          <button type="button" class="btn btn--text js-account-close">${t("common.cancel")}</button>
-          <button type="submit" class="btn btn--filled js-account-submit" ${state.busy ? "disabled" : ""}>
+          <button type="submit" class="btn btn--filled btn--full js-account-submit" ${state.busy ? "disabled" : ""}>
             ${state.busy ? `<span class="account-spinner" data-lucide="loader-circle"></span>${t("account.working")}` : submitLabel}
           </button>
         </div>
