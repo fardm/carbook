@@ -13,7 +13,7 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     id: "engineOil",
     category: "engine",
-    icon: "droplets",
+    icon: "oil",
     name: { fa: "روغن موتور", en: "Engine Oil" },
     suggestedKm: 10000,
     kmRange: [8000, 12000],
@@ -23,7 +23,7 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     id: "oilFilter",
     category: "engine",
-    icon: "filter",
+    icon: "car-filter",
     name: { fa: "فیلتر روغن", en: "Oil Filter" },
     suggestedKm: 10000,
     kmRange: [8000, 12000],
@@ -33,7 +33,7 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     id: "sparkPlugs",
     category: "engine",
-    icon: "zap",
+    icon: "spark-plug",
     name: { fa: "شمع", en: "Spark Plugs" },
     suggestedKm: 40000,
     kmRange: [30000, 60000],
@@ -43,7 +43,7 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     id: "alternatorBelt",
     category: "engine",
-    icon: "infinity",
+    icon: "timing-belt",
     name: { fa: "تسمه دینام", en: "Alternator Belt" },
     suggestedKm: 80000,
     kmRange: [60000, 100000],
@@ -53,7 +53,7 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     id: "acBelt",
     category: "engine",
-    icon: "infinity",
+    icon: "timing-belt",
     name: { fa: "تسمه کولر", en: "AC Belt" },
     suggestedKm: 80000,
     kmRange: [60000, 100000],
@@ -63,7 +63,7 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     id: "timingChain",
     category: "engine",
-    icon: "link",
+    icon: "timing-belt",
     name: { fa: "تسمه تایم", en: "Timing Chain" },
     suggestedKm: null,
     kmRange: null,
@@ -84,7 +84,7 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     id: "brakeFluid",
     category: "fluids",
-    icon: "droplet",
+    icon: "oil",
     name: { fa: "روغن ترمز", en: "Brake Fluid" },
     suggestedKm: null,
     kmRange: null,
@@ -94,7 +94,7 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     id: "transmissionFluid",
     category: "fluids",
-    icon: "refresh-cw",
+    icon: "oil",
     name: { fa: "روغن گیربکس", en: "Transmission Fluid" },
     suggestedKm: 60000,
     kmRange: [40000, 80000],
@@ -104,8 +104,8 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     id: "powerSteeringFluid",
     category: "fluids",
-    icon: "compass",
-    name: { fa: "روغن فرمان", en: "Power Steering Fluid" },
+    icon: "oil",
+    name: { fa: "روغن هیدرولیک", en: "Power Steering Fluid" },
     suggestedKm: 40000,
     kmRange: [30000, 60000],
     suggestedMonths: null,
@@ -148,7 +148,7 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     id: "tires",
     category: "tiresWheels",
-    icon: "circle",
+    icon: "tire",
     name: { fa: "لاستیک", en: "Tires" },
     suggestedKm: null,
     kmRange: null,
@@ -158,8 +158,8 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     id: "wheelBalancing",
     category: "tiresWheels",
-    icon: "target",
-    name: { fa: "بالانس چرخ", en: "Wheel Balancing" },
+    icon: "wheel-balancing",
+    name: { fa: "تنظیم باد لاستیک", en: "Wheel Balancing" },
     suggestedKm: 10000,
     kmRange: [8000, 15000],
     suggestedMonths: null,
@@ -181,7 +181,7 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     id: "airFilter",
     category: "filters",
-    icon: "wind",
+    icon: "car-filter",
     name: { fa: "فیلتر هوا", en: "Engine Air Filter" },
     suggestedKm: 20000,
     kmRange: [15000, 30000],
@@ -191,7 +191,7 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     id: "cabinFilter",
     category: "filters",
-    icon: "filter",
+    icon: "car-filter",
     name: { fa: "فیلتر کابین", en: "Cabin Filter" },
     suggestedKm: 15000,
     kmRange: [10000, 20000],
@@ -201,7 +201,7 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     id: "fuelFilter",
     category: "filters",
-    icon: "fuel",
+    icon: "car-filter",
     name: { fa: "صافی/فیلتر سوخت", en: "Fuel Filter" },
     suggestedKm: 40000,
     kmRange: [30000, 60000],

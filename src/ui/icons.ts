@@ -2,17 +2,27 @@
  * Local icon assets (§29 status chips, catalog icons, UI glyphs).
  *
  * Every icon is a standalone SVG file under `src/assets/icons/` — one file
- * per icon, no sprite — vendored from Lucide (ISC, see each file's header).
- * The glob below inlines them into the bundle at build time, so the PWA
- * renders identically offline with zero extra network requests.
+ * per icon, no sprite. The glob below inlines them into the bundle at build
+ * time, so the PWA renders identically offline with zero extra network
+ * requests.
  *
- * Rendering contract (unchanged from the previous lucide.createIcons
- * pipeline): markup contains `<span data-icon="icon-name">` placeholders
- * and `applyIcons()` swaps each one for the real `<svg>`. Attributes on the
- * placeholder (class, width/height, aria-*, style…) are carried over and
- * override the SVG defaults, so every CSS selector targeting
- * `svg.lucide` / sized placeholders keeps working. All SVGs draw with
- * `stroke="currentColor"`, so color stays controlled by CSS/theme/state.
+ * The renderer is FORMAT-AGNOSTIC: each SVG file is the single source of
+ * truth for its own rendering properties (viewBox, width/height, fill,
+ * stroke*, or any other SVG attribute — lucide-derived 24×24 stroke icons
+ * and fully colored custom artwork both work unchanged). `applyIcons()`
+ * only loads, inlines, and applies placeholder overrides:
+ *
+ * - markup contains `<span data-icon="icon-name">` placeholders;
+ * - each placeholder is swapped for its file's real `<svg>`;
+ * - attributes explicitly set on the placeholder (class, width/height,
+ *   aria-*, style…) are transferred to the SVG and override the file's
+ *   corresponding attributes;
+ * - `data-icon` itself is never transferred;
+ * - unknown names are left untouched (no silent data loss).
+ *
+ * All current assets derive from Lucide (ISC, see each file's header) and
+ * carry their own presentation attributes; custom non-lucide SVGs (e.g.
+ * `carbook-badge.svg`, a colored 512×512 mark) need no special casing.
  */
 
 const iconFiles = import.meta.glob<string>("../assets/icons/*.svg", {
@@ -54,21 +64,8 @@ export const CUSTOM_ICON_CHOICES = [
   "fuel",
 ] as const;
 
-/** Presentation attributes every icon gets unless the placeholder carries
- * its own (matches the previous lucide rendering defaults). */
-const SVG_DEFAULTS: Record<string, string> = {
-  xmlns: "http://www.w3.org/2000/svg",
-  width: "24",
-  height: "24",
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  "stroke-width": "2",
-  "stroke-linecap": "round",
-  "stroke-linejoin": "round",
-};
-
-/** Parses an SVG file's markup into a real `<svg>` element. */
+/** Parses an SVG file's markup into its root `<svg>` element. The file's
+ * own attributes are preserved untouched — no normalization here. */
 function svgFromMarkup(markup: string): SVGSVGElement | null {
   const wrapper = document.createElement("div");
   wrapper.innerHTML = markup.trim();
@@ -77,8 +74,9 @@ function svgFromMarkup(markup: string): SVGSVGElement | null {
     : null;
 }
 
-/** Replaces every `[data-icon]` element in the document with its local
- * SVG asset. Unknown names are left untouched (no silent data loss). */
+/** Replaces every `[data-icon]` element in the document with its inline
+ * SVG asset. The SVG file owns its rendering properties; only attributes
+ * explicitly present on the placeholder override them. */
 export function applyIcons(): void {
   document.querySelectorAll<HTMLElement>("[data-icon]").forEach((placeholder) => {
     const name = placeholder.dataset.icon ?? "";
@@ -86,11 +84,8 @@ export function applyIcons(): void {
     if (!markup) return;
     const svg = svgFromMarkup(markup);
     if (!svg) return;
-    // Defaults first, then the placeholder's own attributes — explicit
-    // markup (sizing, class hooks, a11y) always wins.
-    for (const [attr, value] of Object.entries(SVG_DEFAULTS)) {
-      svg.setAttribute(attr, value);
-    }
+    // Transfer the placeholder's own attributes (class, sizing, a11y…)
+    // over the file's; skip the data-icon handle itself.
     for (const attr of placeholder.getAttributeNames()) {
       if (attr === "data-icon") continue;
       svg.setAttribute(attr, placeholder.getAttribute(attr)!);

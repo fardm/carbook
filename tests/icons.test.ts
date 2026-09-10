@@ -8,6 +8,9 @@
 import { describe, expect, it } from "vitest";
 import { applyIcons, CUSTOM_ICON_CHOICES, ICON_ASSETS, STATUS_ICONS } from "../src/ui/icons";
 
+/** The one intentionally non-lucide asset (own viewBox + internal fills). */
+const CUSTOM_FORMAT_ICON = "carbook-badge";
+
 describe("local icon assets", () => {
   it("ships a standalone SVG file for every status, custom-item, and choice icon", () => {
     const required = [
@@ -26,16 +29,12 @@ describe("local icon assets", () => {
     }
   });
 
-  it("draws every icon with currentColor so CSS/theme keeps controlling color", () => {
+  it("lucide-derived assets draw with currentColor so CSS/theme keeps controlling color", () => {
     for (const [name, markup] of Object.entries(ICON_ASSETS)) {
+      if (name === CUSTOM_FORMAT_ICON) continue; // custom artwork, tested below
       expect(markup, name).toContain('stroke="currentColor"');
       expect(markup, name).not.toMatch(/stroke="#[0-9a-fA-F]/);
       expect(markup, name).not.toMatch(/fill="#[0-9a-fA-F]/);
-    }
-  });
-
-  it("every asset has the 24×24 lucide viewBox", () => {
-    for (const [name, markup] of Object.entries(ICON_ASSETS)) {
       expect(markup, name).toContain('viewBox="0 0 24 24"');
     }
   });
@@ -56,10 +55,11 @@ describe("applyIcons rendering contract", () => {
     expect(document.querySelector("[data-icon='not-a-real-icon']")).not.toBeNull();
   });
 
-  it("applies the lucide-default presentation attributes", () => {
+  it("the SVG file's own attributes are the source of truth — no renderer defaults", () => {
     document.body.innerHTML = '<span data-icon="wrench"></span>';
     applyIcons();
     const svg = document.querySelector("svg")!;
+    // These come from wrench.svg itself, not from any normalization layer.
     expect(svg.getAttribute("width")).toBe("24");
     expect(svg.getAttribute("height")).toBe("24");
     expect(svg.getAttribute("viewBox")).toBe("0 0 24 24");
@@ -68,7 +68,7 @@ describe("applyIcons rendering contract", () => {
     expect(svg.getAttribute("fill")).toBe("none");
   });
 
-  it("placeholder attributes override the defaults", () => {
+  it("placeholder attributes override the SVG file's own attributes", () => {
     document.body.innerHTML = '<span data-icon="car" width="18" height="18"></span>';
     applyIcons();
     const svg = document.querySelector("svg")!;
@@ -82,5 +82,43 @@ describe("applyIcons rendering contract", () => {
     applyIcons();
     const svg = document.querySelector("svg")!;
     expect(svg.hasAttribute("data-icon")).toBe(false);
+  });
+});
+
+describe("format-agnostic rendering (custom SVG formats)", () => {
+  it("inlines a custom 512×512 colored SVG with its own attributes intact", () => {
+    document.body.innerHTML = `<span data-icon="${CUSTOM_FORMAT_ICON}"></span>`;
+    applyIcons();
+    const svg = document.querySelector("svg")!;
+    // File-owned rendering properties; the renderer injected nothing.
+    expect(svg.getAttribute("viewBox")).toBe("0 0 512 512");
+    expect(svg.getAttribute("width")).toBe("512");
+    expect(svg.getAttribute("height")).toBe("512");
+    expect(svg.getAttribute("fill")).toBeNull(); // no fill="none" injected
+    expect(svg.getAttribute("stroke")).toBeNull(); // no stroke injected
+    expect(svg.querySelector('rect[fill="#f2870d"]')).not.toBeNull();
+    expect(svg.querySelector('circle[fill="#1f2937"]')).not.toBeNull();
+  });
+
+  it("placeholder attributes still override a custom SVG's own attributes", () => {
+    document.body.innerHTML =
+      `<span data-icon="${CUSTOM_FORMAT_ICON}" width="32" height="32" class="badge"></span>`;
+    applyIcons();
+    const svg = document.querySelector("svg")!;
+    expect(svg.getAttribute("width")).toBe("32");
+    expect(svg.getAttribute("height")).toBe("32");
+    expect(svg.getAttribute("class")).toBe("badge");
+    expect(svg.getAttribute("viewBox")).toBe("0 0 512 512"); // untouched
+    expect(svg.hasAttribute("data-icon")).toBe(false);
+  });
+
+  it("lucide-derived icons keep rendering exactly as before", () => {
+    document.body.innerHTML = '<span data-icon="calendar-clock"></span>';
+    applyIcons();
+    const svg = document.querySelector("svg")!;
+    expect(svg.getAttribute("viewBox")).toBe("0 0 24 24");
+    expect(svg.getAttribute("stroke")).toBe("currentColor");
+    expect(svg.getAttribute("stroke-width")).toBe("2");
+    expect(svg.getAttribute("fill")).toBe("none");
   });
 });
