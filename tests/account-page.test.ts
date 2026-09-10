@@ -13,7 +13,7 @@ import { renderAccount } from "../src/views/account";
 type AuthEventCallback = (event: string, session: unknown) => void;
 
 /** Minimal Supabase auth double: records updateUser/signOut calls. */
-function fakeSupabaseAuth(options?: { updateError?: { message: string; status?: number }; hasPassword?: boolean }) {
+function fakeSupabaseAuth(options?: { updateError?: { message: string; status?: number } }) {
   const calls: Array<{ fn: string; args: unknown }> = [];
   const listeners = new Set<AuthEventCallback>();
   let session: unknown = null;
@@ -47,11 +47,7 @@ function fakeSupabaseAuth(options?: { updateError?: { message: string; status?: 
     calls,
     /** Signs a user in through the SDK event path. */
     signInAs: () => {
-      const hasPassword = options?.hasPassword !== false; // default to true
-      const identities = hasPassword
-        ? [{ provider: "email" }]
-        : [{ provider: "google" }];
-      session = { user: { id: USER_ID, email: EMAIL, identities } };
+      session = { user: { id: USER_ID, email: EMAIL } };
       for (const callback of listeners) callback("SIGNED_IN", session);
     },
   };
@@ -81,14 +77,13 @@ async function renderSignedIn(
 /** Opens the change-password modal and submits it with the given values. */
 async function submitPasswordForm(
   container: HTMLElement,
-  values: { current: string; next: string; confirm: string },
+  values: { next: string; confirm: string },
 ): Promise<void> {
   container.querySelector<HTMLButtonElement>(".js-open-password")!.click();
   const form = container.querySelector<HTMLFormElement>(".account-form")!;
   const set = (sel: string, value: string): void => {
     form.querySelector<HTMLInputElement>(sel)!.value = value;
   };
-  set("#account-current-password", values.current);
   set("#account-new-password", values.next);
   set("#account-confirm-password", values.confirm);
   form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
@@ -131,16 +126,13 @@ describe("account page", () => {
 
   it("renders title, email, change-password and logout actions — no inline form", async () => {
     const { container } = await renderSignedIn();
-    // Wait for the async hasPasswordCredential call to complete
-    await new Promise((resolve) => setTimeout(resolve, 10));
 
     const html = container.innerHTML;
     expect(container.querySelector(".view-title")?.textContent).toContain("حساب کاربری");
     expect(html).toContain(EMAIL); // signup/login email
-    expect(container.querySelector(".js-open-password")?.textContent).toContain("تغییر رمز عبور");
+    expect(container.querySelector(".js-open-password")?.textContent).toContain("تنظیم / تغییر رمز عبور");
     expect(container.querySelector(".js-logout-start")?.textContent).toContain("خروج از حساب");
     // Not a form page: no password fields inline, no cards.
-    expect(html).not.toContain('id="account-current-password"');
     expect(html).not.toContain('id="account-new-password"');
     expect(html).not.toContain('id="account-confirm-password"');
     // No explanatory paragraphs / helper text.
@@ -156,7 +148,6 @@ describe("account page", () => {
     const modal = container.querySelector<HTMLElement>(".modal.account-modal");
     expect(modal).not.toBeNull();
     expect(modal!.getAttribute("role")).toBe("dialog");
-    expect(modal!.innerHTML).toContain('id="account-current-password"');
     expect(modal!.innerHTML).toContain('id="account-new-password"');
     expect(modal!.innerHTML).toContain('id="account-confirm-password"');
 
@@ -180,7 +171,6 @@ describe("account page", () => {
     const { container, supabase } = await renderSignedIn();
 
     await submitPasswordForm(container, {
-      current: "old-pass-1",
       next: "abc123",
       confirm: "abc999",
     });
@@ -194,7 +184,6 @@ describe("account page", () => {
     const { container, supabase } = await renderSignedIn();
 
     await submitPasswordForm(container, {
-      current: "old-pass-1",
       next: "abc",
       confirm: "abc",
     });
@@ -207,14 +196,13 @@ describe("account page", () => {
     const { container, supabase } = await renderSignedIn();
 
     await submitPasswordForm(container, {
-      current: "old-pass-1",
       next: "abc123",
       confirm: "abc123",
     });
 
     expect(supabase.calls).toEqual([{ fn: "updateUser", args: { password: "abc123" } }]);
     // Success feedback + modal closed (nothing left inline on the page).
-    expect(document.querySelector(".toast")?.textContent).toContain("گذرواژه با موفقیت تغییر کرد");
+    expect(document.querySelector(".toast")?.textContent).toContain("گذرواژه با موفقیت تنظیم شد");
     expect(container.querySelector(".modal")).toBeNull();
   });
 
@@ -224,7 +212,6 @@ describe("account page", () => {
     });
 
     await submitPasswordForm(container, {
-      current: "old-pass-1",
       next: "abc123",
       confirm: "abc123",
     });
