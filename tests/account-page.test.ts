@@ -13,7 +13,7 @@ import { renderAccount } from "../src/views/account";
 type AuthEventCallback = (event: string, session: unknown) => void;
 
 /** Minimal Supabase auth double: records updateUser/signOut calls. */
-function fakeSupabaseAuth(options?: { updateError?: { message: string; status?: number } }) {
+function fakeSupabaseAuth(options?: { updateError?: { message: string; status?: number }; hasPassword?: boolean }) {
   const calls: Array<{ fn: string; args: unknown }> = [];
   const listeners = new Set<AuthEventCallback>();
   let session: unknown = null;
@@ -47,7 +47,11 @@ function fakeSupabaseAuth(options?: { updateError?: { message: string; status?: 
     calls,
     /** Signs a user in through the SDK event path. */
     signInAs: () => {
-      session = { user: { id: USER_ID, email: EMAIL } };
+      const hasPassword = options?.hasPassword !== false; // default to true
+      const identities = hasPassword
+        ? [{ provider: "email" }]
+        : [{ provider: "google" }];
+      session = { user: { id: USER_ID, email: EMAIL, identities } };
       for (const callback of listeners) callback("SIGNED_IN", session);
     },
   };
@@ -127,6 +131,8 @@ describe("account page", () => {
 
   it("renders title, email, change-password and logout actions — no inline form", async () => {
     const { container } = await renderSignedIn();
+    // Wait for the async hasPasswordCredential call to complete
+    await new Promise((resolve) => setTimeout(resolve, 10));
 
     const html = container.innerHTML;
     expect(container.querySelector(".view-title")?.textContent).toContain("حساب کاربری");

@@ -66,6 +66,8 @@ interface AccountViewState {
   migration: (MigrationChoice | "offer") | null;
   migrationCounts: DatasetCounts | null;
   migrationErrorKey: string | null;
+  /** Whether the user has a password credential (email/password identity). */
+  hasPasswordCredential: boolean | null;
 }
 
 const state: AccountViewState = {
@@ -79,6 +81,7 @@ const state: AccountViewState = {
   migration: null,
   migrationCounts: null,
   migrationErrorKey: null,
+  hasPasswordCredential: null,
 };
 
 /** Clears the view-local state when the user navigates away from the page. */
@@ -121,6 +124,13 @@ export function renderAccount(container: HTMLElement): (() => void) | void {
     return;
   }
 
+  // Fetch whether the user has a password credential (email/password identity)
+  // to determine whether to show "Change Password" or "Set Password" UI.
+  void auth.hasPasswordCredential().then((hasPassword) => {
+    state.hasPasswordCredential = hasPassword;
+    draw();
+  });
+
   const draw = (): void => {
     container.innerHTML = accountViewHtml();
     bind(container);
@@ -145,6 +155,8 @@ export function renderAccount(container: HTMLElement): (() => void) | void {
 function accountViewHtml(): string {
   const user = auth.getUser();
   if (!user) return "";
+  const hasPassword = state.hasPasswordCredential === true;
+  const passwordButtonKey = hasPassword ? "account.changePasswordTitle" : "account.setPasswordTitle";
   return `
     <div class="view-stack">
       <h1 class="view-title">${t("view.account.title")}</h1>
@@ -154,7 +166,7 @@ function accountViewHtml(): string {
       </div>
       <div class="account-actions">
         <button type="button" class="btn btn--secondary js-open-password">
-          ${t("account.changePasswordTitle")}
+          ${t(passwordButtonKey)}
         </button>
         <button type="button" class="btn btn--danger-outline js-logout-start">
           ${t("account.logoutButton")}
@@ -174,20 +186,24 @@ function passwordModalHtml(): string {
   const errorHtml = state.changeErrorKey
     ? `<div class="box box--error" role="alert"><span data-lucide="circle-alert"></span><span>${escHtml(t(state.changeErrorKey as never))}</span></div>`
     : "";
+  const hasPassword = state.hasPasswordCredential === true;
+  const titleKey = hasPassword ? "account.changePasswordTitle" : "account.setPasswordTitle";
+  const buttonKey = hasPassword ? "account.changePasswordButton" : "account.setPasswordButton";
   const submitLabel = state.busy
     ? `<span class="account-spinner" data-lucide="loader-circle"></span>${t("account.working")}`
-    : t("account.changePasswordButton");
+    : t(buttonKey);
 
   return `
     <div class="modal-overlay account-overlay">
-      <div class="modal account-modal" role="dialog" aria-modal="true" aria-label="${t("account.changePasswordTitle")}">
+      <div class="modal account-modal" role="dialog" aria-modal="true" aria-label="${t(titleKey)}">
         <div class="modal__head">
-          <div class="form__title">${t("account.changePasswordTitle")}</div>
+          <div class="form__title">${t(titleKey)}</div>
           <button type="button" class="icon-btn js-password-close" aria-label="${t("common.close")}">
             <span data-lucide="x"></span>
           </button>
         </div>
         <form class="form account-form" novalidate>
+          ${hasPassword ? `
           <div class="field">
             <label class="field__label" for="account-current-password">${t("account.currentPasswordLabel")}</label>
             <input class="field__input" id="account-current-password" name="currentPassword" type="password"
@@ -196,6 +212,7 @@ function passwordModalHtml(): string {
               placeholder="${t("account.currentPasswordPlaceholder")}" />
             ${fieldErrorHtml(state.currentErrorKey)}
           </div>
+          ` : ""}
           <div class="field">
             <label class="field__label" for="account-new-password">${t("account.newPasswordLabel")}</label>
             <input class="field__input" id="account-new-password" name="newPassword" type="password"
@@ -299,7 +316,9 @@ function bind(container: HTMLElement): void {
     state.newPasswordErrorKey = null;
     state.confirmErrorKey = null;
     redraw(container);
-    document.getElementById("account-current-password")?.focus();
+    // Focus the appropriate field based on whether user has a password
+    const focusId = state.hasPasswordCredential === true ? "account-current-password" : "account-new-password";
+    document.getElementById(focusId)?.focus();
   });
 
   const closeModal = (): void => {
@@ -375,10 +394,15 @@ async function submitPasswordChange(container: HTMLElement, form: HTMLFormElemen
   const current = read("#account-current-password");
   const next = read("#account-new-password");
   const confirm = read("#account-confirm-password");
+  const hasPassword = state.hasPasswordCredential === true;
 
   // Client-side validation first (friendly, immediate): the new password
   // must satisfy Supabase's own minimum and the confirmation must match.
-  state.currentErrorKey = current === "" ? "account.errors.requiredPassword" : null;
+  if (hasPassword) {
+    state.currentErrorKey = current === "" ? "account.errors.requiredPassword" : null;
+  } else {
+    state.currentErrorKey = null;
+  }
   state.newPasswordErrorKey = validatePassword(next)
     ? "account.errors.shortPassword"
     : null;
@@ -399,8 +423,11 @@ async function submitPasswordChange(container: HTMLElement, form: HTMLFormElemen
     state.modal = null;
     state.formValues = {};
     state.busy = false;
+    // Update the hasPasswordCredential state since the user now has a password
+    state.hasPasswordCredential = true;
     redraw(container);
-    showToast(t("account.changePasswordSuccess"));
+    const successKey = hasPassword ? "account.changePasswordSuccess" : "account.setPasswordSuccess";
+    showToast(t(successKey));
   } catch (error) {
     state.changeErrorKey = mapAuthError(error);
     state.busy = false;

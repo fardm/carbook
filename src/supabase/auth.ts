@@ -165,6 +165,19 @@ class AuthController {
     this.applySession(user ? ({ user: { id: user.id, email: user.email } } as unknown as Session) : null);
   }
 
+  /**
+   * Checks whether the current user has a password credential (email/password identity).
+   * Returns true if the user has an email/password identity, false otherwise (e.g., Google-only users).
+   * This is used to determine whether to show "Change Password" or "Set Password" UI.
+   */
+  async hasPasswordCredential(): Promise<boolean> {
+    const client = this.requireClient();
+    const { data, error } = await client.auth.getSession();
+    if (error || !data.session?.user) return false;
+    // Check if the user has an email/password identity
+    return data.session.user.identities?.some((identity) => identity.provider === "email") ?? false;
+  }
+
   /** Test hook: resets the controller to its pre-initialize state so a
    * fresh boot sequence can be exercised. */
   resetForTests(): void {
