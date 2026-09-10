@@ -455,7 +455,7 @@ export const fa = {
     pastKm: "کیلومتر گذشته",
     orCondition: "یا",
     menuLabel: "عملیات یادآوری",
-    deleteTitle: "حذف یادآوری",
+    deleteTitle: "حذف",
     deleteConfirm: "این یادآوری برای همیشه حذف شود؟",
     errorTitleRequired: "عنوان الزامی است.",
     errorDueDateRequired: "تاریخ یادآوری را وارد کنید.",
