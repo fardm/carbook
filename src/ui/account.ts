@@ -96,9 +96,18 @@ export function openAccountModal(): void {
   state.emailErrorKey = null;
   state.passwordErrorKey = null;
   drawModal();
-  unsubscribeAuth = auth.subscribe(() => {
-    state.errorKey = null;
-    drawModal();
+  unsubscribeAuth = auth.subscribe(async () => {
+    const user = auth.getUser();
+    if (user && modalOpen) {
+      // User authenticated via OAuth callback; close modal and complete login flow
+      await afterAuthenticated();
+      closeAccountModal();
+      showLoginToast();
+      window.location.hash = hashFor("account");
+    } else {
+      state.errorKey = null;
+      drawModal();
+    }
   });
 }
 
@@ -175,6 +184,17 @@ function unauthenticatedModalHtml(): string {
       ${tabs}
       ${errorHtml}
       <form class="form account-form" novalidate>
+        <div class="form__actions">
+          <button type="button" class="btn btn--secondary js-google-auth" ${state.busy ? "disabled" : ""}>
+            <span data-lucide="link"></span>
+            ${isSignUp ? t("account.signUpWithGoogle") : t("account.signInWithGoogle")}
+          </button>
+        </div>
+        <div class="account-separator">
+          <span class="account-separator__line"></span>
+          <span class="account-separator__text">${t("account.orSeparator")}</span>
+          <span class="account-separator__line"></span>
+        </div>
         <div class="field">
           <label class="field__label" for="account-email">${t("account.emailLabel")}</label>
           <input class="field__input" id="account-email" name="email" type="email" dir="ltr"
@@ -221,6 +241,9 @@ function bindModal(overlay: HTMLElement): void {
   });
   overlay.querySelector(".js-tab-sign-up")?.addEventListener("click", () => {
     switchMode("signUp");
+  });
+  overlay.querySelector(".js-google-auth")?.addEventListener("click", () => {
+    void submitGoogleAuth();
   });
   const form = overlay.querySelector<HTMLFormElement>(".account-form");
   form?.addEventListener("submit", (event) => {
@@ -285,6 +308,21 @@ async function submitAuthForm(form: HTMLFormElement): Promise<void> {
     } else {
       drawModal();
     }
+  }
+}
+
+async function submitGoogleAuth(): Promise<void> {
+  state.busy = true;
+  state.errorKey = null;
+  drawModal();
+  try {
+    await auth.signInWithGoogle();
+    // OAuth redirects away; on return, the existing onAuthStateChange
+    // listener will handle the session and afterAuthenticated will be called.
+  } catch (error) {
+    state.errorKey = mapAuthError(error);
+    state.busy = false;
+    drawModal();
   }
 }
 

@@ -149,6 +149,17 @@ class AuthController {
     if (error) throw error;
   }
 
+  /** Sign in with Google OAuth. Throws mapped errors (errors.ts). */
+  async signInWithGoogle(): Promise<void> {
+    const client = this.requireClient();
+    const redirectTo = window.location.origin;
+    const { error } = await client.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo },
+    });
+    if (error) throw error;
+  }
+
   /** Test hook: pretend a session exists / ended without a server round-trip. */
   setUserDirect(user: AccountUser | null): void {
     this.applySession(user ? ({ user: { id: user.id, email: user.email } } as unknown as Session) : null);

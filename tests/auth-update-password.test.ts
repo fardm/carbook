@@ -33,6 +33,10 @@ function fakeSupabaseAuth(options?: { updateError?: { message: string; status?: 
         calls.push({ fn: "signUp", args });
         return { data: { user: null }, error: null };
       }),
+      signInWithOAuth: vi.fn(async (args: unknown) => {
+        calls.push({ fn: "signInWithOAuth", args });
+        return { data: { user: null }, error: null };
+      }),
       signOut: vi.fn(async () => ({ error: null })),
       updateUser: vi.fn(async (args: unknown) => {
         calls.push({ fn: "updateUser", args });
@@ -96,6 +100,61 @@ describe("auth.updatePassword — Supabase updateUser flow", () => {
 
   it("throws when the auth controller is not initialized", async () => {
     await expect(auth.updatePassword("whatever1")).rejects.toThrow(
+      "Auth controller not initialized",
+    );
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* signInWithGoogle — Supabase OAuth flow                              */
+/* ------------------------------------------------------------------ */
+
+describe("auth.signInWithGoogle — Supabase OAuth flow", () => {
+  afterEach(() => {
+    setSupabaseOverride(null);
+    auth.resetForTests();
+  });
+
+  it("calls signInWithOAuth with provider 'google' and redirectTo from current origin", async () => {
+    const { client, calls } = fakeSupabaseAuth();
+    setSupabaseOverride(client);
+    await auth.initialize();
+
+    await auth.signInWithGoogle();
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].fn).toBe("signInWithOAuth");
+    expect(calls[0].args).toMatchObject({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+  });
+
+  it("throws the mapped Supabase error when OAuth fails", async () => {
+    const client = {
+      from: () => {
+        throw new Error("not used here");
+      },
+      auth: {
+        getSession: vi.fn(async () => ({ data: { session: null }, error: null })),
+        onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+        signInWithOAuth: vi.fn(async () => ({
+          data: { user: null },
+          error: { message: "OAuth error", status: 400 },
+        })),
+      },
+    } as unknown as SupabaseClient;
+    setSupabaseOverride(client);
+    await auth.initialize();
+
+    await expect(auth.signInWithGoogle()).rejects.toMatchObject({
+      message: "OAuth error",
+      status: 400,
+    });
+  });
+
+  it("throws when the auth controller is not initialized", async () => {
+    await expect(auth.signInWithGoogle()).rejects.toThrow(
       "Auth controller not initialized",
     );
   });
