@@ -47,9 +47,11 @@ export class SupabaseRepository implements AsyncRepository {
       this.selectOne<SettingsRow>(CLOUD_TABLES.settings),
     ]);
     if (this.isEmptyCloud(vehicles, items, records, reminders, settings)) {
-      // Empty account: seed settings so the row exists, and persist the
-      // (empty) dataset once — new accounts behave like fresh guests.
-      await this.save(defaultDataset());
+      // Empty account: return the default dataset. Settings will be
+      // seeded on the first save. Previously, save(defaultDataset())
+      // was called here which would deleteMissing() on every table,
+      // destroying existing rows if the cloud appeared empty due to
+      // RLS filtering or an expired token.
       return defaultDataset();
     }
     return rowsToDataset(vehicles, items, records, reminders, settings);

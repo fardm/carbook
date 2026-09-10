@@ -234,9 +234,11 @@ export class SyncRepositoryAdapter implements Repository {
   }
 
   /** Promise that resolves once the background load has settled and the
-   * cache reflects the real stored data (Store.ready awaits this). */
+   * cache reflects the real stored data (Store.ready awaits this).
+   * Rejects if the async load failed, so callers can detect failures
+   * and avoid swapping to a backend that couldn't load its data. */
   initialLoad(): Promise<void> {
-    if (this.loadPromise) return this.loadPromise.then(() => undefined, () => undefined);
+    if (this.loadPromise) return this.loadPromise.then(() => undefined);
     return Promise.resolve();
   }
 

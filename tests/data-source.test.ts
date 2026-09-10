@@ -56,24 +56,30 @@ class FakeIDB {
   }
 
   private openRequestFor(db: unknown): IDBOpenDBRequest {
-    const request = {
-      onupgradeneeded: null,
-      onerror: null,
-      onsuccess: null,
-      result: db,
-    } as unknown as IDBOpenDBRequest;
+    // Use the global IDBRequest constructor (set by installFakeIndexedDB)
+    // so that `instanceof IDBRequest` checks in IndexedDBRepository pass.
+    const Ctor = (globalThis as unknown as { IDBRequest?: new () => object }).IDBRequest;
+    const request: Record<string, unknown> = Ctor ? new Ctor() as Record<string, unknown> : {};
+    request.onupgradeneeded = null;
+    request.onerror = null;
+    request.onsuccess = null;
+    request.result = db;
     setTimeout(() => {
       (request.onsuccess as ((event: unknown) => void) | null)?.call(request, { target: request });
     }, 0);
-    return request;
+    return request as unknown as IDBOpenDBRequest;
   }
 
   private requestFor(result: unknown): IDBRequest {
-    const request = { onerror: null, onsuccess: null, result } as unknown as IDBRequest;
+    const Ctor = (globalThis as unknown as { IDBRequest?: new () => object }).IDBRequest;
+    const request: Record<string, unknown> = Ctor ? new Ctor() as Record<string, unknown> : {};
+    request.onerror = null;
+    request.onsuccess = null;
+    request.result = result;
     setTimeout(() => {
       (request.onsuccess as ((event: unknown) => void) | null)?.call(request, { target: request });
     }, 0);
-    return request;
+    return request as unknown as IDBRequest;
   }
 
   /** Test inspection: what is persisted under the app's envelope key. */
@@ -655,8 +661,10 @@ describe("auth initialization and refresh persistence", () => {
     expect(store.get().vehicles).toHaveLength(1);
 
     await auth.signOut();
-    await new Promise((resolve) => setTimeout(resolve, 0)); // swap to guest
+    await applyAuthState(); // wait for the serialized swap chain
     expect(auth.isAuthenticated()).toBe(false);
+    // Guest data is restored from IndexedDB (the guest wrote nothing
+    // locally in this test, so the store returns the default empty dataset).
     expect(store.get()).toEqual(defaultDataset());
 
     // "Refresh": re-initialize with the now-cleared stored session.

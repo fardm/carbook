@@ -98,8 +98,11 @@ async function applyAuthStateInner(): Promise<void> {
   if (user) {
     const cloudRepository = repositoryForUser(user.id);
     if (!cloudRepository) return; // no Supabase env — stay in guest mode
-    lastAppliedUserId = user.id;
-    await store.setRepository(cloudRepository);
+    const ok = await store.setRepository(cloudRepository);
+    // Only mark the backend as active if the load succeeded. A failed
+    // load must NOT set lastAppliedUserId so the next auth event retries
+    // the swap instead of treating the stale backend as current.
+    if (ok) lastAppliedUserId = user.id;
     return;
   }
   // Guest mode: flush any queued local writes first, then re-bind to the
@@ -126,8 +129,8 @@ async function reloadActiveRepositoryInner(): Promise<void> {
   if (user) {
     const cloudRepository = repositoryForUser(user.id);
     if (cloudRepository) {
-      lastAppliedUserId = user.id;
-      await store.setRepository(cloudRepository);
+      const ok = await store.setRepository(cloudRepository);
+      if (ok) lastAppliedUserId = user.id;
       return;
     }
   }

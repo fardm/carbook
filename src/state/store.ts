@@ -37,7 +37,7 @@ export class Store {
   private awaitInitialLoad(repository: Repository): Promise<void> {
     // SyncRepositoryAdapter: wait for its background IndexedDB load.
     const initial = repository.initialLoad?.();
-    if (initial) return initial.then(() => undefined, () => undefined);
+    if (initial) return initial;
     // Plain sync repository: load() already ran in the constructor.
     return Promise.resolve();
   }
@@ -71,28 +71,32 @@ export class Store {
   }
 
   /**
-   * Re-binds the persistence backend in one atomic step and returns a ready
-   * promise for the new backend's data. Used by the account flows to switch
-   * the store between guest (IndexedDB) and authenticated (Supabase) data —
-   * never by views.
+   * Re-binds the persistence backend in one atomic step and returns true on
+   * success, false if the new backend's initial load failed (the old backend
+   * is kept active in that case to prevent data loss).
    *
    * Steps (ordered so no cross-backend leak is observable):
-   *  1. swap the cache to the NEW backend's current synchronous snapshot;
-   *  2. await its initial load and apply the settled dataset;
-   *  3. notify exactly once at the end — listeners re-render the new data.
+   *  1. await the NEW backend's initial load first (the old backend stays
+   *     active during this window so any store.update() triggered by
+   *     visibilitychange, reminders, etc. still writes to the OLD repo);
+   *  2. if the load failed, bail out — the old backend stays active;
+   *  3. swap both repository AND dataset atomically — no window where the
+   *     store points at the new backend with stale/empty data;
+   *  4. notify exactly once at the end — listeners re-render the new data.
    */
-  async setRepository(repository: Repository): Promise<void> {
-    this.repository = repository;
-    this.dataset = repository.load();
+  async setRepository(repository: Repository): Promise<boolean> {
     // Let the new repository's own initial-load promise settle (the Supabase
-    // adapter's load IS its background fetch), then apply the settled
-    // snapshot before notifying.
+    // adapter's load IS its background fetch) BEFORE swapping the backend.
     const initial = repository.initialLoad?.();
     if (initial) {
-      await initial.catch(() => undefined);
-      this.dataset = repository.load();
+      let failed = false;
+      await initial.catch(() => { failed = true; });
+      if (failed) return false;
     }
+    this.repository = repository;
+    this.dataset = repository.load();
     this.notify();
+    return true;
   }
 
   /** Registers a change listener; returns an unsubscribe function. */
