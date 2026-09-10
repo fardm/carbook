@@ -85,7 +85,7 @@ function vehicleViewHtml(): string {
         <h1 class="view-title">${t("view.vehicle.title")}</h1>
         <div class="page-header__actions">
           <button type="button" class="btn btn--filled js-add-vehicle">
-            <span data-lucide="plus"></span>
+            <span data-icon="plus"></span>
             ${t("vehicle.addVehicle")}
           </button>
         </div>
@@ -93,7 +93,7 @@ function vehicleViewHtml(): string {
       ${body}
       <div class="fab-bar fab-bar--page">
         <button type="button" class="btn btn--filled js-add-vehicle">
-          <span data-lucide="plus"></span>
+          <span data-icon="plus"></span>
           ${t("vehicle.addVehicle")}
         </button>
       </div>
@@ -105,7 +105,7 @@ function vehicleViewHtml(): string {
 function emptyStateHtml(): string {
   return `
     <section class="card vehicles-empty">
-      <span class="vehicles-empty__icon" data-lucide="car-front"></span>
+      <span class="vehicles-empty__icon" data-icon="car-front"></span>
       <p class="vehicles-empty__text">${t("vehicle.noVehicles")}</p>
     </section>
   `;
@@ -127,7 +127,7 @@ function vehicleRowHtml(vehicle: Vehicle, defaultVehicleId: string | null): stri
   return `
     <section class="card vehicle-row${isDefault ? " vehicle-row--default" : ""}">
       <div class="vehicle-row__main">
-        <span class="vehicle-row__icon" data-lucide="car"></span>
+        <span class="vehicle-row__icon" data-icon="car"></span>
         <div class="vehicle-row__info">
           <div class="vehicle-row__name">${escHtml(vehicle.name)}</div>
           ${meta ? `<div class="vehicle-row__meta">${escHtml(meta)}</div>` : ""}
@@ -136,11 +136,11 @@ function vehicleRowHtml(vehicle: Vehicle, defaultVehicleId: string | null): stri
 
       <div class="vehicle-row__mileage">
         <div class="vehicle-row__mileage-value">
-          <span data-lucide="gauge"></span>
+          <span data-icon="gauge"></span>
           <span>${mileage != null ? `${faNum(mileage)} ${t("common.kmUnit")}` : t("vehicle.notRecorded")}</span>
         </div>
         <button type="button" class="btn btn--text vehicle-row__update js-update-mileage" data-id="${escHtml(vehicle.id)}">
-          <span data-lucide="refresh-cw"></span>
+          <span data-icon="refresh-cw"></span>
           ${t("vehicle.updateMileage")}
         </button>
       </div>
@@ -148,7 +148,7 @@ function vehicleRowHtml(vehicle: Vehicle, defaultVehicleId: string | null): stri
       <div class="card-menu">
         <button type="button" class="icon-btn js-menu-toggle" data-id="${escHtml(vehicle.id)}"
           aria-haspopup="menu" aria-expanded="${menuOpen}" aria-label="${t("vehicle.menuLabel")}">
-          <span data-lucide="more-vertical"></span>
+          <span data-icon="more-vertical"></span>
         </button>
         ${menuOpen ? cardMenuPopoverHtml(vehicle.id, isDefault) : ""}
       </div>
@@ -165,16 +165,16 @@ function cardMenuPopoverHtml(vehicleId: string, isDefault: boolean): string {
     <div class="card-menu__backdrop js-menu-backdrop"></div>
     <div class="card-menu__popover" role="menu" aria-label="${t("vehicle.menuLabel")}">
       <button type="button" class="card-menu__item js-menu-edit" role="menuitem" data-id="${escHtml(vehicleId)}">
-        <span data-lucide="pencil"></span>
+        <span data-icon="pencil"></span>
         ${t("vehicle.edit")}
       </button>
       <button type="button" class="card-menu__item js-menu-default" role="menuitem" data-id="${escHtml(vehicleId)}">
-        <span data-lucide="star"></span>
+        <span data-icon="star"></span>
         ${isDefault ? t("vehicle.removeDefault") : t("vehicle.makeDefault")}
       </button>
       <div class="card-menu__divider" role="separator"></div>
       <button type="button" class="card-menu__item card-menu__item--danger js-menu-delete" role="menuitem" data-id="${escHtml(vehicleId)}">
-        <span data-lucide="trash-2"></span>
+        <span data-icon="trash-2"></span>
         ${t("vehicle.deleteVehicle")}
       </button>
     </div>
@@ -271,7 +271,7 @@ function deleteModalHtml(vehicle: Vehicle | null): string {
       <div class="form">
         <div class="form__title">${t("vehicle.deleteVehicle")}</div>
         <div class="box box--danger" role="alert">
-          <span data-lucide="triangle-alert"></span>
+          <span data-icon="triangle-alert"></span>
           <span>${t("vehicle.deleteConfirm")}${name ? ` «${name}»` : ""}</span>
         </div>
         <div class="form__actions">

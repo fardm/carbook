@@ -156,7 +156,7 @@ describe("account page", () => {
     expect(container.querySelector(".modal")).toBeNull();
   });
 
-  it("closes the modal when the overlay itself is clicked", async () => {
+  it("does NOT close the modal when the overlay (outside) is clicked", async () => {
     const { container } = await renderSignedIn();
 
     container.querySelector<HTMLButtonElement>(".js-open-password")!.click();
@@ -164,6 +164,10 @@ describe("account page", () => {
     expect(overlay).not.toBeNull();
     overlay!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
+    expect(container.querySelector(".modal.account-modal")).not.toBeNull();
+    // The explicit × control still dismisses it.
+    container.querySelector<HTMLElement>(".modal.account-modal")!
+      .querySelector<HTMLButtonElement>(".js-password-close")!.click();
     expect(container.querySelector(".modal")).toBeNull();
   });
 

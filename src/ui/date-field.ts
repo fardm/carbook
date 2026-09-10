@@ -71,7 +71,7 @@ export function dateFieldHtml(opts: DateFieldOptions): string {
       <button type="button" class="date-field__icon-btn" data-df-button
         aria-haspopup="dialog" aria-expanded="false"
         aria-label="${t("dateField.openPicker")}" title="${t("dateField.openPicker")}">
-        <span data-lucide="calendar" class="date-field__icon" aria-hidden="true"></span>
+        <span data-icon="calendar" class="date-field__icon" aria-hidden="true"></span>
       </button>
       <div class="date-field__popover" data-df-popover hidden role="dialog"
         aria-label="${escHtml(opts.label)}"></div>

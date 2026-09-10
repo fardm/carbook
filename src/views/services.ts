@@ -290,7 +290,7 @@ function fabBarHtml(itemId: string | null): string {
     return `
       <div class="fab-bar fab-bar--page">
         <button type="button" class="btn btn--filled js-add-service" disabled>
-          <span data-lucide="plus"></span>
+          <span data-icon="plus"></span>
           ${t("services.addServiceNew")}
         </button>
       </div>
@@ -299,7 +299,7 @@ function fabBarHtml(itemId: string | null): string {
   return `
     <div class="fab-bar fab-bar--page">
       <button type="button" class="btn btn--filled js-add-service">
-        <span data-lucide="plus"></span>
+        <span data-icon="plus"></span>
         ${t("services.addServiceNew")}
       </button>
     </div>
@@ -359,7 +359,7 @@ function servicesToolbarHtml(dataset: ReturnType<typeof store.get>, selectedId: 
   const addButton = `
     <button type="button" class="btn btn--filled js-add-service services-toolbar__add"
       ${noVehicles ? "disabled" : ""}>
-      <span data-lucide="plus"></span>
+      <span data-icon="plus"></span>
       ${t("services.addServiceNew")}
     </button>`;
   return `<div class="services-toolbar"><div class="services-toolbar__controls">${vehicleMenuHtml(dataset, selectedId)}${sortMenuHtml(noVehicles)}</div>${addButton}</div>`;
@@ -381,7 +381,7 @@ function vehicleMenuHtml(dataset: ReturnType<typeof store.get>, selectedId: stri
           aria-pressed="${vehicle.id === selectedId}">
           ${escHtml(vehicle.name)}
           ${vehicle.id === selectedId
-            ? `<span class="card-menu__check" aria-hidden="true" data-lucide="circle-check"></span>`
+            ? `<span class="card-menu__check" aria-hidden="true" data-icon="circle-check"></span>`
             : ""}
         </button>`,
     )
@@ -394,9 +394,9 @@ function vehicleMenuHtml(dataset: ReturnType<typeof store.get>, selectedId: stri
         aria-haspopup="true" aria-expanded="${state.vehicleMenuOpen}"
         aria-label="${escHtml(t("services.vehicleLabel"))}"
         ${disabled ? "disabled" : ""}>
-        <span data-lucide="car" aria-hidden="true"></span>
+        <span data-icon="car" aria-hidden="true"></span>
         ${triggerLabel}
-        <span class="vehicle-menu__chevron" data-lucide="chevron-right" aria-hidden="true"></span>
+        <span class="vehicle-menu__chevron" data-icon="chevron-right" aria-hidden="true"></span>
       </button>
       ${state.vehicleMenuOpen
         ? `<div class="card-menu__popover vehicle-menu__popover" role="menu">
@@ -454,7 +454,7 @@ function sortMenuHtml(disabled = false): string {
           <button type="button" class="card-menu__item js-sort-option" data-sort="${opt.mode}"
             aria-pressed="${state.sortMode === opt.mode}">
             ${escHtml(t(opt.labelKey))}
-            ${state.sortMode === opt.mode ? `<span class="card-menu__check" aria-hidden="true" data-lucide="circle-check"></span>` : ""}
+            ${state.sortMode === opt.mode ? `<span class="card-menu__check" aria-hidden="true" data-icon="circle-check"></span>` : ""}
           </button>`,
           )
           .join("")}
@@ -469,7 +469,7 @@ function sortMenuHtml(disabled = false): string {
         aria-haspopup="true" aria-expanded="${state.sortMenuOpen}"
         aria-label="${t("maintenance.list.sortLabel")}"
         ${disabled ? "disabled" : ""}>
-        <span data-lucide="arrow-up-down" aria-hidden="true"></span>
+        <span data-icon="arrow-up-down" aria-hidden="true"></span>
         ${t("maintenance.list.sortLabel")}
       </button>
       ${state.sortMenuOpen
@@ -485,7 +485,7 @@ function sortMenuHtml(disabled = false): string {
 function servicesNoVehicleHtml(): string {
   return `
     <section class="card services-empty">
-      <span class="services-empty__icon" data-lucide="car-front"></span>
+      <span class="services-empty__icon" data-icon="car-front"></span>
       <p class="services-empty__text">${t("services.noVehicles")}</p>
       <a class="btn btn--filled" href="#/vehicle">${t("services.goToVehicles")}</a>
     </section>
@@ -495,7 +495,7 @@ function servicesNoVehicleHtml(): string {
 function servicesEmptyHtml(): string {
   return `
     <section class="card services-empty">
-      <span class="services-empty__icon" data-lucide="wrench"></span>
+      <span class="services-empty__icon" data-icon="wrench"></span>
       <p class="services-empty__text">${t("services.noServices")}</p>
     </section>
   `;
@@ -662,12 +662,12 @@ function serviceCardHtml(item: MaintenanceItem, dataset: ReturnType<typeof store
     <article class="card service-card">
       <a class="service-card__link" href="${maintenanceDetailHash(item.id)}">
         <div class="service-card__head">
-          <span class="service-card__icon" data-lucide="${item.icon}"></span>
+          <span class="service-card__icon" data-icon="${item.icon}"></span>
           <div class="service-card__info">
             <div class="service-card__name">${escHtml(item.name)}</div>
           </div>
           <span class="status-chip status-chip--${lines.calc.status}">
-            <span data-lucide="${STATUS_ICONS[lines.calc.status]}"></span>
+            <span data-icon="${STATUS_ICONS[lines.calc.status]}"></span>
             ${statusLabel(lines.calc.status)}
           </span>
         </div>
@@ -675,16 +675,16 @@ function serviceCardHtml(item: MaintenanceItem, dataset: ReturnType<typeof store
           ${
             lines.percent != null
               ? donutHtml(lines.percent, dataset.settings.statusThresholds, item.name)
-              : `<div class="service-card__state" data-lucide="${STATUS_ICONS[lines.calc.status]}"></div>`
+              : `<div class="service-card__state" data-icon="${STATUS_ICONS[lines.calc.status]}"></div>`
           }
           <div class="service-card__detail">
             <div class="service-card__next-label">${t("maintenance.list.nextReplacement")}:</div>
             <div class="metric service-card__last">
-              <span data-lucide="calendar"></span>
+              <span data-icon="calendar"></span>
               ${escHtml(daysValue)}
             </div>
             <div class="metric service-card__last">
-              <span data-lucide="gauge"></span>
+              <span data-icon="gauge"></span>
               ${escHtml(kmValue)}
             </div>
           </div>
@@ -745,7 +745,7 @@ function inactiveItemRowHtml(item: MaintenanceItem): string {
   return `
     <li class="item-list__row">
       <a class="item-list__main" href="${maintenanceDetailHash(item.id)}">
-        <span class="item-list__icon" data-lucide="${item.icon}"></span>
+        <span class="item-list__icon" data-icon="${item.icon}"></span>
         <div class="item-list__info">
           <div class="item-list__name">${escHtml(item.name)}</div>
           <div class="item-list__meta">${categoryName(item.category)}</div>
@@ -789,7 +789,7 @@ function typePickerModalHtml(): string {
     (entry) => `
       <button type="button" class="type-card js-pick-type js-type-card" data-catalog-id="${escHtml(entry.id)}"
         data-search="${escHtml(normalizeTypeSearch(`${entry.name.fa} ${entry.name.en}`))}">
-        <span class="type-card__icon" data-lucide="${entry.icon}"></span>
+        <span class="type-card__icon" data-icon="${entry.icon}"></span>
         <span class="type-card__name">${escHtml(entry.name.fa)}</span>
       </button>
     `,
@@ -808,19 +808,19 @@ function typePickerModalHtml(): string {
             <button type="button" class="type-search__clear js-type-search-clear"
               ${query === "" ? "hidden" : ""}
               aria-label="${t("services.searchClear")}" title="${t("services.searchClear")}">
-              <span data-lucide="x" aria-hidden="true"></span>
+              <span data-icon="x" aria-hidden="true"></span>
             </button>
           </div>
         </div>
         <div class="type-grid">
           ${typeCards}
           <div class="type-picker__empty js-type-empty" hidden>
-            <span class="type-picker__empty-icon" data-lucide="search" aria-hidden="true"></span>
+            <span class="type-picker__empty-icon" data-icon="search" aria-hidden="true"></span>
             <p class="type-picker__empty-text">${t("services.searchEmpty")}</p>
           </div>
           <button type="button" class="type-card type-card--custom js-pick-type js-type-card" data-catalog-id=""
             data-search="${escHtml(normalizeTypeSearch(`${t("services.customType")} custom`))}">
-            <span class="type-card__icon" data-lucide="wrench"></span>
+            <span class="type-card__icon" data-icon="wrench"></span>
             <span class="type-card__name">${t("services.customType")}</span>
           </button>
         </div>
@@ -859,7 +859,7 @@ function iconPickerModalHtml(): string {
     (icon) => `
       <button type="button" class="icon-choice js-form-icon-choice ${state.icon === icon ? "icon-choice--active" : ""}"
         data-form-icon="${icon}" aria-pressed="${state.icon === icon}" aria-label="${icon}">
-        <span data-lucide="${icon}"></span>
+        <span data-icon="${icon}"></span>
       </button>`,
   ).join("");
   return `
@@ -945,7 +945,7 @@ function serviceFormModalHtml(): string {
           ${currentKm == null ? "disabled" : ""}
           title="${escHtml(t("services.useCurrentKm"))}"
           aria-label="${escHtml(t("services.useCurrentKm"))}">
-          <span data-lucide="file-input" aria-hidden="true"></span>
+          <span data-icon="file-input" aria-hidden="true"></span>
         </button>
       </div>
       <p class="field__error" id="service-error-odometer" hidden></p>
@@ -972,7 +972,7 @@ function serviceFormModalHtml(): string {
             <label class="field__label">${t("services.iconLabel")}</label>
             <button type="button" class="icon-btn service-form__icon-toggle js-icon-toggle"
               aria-haspopup="dialog" aria-label="${t("services.iconLabel")}">
-              <span data-lucide="${state.icon}"></span>
+              <span data-icon="${state.icon}"></span>
             </button>
             <p class="field__hint">${t("services.iconPickerHint")}</p>
           </div>` : ""}
@@ -990,7 +990,7 @@ function serviceFormModalHtml(): string {
                 data-recommended-km="${recommendedKm}"
                 title="${escHtml(t("services.useRecommendedLifespan"))}"
                 aria-label="${escHtml(t("services.useRecommendedLifespan"))}">
-                <span data-lucide="file-input" aria-hidden="true"></span>
+                <span data-icon="file-input" aria-hidden="true"></span>
               </button>
             </div>
             <p class="field__hint">${t("services.recommendedLifespanHint")} ${faNum(recommendedKm)} ${t("common.kmUnit")}</p>` : `
@@ -1063,7 +1063,7 @@ function itemDetailPageHtml(itemId: string): string {
   // یادآوری bell link and the menu's "already exists" state.
   const reminder = reminderForService(item, dataset);
   const backLink = `<a class="btn btn--text detail-back" href="${back}">
-    <span data-lucide="arrow-right" aria-hidden="true"></span>
+    <span data-icon="arrow-right" aria-hidden="true"></span>
     <span>${t("maintenance.detail.backToList")}</span>
   </a>`;
 
@@ -1090,7 +1090,7 @@ function itemDetailPageHtml(itemId: string): string {
         <section class="service-detail-card__header">
           <div class="service-detail-card__header-row">
             <div class="service-info">
-              <span class="service-info__icon" data-lucide="${item.icon}"></span>
+              <span class="service-info__icon" data-icon="${item.icon}"></span>
               <div class="service-info__main">
                 <div class="service-info__name">${escHtml(item.name)}</div>
                 ${detailLifetimeRowHtml(item, dataset)}
@@ -1100,7 +1100,7 @@ function itemDetailPageHtml(itemId: string): string {
               ${
                 reminder
                   ? `<a class="reminder-status-label" href="${remindersHash({ focus: reminder.id })}" title="${t("services.viewReminder")}">
-                  <span data-lucide="bell" aria-hidden="true"></span>
+                  <span data-icon="bell" aria-hidden="true"></span>
                   ${t("services.notification")}
                 </a>`
                   : ""
@@ -1201,30 +1201,30 @@ function detailOperationsMenuHtml(itemId: string, open: boolean): string {
     <div class="fab-menu__actions" role="menu" aria-label="${t("services.operations")}">
       <button type="button" class="card-menu__item card-menu__item--danger fab-menu__action js-service-menu-delete"
         role="menuitem" data-id="${escHtml(itemId)}" style="--fab-stagger: 3">
-        <span data-lucide="trash-2" aria-hidden="true"></span>
+        <span data-icon="trash-2" aria-hidden="true"></span>
         ${t("maintenance.detail.delete")}
       </button>
       <button type="button" class="card-menu__item fab-menu__action js-service-menu-edit"
         role="menuitem" data-id="${escHtml(itemId)}" style="--fab-stagger: 2">
-        <span data-lucide="pencil" aria-hidden="true"></span>
+        <span data-icon="pencil" aria-hidden="true"></span>
         ${t("maintenance.editItem")}
       </button>
       ${
         reminder != null
           ? `<button type="button" class="card-menu__item fab-menu__action js-reminder-exists"
         role="menuitem" data-reminder-id="${escHtml(reminder.id)}" style="--fab-stagger: 1">
-        <span data-lucide="bell" aria-hidden="true"></span>
+        <span data-icon="bell" aria-hidden="true"></span>
         ${t("services.notification")}
       </button>`
           : `<a class="card-menu__item fab-menu__action js-detail-notification" role="menuitem"
         href="${reminderHref}" style="--fab-stagger: 1">
-        <span data-lucide="bell" aria-hidden="true"></span>
+        <span data-icon="bell" aria-hidden="true"></span>
         ${t("services.notification")}
       </a>`
       }
       <button type="button" class="card-menu__item fab-menu__action js-record-service"
         role="menuitem" data-id="${escHtml(itemId)}" style="--fab-stagger: 0">
-        <span data-lucide="refresh-cw" aria-hidden="true"></span>
+        <span data-icon="refresh-cw" aria-hidden="true"></span>
         ${t("maintenance.detail.replaceService")}
       </button>
     </div>
@@ -1232,8 +1232,8 @@ function detailOperationsMenuHtml(itemId: string, open: boolean): string {
       aria-haspopup="menu" aria-expanded="${open}"
       aria-label="${t("services.operations")}">
       <span class="fab-menu__toggle-icon" aria-hidden="true">
-        <span class="fab-menu__toggle-ico fab-menu__toggle-ico--open" data-lucide="x"></span>
-        <span class="fab-menu__toggle-ico fab-menu__toggle-ico--closed" data-lucide="settings-2"></span>
+        <span class="fab-menu__toggle-ico fab-menu__toggle-ico--open" data-icon="x"></span>
+        <span class="fab-menu__toggle-ico fab-menu__toggle-ico--closed" data-icon="settings-2"></span>
       </span>
       ${t("services.operations")}
     </button>`;
@@ -1278,19 +1278,19 @@ function detailOverviewSectionHtml(item: MaintenanceItem, dataset: ReturnType<ty
     <section class="service-detail-card__status">
       <div class="status-grid">
         <article class="status-card">
-          <span class="status-card__icon" data-lucide="heart" aria-hidden="true"></span>
+          <span class="status-card__icon" data-icon="heart" aria-hidden="true"></span>
           <h3 class="status-card__title">${t("maintenance.detail.health")}</h3>
           <div class="status-card__value${rounded != null && band != null ? ` status-card__value--${band}` : ""}">${healthValue}</div>
           ${healthBar}
         </article>
         <article class="status-card">
-          <span class="status-card__icon" data-lucide="calendar" aria-hidden="true"></span>
+          <span class="status-card__icon" data-icon="calendar" aria-hidden="true"></span>
           <h3 class="status-card__title">${t("maintenance.detail.recommendedDate")}</h3>
           <div class="status-card__value">${escHtml(dateValue)}</div>
           ${dateSecondary ? `<div class="status-card__secondary">${escHtml(dateSecondary)}</div>` : ""}
         </article>
         <article class="status-card">
-          <span class="status-card__icon" data-lucide="gauge" aria-hidden="true"></span>
+          <span class="status-card__icon" data-icon="gauge" aria-hidden="true"></span>
           <h3 class="status-card__title">${t("maintenance.detail.recommendedKm")}</h3>
           <div class="status-card__value">${escHtml(kmValue)}</div>
           ${kmSecondary ? `<div class="status-card__secondary">${escHtml(kmSecondary)}</div>` : ""}
@@ -1312,7 +1312,7 @@ function historyRowActionsHtml(
       <button type="button" class="icon-btn js-record-menu-toggle" data-id="${escHtml(record.id)}"
         aria-haspopup="menu" aria-expanded="${menuOpen}"
         aria-label="${t("maintenance.detail.recordMenu")}" title="${t("maintenance.detail.recordMenu")}">
-        <span data-lucide="more-horizontal"></span>
+        <span data-icon="more-horizontal"></span>
       </button>
       ${menuOpen ? recordMenuHtml(record.id) : ""}
     </div>
@@ -1326,18 +1326,18 @@ function recordMenuHtml(recordId: string): string {
     <div class="history-menu" role="menu" aria-label="${t("maintenance.detail.recordMenu")}">
       <button type="button" class="card-menu__item js-record-menu-edit" role="menuitem"
         data-id="${escHtml(recordId)}">
-        <span data-lucide="pencil"></span>
+        <span data-icon="pencil"></span>
         ${t("maintenance.detail.editRecord")}
       </button>
       <button type="button" class="card-menu__item js-record-menu-info" role="menuitem"
         data-id="${escHtml(recordId)}">
-        <span data-lucide="info"></span>
+        <span data-icon="info"></span>
         ${t("maintenance.detail.recordInfo")}
       </button>
       <div class="card-menu__divider" role="separator"></div>
       <button type="button" class="card-menu__item card-menu__item--danger js-record-menu-delete" role="menuitem"
         data-id="${escHtml(recordId)}">
-        <span data-lucide="trash-2"></span>
+        <span data-icon="trash-2"></span>
         ${t("maintenance.detail.delete")}
       </button>
     </div>
@@ -1391,7 +1391,7 @@ function detailHistorySectionHtml(services: ServiceRecord[]): string {
         <button type="button" class="collapse-head js-history-toggle" aria-expanded="${state.historyOpen}"
           aria-controls="service-detail-history-panel">
           <span>${title}</span>
-          <span class="collapse-head__chevron" data-lucide="chevron-right"></span>
+          <span class="collapse-head__chevron" data-icon="chevron-right"></span>
         </button>
       </h2>
       <div id="service-detail-history-panel" class="service-detail__history-panel">${content}</div>
@@ -1455,7 +1455,7 @@ function recordServiceFormModalHtml(): string {
               ${defaultKm == null ? "disabled" : ""}
               title="${escHtml(t("services.useCurrentKm"))}"
               aria-label="${escHtml(t("services.useCurrentKm"))}">
-              <span data-lucide="download" aria-hidden="true"></span>
+              <span data-icon="download" aria-hidden="true"></span>
             </button>
           </div>
           <p class="field__error" id="record-error-odometer" hidden></p>
@@ -1520,7 +1520,7 @@ function recordDetailsModalHtml(): string {
           <div class="form__title">${escHtml(title)}</div>
           <button type="button" class="icon-btn js-close-overlay"
             aria-label="${t("common.close")}" title="${t("common.close")}">
-            <span data-lucide="x"></span>
+            <span data-icon="x"></span>
           </button>
         </div>
         ${list ? `<dl class="info-list">${list}</dl>` : ""}
@@ -1578,7 +1578,7 @@ function deleteConfirmModalHtml(): string {
         <div class="form">
           <div class="form__title">${t("maintenance.detail.deleteServiceTitle")}</div>
           <div class="box box--danger" role="alert">
-            <span data-lucide="triangle-alert"></span>
+            <span data-icon="triangle-alert"></span>
             <span>${t("maintenance.detail.deleteConfirm")} «${escHtml(item.name)}»</span>
           </div>
           <div class="form__actions">
@@ -1603,7 +1603,7 @@ function recordDeleteConfirmModalHtml(): string {
         <div class="form">
           <div class="form__title">${t("maintenance.detail.recordDeleteTitle")}</div>
           <div class="box box--danger" role="alert">
-            <span data-lucide="triangle-alert"></span>
+            <span data-icon="triangle-alert"></span>
             <span>${t("maintenance.detail.recordDeleteConfirm")}</span>
           </div>
           <div class="form__actions">
@@ -1725,25 +1725,12 @@ function bindListEvents(container: HTMLElement): void {
 let activeContainer: HTMLElement | null = null;
 
 /**
- * Events shared by the modals: انصراف / clicking outside must CLOSE the
- * modal AND re-render (state-only changes would leave stale UI behind —
- * decision 27 pattern).
+ * Events shared by the modals: explicit close controls (انصراف / ×) CLOSE
+ * the modal AND re-render (state-only changes would leave stale UI behind —
+ * decision 27 pattern). Clicking outside a modal does NOT close it
+ * (project-wide modal rule).
  */
 function bindModalEvents(container: HTMLElement): void {
-  container.querySelectorAll<HTMLElement>(".modal-overlay").forEach((overlay) => {
-    overlay.addEventListener("click", (event) => {
-      if (event.target !== overlay) return;
-      // The icon picker floats ABOVE the service form: clicking its backdrop
-      // (or Esc) only dismisses the picker, never the form underneath.
-      if (overlay.dataset.overlay === "icon-picker") {
-        state.iconPickerOpen = false;
-        redraw(container);
-        return;
-      }
-      closeModals();
-      redraw(container);
-    });
-  });
   container.querySelectorAll<HTMLButtonElement>(".js-close-overlay").forEach((button) => {
     button.addEventListener("click", () => {
       closeModals();

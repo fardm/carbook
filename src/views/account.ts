@@ -169,10 +169,10 @@ function accountViewHtml(): string {
 function passwordModalHtml(): string {
   if (state.modal !== "password") return "";
   const errorHtml = state.changeErrorKey
-    ? `<div class="box box--error" role="alert"><span data-lucide="circle-alert"></span><span>${escHtml(t(state.changeErrorKey as never))}</span></div>`
+    ? `<div class="box box--error" role="alert"><span data-icon="circle-alert"></span><span>${escHtml(t(state.changeErrorKey as never))}</span></div>`
     : "";
   const submitLabel = state.busy
-    ? `<span class="account-spinner" data-lucide="loader-circle"></span>${t("account.working")}`
+    ? `<span class="account-spinner" data-icon="loader-circle"></span>${t("account.working")}`
     : t("account.setPasswordChangeButton");
 
   return `
@@ -181,7 +181,7 @@ function passwordModalHtml(): string {
         <div class="modal__head">
           <div class="form__title">${t("account.setPasswordChangeTitle")}</div>
           <button type="button" class="icon-btn js-password-close" aria-label="${t("common.close")}">
-            <span data-lucide="x"></span>
+            <span data-icon="x"></span>
           </button>
         </div>
         <form class="form account-form" novalidate>
@@ -265,7 +265,7 @@ function migrationHtmlSection(): string {
           ${t("account.migrationDecline")}
         </button>
         <button type="button" class="btn btn--filled js-migration-accept" ${state.busy ? "disabled" : ""}>
-          ${state.busy ? `<span class="account-spinner" data-lucide="loader-circle"></span>${t("account.working")}` : t("account.migrationButton")}
+          ${state.busy ? `<span class="account-spinner" data-icon="loader-circle"></span>${t("account.working")}` : t("account.migrationButton")}
         </button>
       </div>
     </section>
@@ -302,13 +302,8 @@ function bind(container: HTMLElement): void {
     button.addEventListener("click", closeModal);
   });
 
-  // Backdrop click closes whichever modal is open without acting (same
-  // pattern as the reminders view).
-  container.querySelectorAll<HTMLElement>(".modal-overlay").forEach((overlay) => {
-    overlay.addEventListener("click", (event) => {
-      if (event.target === overlay) closeModal();
-    });
-  });
+  // Clicking outside a modal intentionally does NOT close it (project-wide
+  // modal rule); only انصراف / × / خروج dismiss a dialog.
 
   const form = container.querySelector<HTMLFormElement>(".account-form");
   form?.addEventListener("submit", (event) => {

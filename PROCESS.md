@@ -134,13 +134,15 @@ service-synchronized reminders work (files listed under Files Changed).
   feature coming in its phase.
 - `src/main.ts` — bootstraps styles, app title, nav (rendered from the routes
   table + i18n), and re-renders the active view on `hashchange`, maintaining
-  `aria-current="page"` and refreshing Lucide icons after each render.
+  `aria-current="page"` and refreshing the local icon assets after each render.
 
 ### Icons
-- **Lucide** (vanilla package, v1.40.0) wired through `createIcons` with a
-  small PascalCase registry. `data-lucide="kebab-name"` attributes are
-  resolved to PascalCase keys by lucide itself (verified against the installed
-  package source).
+- **Local SVG assets** under `src/assets/icons/` — one standalone file per
+  icon (no sprite), vendored from Lucide (ISC) with `stroke="currentColor"`.
+  `src/ui/icons.ts` inlines them at build time via `import.meta.glob("?raw")`
+  and `applyIcons()` swaps each `data-icon="kebab-name"` placeholder for
+  the inline `<svg>`, carrying over the placeholder's own attributes. No
+  runtime icon library; no icon network requests (PWA-offline safe).
 
 ### Tests (toolchain smoke tests)
 - `tests/i18n.test.ts` — every catalog leaf is a non-empty string; every key
@@ -1154,7 +1156,7 @@ Phase 1 (keep in mind):
    files. If a future phase needs PostCSS plugins, add them to this inline
    config — do not create a `postcss.config.mjs` at the project root unless
    the global config is removed.
-7. **Lucide key lookup** — `createIcons` converts `data-lucide` values with
+7. **Lucide key lookup** — `createIcons` converts `data-icon` values with
    `toPascalCase` and looks up PascalCase keys in the icons object. Keep the
    registry keys PascalCase (e.g. `CarFront`), attribute values kebab-case.
 8. **i18n keys are dot paths** (`nav.dashboard`); the `fa.ts` object is the
@@ -1646,7 +1648,7 @@ Post-Phase-13 reminders (v12 — service-synchronized reminders):
   personal use).
 - Individual history records cannot be deleted — only edited (decision 42,
   deliberate).
-- `createIcons` warns (console) and skips an icon if a `data-lucide` name is
+- `createIcons` warns (console) and skips an icon if a `data-icon` name is
   not in the registry — add new icons to `src/ui/icons.ts`'s `iconRegistry`.
 - Theme is JS-applied (decision 56): tokens no longer auto-switch on the
   OS media query alone, so without JavaScript the app stays light —

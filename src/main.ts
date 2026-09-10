@@ -48,7 +48,7 @@ function renderNav(): void {
         .map(
           (route) => `
             <a class="nav__item" href="#${route.hash}" data-route="${route.id}">
-              <span data-lucide="${route.icon}"></span>
+              <span data-icon="${route.icon}"></span>
               <span>${t(`nav.${route.id}` as const)}</span>
             </a>
           `,

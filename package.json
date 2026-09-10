@@ -12,8 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.116.0",
-    "lucide": "^1.40.0"
+    "@supabase/supabase-js": "^2.116.0"
   },
   "devDependencies": {
     "happy-dom": "^20.14.0",

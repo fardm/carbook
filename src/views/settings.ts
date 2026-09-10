@@ -194,7 +194,7 @@ function notificationsCardHtml(): string {
     permission === "default"
       ? `
         <button type="button" class="btn btn--filled js-enable-notifications">
-          <span data-lucide="bell"></span>
+          <span data-icon="bell"></span>
           ${t("notifications.enableButton")}
         </button>`
       : "";
@@ -247,7 +247,7 @@ function backupCardHtml(dataset: Dataset): string {
       <p class="card__text">${t("settings.backupIntro")}</p>
       <div class="settings-action-row">
         <button type="button" class="btn btn--filled js-export">
-          <span data-lucide="download"></span>
+          <span data-icon="download"></span>
           ${t("settings.exportButton")}
         </button>
         <p class="settings-note js-last-export">${lastExport}</p>
@@ -267,7 +267,7 @@ function restoreCardHtml(): string {
         <input type="file" id="import-file" class="visually-hidden"
           accept=".json,application/json" />
         <label for="import-file" class="settings-dropzone__label">
-          <span class="settings-dropzone__icon" data-lucide="upload" aria-hidden="true"></span>
+          <span class="settings-dropzone__icon" data-icon="upload" aria-hidden="true"></span>
           <span class="settings-dropzone__title">${t("settings.chooseFile")}</span>
           <span class="settings-dropzone__hint">${t("settings.dropzoneHint")}</span>
         </label>
@@ -282,7 +282,7 @@ function restoreCardHtml(): string {
 function successBoxHtml(): string {
   return `
     <div class="box box--success settings-success" role="status">
-      <span data-lucide="circle-check"></span>
+      <span data-icon="circle-check"></span>
       <span>${t("settings.restoreSuccess")}</span>
       <button type="button" class="btn btn--text js-dismiss-success">${t("settings.dismiss")}</button>
     </div>

@@ -45,7 +45,7 @@ export function navAccountItemHtml(): string {
     <button type="button" class="nav__item nav__item--account js-nav-account"
       data-route="account"
       aria-label="${label}">
-      <span data-lucide="circle-user-round"></span>
+      <span data-icon="circle-user-round"></span>
       <span>${label}</span>
     </button>
   `;
@@ -77,7 +77,6 @@ const state: AccountUiState = {
 
 let modalOpen = false;
 let unsubscribeAuth: (() => void) | null = null;
-let outsideClickListener: ((event: MouseEvent) => void) | null = null;
 
 /**
  * Nav button click. Authenticated → go to the dedicated Account page
@@ -121,10 +120,6 @@ export function closeAccountModal(): void {
   if (overlay) overlay.remove();
   unsubscribeAuth?.();
   unsubscribeAuth = null;
-  if (outsideClickListener) {
-    document.removeEventListener("mousedown", outsideClickListener);
-    outsideClickListener = null;
-  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -155,7 +150,7 @@ function unauthenticatedModalHtml(): string {
   const isSignUp = state.mode === "signUp";
   const submitLabel = isSignUp ? t("account.signUpButton") : t("account.signInButton");
   const errorHtml = state.errorKey
-    ? `<div class="box box--error account-error" role="alert"><span data-lucide="circle-alert"></span><span>${escHtml(t(state.errorKey as never))}</span></div>`
+    ? `<div class="box box--error account-error" role="alert"><span data-icon="circle-alert"></span><span>${escHtml(t(state.errorKey as never))}</span></div>`
     : "";
   const emailError = state.emailErrorKey
     ? `<p class="field__error">${escHtml(t(state.emailErrorKey as never))}</p>`
@@ -172,7 +167,7 @@ function unauthenticatedModalHtml(): string {
       <div class="modal__head">
         <div class="form__title">${t("account.title")}</div>
         <button type="button" class="icon-btn js-account-close" aria-label="${t("common.close")}">
-          <span data-lucide="x"></span>
+          <span data-icon="x"></span>
         </button>
       </div>
       ${errorHtml}
@@ -201,7 +196,7 @@ function unauthenticatedModalHtml(): string {
         </div>
         <div class="form__actions">
           <button type="submit" class="btn btn--filled btn--full js-account-submit" ${state.busy ? "disabled" : ""}>
-            ${state.busy ? `<span class="account-spinner" data-lucide="loader-circle"></span>${t("account.working")}` : submitLabel}
+            ${state.busy ? `<span class="account-spinner" data-icon="loader-circle"></span>${t("account.working")}` : submitLabel}
           </button>
         </div>
         ${toggleHtml}
@@ -219,13 +214,8 @@ function bindModal(overlay: HTMLElement): void {
     button.addEventListener("click", closeAccountModal);
   });
 
-  // Click on the dark overlay itself closes the modal (like other modals).
-  if (!outsideClickListener) {
-    outsideClickListener = (event: MouseEvent) => {
-      if (event.target === overlay) closeAccountModal();
-    };
-    overlay.addEventListener("mousedown", outsideClickListener);
-  }
+  // Clicking outside a modal intentionally does NOT close it (project-wide
+  // modal rule); only the × close button dismisses this dialog.
 
   overlay.querySelector(".js-toggle-mode")?.addEventListener("click", () => {
     switchMode(state.mode === "signIn" ? "signUp" : "signIn");

@@ -284,7 +284,7 @@ function remindersViewHtml(): string {
           <h1 class="view-title">${t("view.reminders.title")}</h1>
           <button type="button" class="icon-btn icon-btn--subtle js-reminders-help"
             aria-label="${t("reminders.helpAria")}" title="${t("reminders.helpAria")}">
-            <span data-lucide="lightbulb" aria-hidden="true"></span>
+            <span data-icon="lightbulb" aria-hidden="true"></span>
           </button>
         </div>
       </div>
@@ -322,12 +322,12 @@ function addReminderMenuHtml(open: boolean, disabled: boolean): string {
     <div class="fab-menu__actions" role="menu" aria-label="${t("reminders.addReminder")}">
       <button type="button" class="card-menu__item fab-menu__action js-add-service-reminder"
         role="menuitem" style="--fab-stagger: 1">
-        <span data-lucide="wrench" aria-hidden="true"></span>
+        <span data-icon="wrench" aria-hidden="true"></span>
         ${t("reminders.serviceReminder")}
       </button>
       <button type="button" class="card-menu__item fab-menu__action js-add-general-reminder"
         role="menuitem" style="--fab-stagger: 0">
-        <span data-lucide="bell" aria-hidden="true"></span>
+        <span data-icon="bell" aria-hidden="true"></span>
         ${t("reminders.generalReminder")}
       </button>
     </div>
@@ -335,7 +335,7 @@ function addReminderMenuHtml(open: boolean, disabled: boolean): string {
       aria-haspopup="menu" aria-expanded="${open}"
       aria-label="${t("reminders.addReminder")}" ${disabled ? "disabled" : ""}>
       <span class="fab-menu__toggle-icon fab-menu__toggle-icon--plus" aria-hidden="true">
-        <span data-lucide="plus"></span>
+        <span data-icon="plus"></span>
       </span>
       <span>${t("reminders.addReminder")}</span>
     </button>
@@ -381,7 +381,7 @@ function vehicleMenuHtml(dataset: ReturnType<typeof store.get>, selectedId: stri
           data-vehicle-id="${escHtml(vehicle.id)}"
           aria-pressed="${vehicle.id === selectedId}">
           ${escHtml(vehicle.name)}
-          ${vehicle.id === selectedId ? `<span class="card-menu__check" aria-hidden="true" data-lucide="circle-check"></span>` : ""}
+          ${vehicle.id === selectedId ? `<span class="card-menu__check" aria-hidden="true" data-icon="circle-check"></span>` : ""}
         </button>`,
     )
     .join("");
@@ -393,9 +393,9 @@ function vehicleMenuHtml(dataset: ReturnType<typeof store.get>, selectedId: stri
         aria-haspopup="true" aria-expanded="${state.vehicleMenuOpen}"
         aria-label="${escHtml(t("reminders.vehicleLabel"))}"
         ${disabled ? "disabled" : ""}>
-        <span data-lucide="car" aria-hidden="true"></span>
+        <span data-icon="car" aria-hidden="true"></span>
         ${triggerLabel}
-        <span class="vehicle-menu__chevron" data-lucide="chevron-right" aria-hidden="true"></span>
+        <span class="vehicle-menu__chevron" data-icon="chevron-right" aria-hidden="true"></span>
       </button>
       ${state.vehicleMenuOpen ? `<div class="card-menu__popover vehicle-menu__popover" role="menu">${items}</div>` : ""}
     </div>
@@ -416,7 +416,7 @@ function filterMenuHtml(disabled: boolean): string {
         <button type="button" class="card-menu__item js-filter-option" data-filter="${option.value}"
           aria-pressed="${state.filter === option.value}">
           ${t(option.key)}
-          ${state.filter === option.value ? `<span class="card-menu__check" aria-hidden="true" data-lucide="circle-check"></span>` : ""}
+          ${state.filter === option.value ? `<span class="card-menu__check" aria-hidden="true" data-icon="circle-check"></span>` : ""}
         </button>`,
     )
     .join("");
@@ -428,7 +428,7 @@ function filterMenuHtml(disabled: boolean): string {
         aria-haspopup="true" aria-expanded="${state.filterMenuOpen}"
         aria-label="${t("reminders.filterLabel")}"
         ${disabled ? "disabled" : ""}>
-        <span data-lucide="filter" aria-hidden="true"></span>
+        <span data-icon="filter" aria-hidden="true"></span>
         ${t(options.find((option) => option.value === state.filter)!.key)}
       </button>
       ${state.filterMenuOpen ? `<div class="card-menu__popover sort-menu__popover" role="menu">${items}</div>` : ""}
@@ -439,7 +439,7 @@ function filterMenuHtml(disabled: boolean): string {
 function remindersNoVehicleHtml(): string {
   return `
     <section class="card services-empty">
-      <span class="services-empty__icon" data-lucide="bell"></span>
+      <span class="services-empty__icon" data-icon="bell"></span>
       <p class="services-empty__text">${t("reminders.noVehicles")}</p>
       <a class="btn btn--filled" href="#/vehicle">${t("reminders.goToVehicles")}</a>
     </section>
@@ -478,7 +478,7 @@ function remindersListHtml(dataset: ReturnType<typeof store.get>, vehicleId: str
   if (reminders.length === 0) {
     return `
       <section class="card services-empty">
-        <span class="services-empty__icon" data-lucide="bell"></span>
+        <span class="services-empty__icon" data-icon="bell"></span>
         <p class="services-empty__text">${t("reminders.noReminders")}</p>
       </section>
     `;
@@ -486,7 +486,7 @@ function remindersListHtml(dataset: ReturnType<typeof store.get>, vehicleId: str
   if (filtered.length === 0) {
     return `
       <section class="card services-empty">
-        <span class="services-empty__icon" data-lucide="filter"></span>
+        <span class="services-empty__icon" data-icon="filter"></span>
         <p class="services-empty__text">${t("reminders.filterEmpty")}</p>
       </section>
     `;
@@ -567,8 +567,8 @@ function reminderCardHtml(reminder: Reminder, vehicle: Vehicle | null, dataset: 
         </div>
         <div class="service-card__body reminder-card__body">
           <div class="service-card__detail reminder-card__detail">
-            ${schedule.map((line) => `<div class="metric service-card__last"><span data-lucide="${line.icon}"></span>${escHtml(line.text)}</div>`).join("")}
-            ${repeatLabel ? `<div class="metric service-card__last metric--muted reminder-card__repeat"><span data-lucide="repeat"></span>${escHtml(repeatLabel)}</div>` : ""}
+            ${schedule.map((line) => `<div class="metric service-card__last"><span data-icon="${line.icon}"></span>${escHtml(line.text)}</div>`).join("")}
+            ${repeatLabel ? `<div class="metric service-card__last metric--muted reminder-card__repeat"><span data-icon="repeat"></span>${escHtml(repeatLabel)}</div>` : ""}
           </div>
         </div>
       </div>
@@ -599,7 +599,7 @@ function helpModalHtml(): string {
         <div class="modal__head">
           <div class="form__title">${t("reminders.helpTitle")}</div>
           <button type="button" class="icon-btn js-close-help" aria-label="${t("common.close")}">
-            <span data-lucide="x" aria-hidden="true"></span>
+            <span data-icon="x" aria-hidden="true"></span>
           </button>
         </div>
         <p>${t("reminders.helpText")}</p>
@@ -612,7 +612,7 @@ function helpModalHtml(): string {
 function permissionNoticeHtml(): string {
   return `
     <div class="box box--warn reminder-permission-notice" role="status">
-      <span data-lucide="bell-off"></span>
+      <span data-icon="bell-off"></span>
       <span>${escHtml(state.permissionNotice ?? "")}</span>
       <button type="button" class="btn btn--text js-dismiss-notice">${t("settings.dismiss")}</button>
     </div>
@@ -910,7 +910,7 @@ function reminderFormModalHtml(dataset: ReturnType<typeof store.get>, vehicleId:
           <div class="form__actions">
             ${editing ? `
             <button type="button" class="btn btn--danger-text reminder-form__delete js-reminder-delete">
-              <span data-lucide="trash-2" aria-hidden="true"></span>
+              <span data-icon="trash-2" aria-hidden="true"></span>
               ${t("reminders.deleteTitle")}
             </button>` : ""}
             <div class="reminder-form__actions-main">
@@ -933,7 +933,7 @@ function deleteConfirmModalHtml(): string {
         <div class="form">
           <div class="form__title">${t("reminders.deleteTitle")}</div>
           <div class="box box--danger" role="alert">
-            <span data-lucide="triangle-alert"></span>
+            <span data-icon="triangle-alert"></span>
             <span>${t("reminders.deleteConfirm")} «${escHtml(reminder.title)}»</span>
           </div>
           <div class="form__actions">
@@ -956,13 +956,13 @@ function permissionPromptModalHtml(): string {
         <div class="form">
           <div class="form__title">${t("notifications.promptTitle")}</div>
           <div class="box box--warn" role="note">
-            <span data-lucide="bell"></span>
+            <span data-icon="bell"></span>
             <span>${t("notifications.promptBody")}</span>
           </div>
           <div class="form__actions">
             <button type="button" class="btn btn--text js-permission-later">${t("notifications.promptLater")}</button>
             <button type="button" class="btn btn--filled js-permission-enable">
-              <span data-lucide="bell"></span>
+              <span data-icon="bell"></span>
               ${t("notifications.promptEnable")}
             </button>
           </div>
@@ -1345,19 +1345,8 @@ function bind(container: HTMLElement): void {
     });
   });
 
-  /* Modal backdrop click - closes modal when clicking outside the content. */
-  container.querySelectorAll<HTMLElement>(".modal-overlay").forEach((overlay) => {
-    overlay.addEventListener("click", (event) => {
-      // Only close if clicking directly on the overlay, not on the modal content
-      if (event.target === overlay) {
-        closeForm();
-        state.deleteConfirmId = null;
-        state.permissionPrompt = null;
-        state.helpOpen = false;
-        redraw(container);
-      }
-    });
-  });
+  /* Clicking outside a modal intentionally does NOT close it (project-wide
+   * modal rule); only the explicit controls below dismiss a dialog. */
 
   /* Help modal. */
   container.querySelectorAll<HTMLButtonElement>(".js-reminders-help").forEach((button) => {
