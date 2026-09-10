@@ -1808,16 +1808,66 @@ a.service-card__name:hover {
 }
 
 .date-field__nav {
-  display: flex;
+  display: grid;
+  /* RTL-safe: [nav] [heading] [nav] with the heading free to expand. */
+  grid-template-columns: 32px 1fr 32px;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--md-space-2);
+  justify-items: center;
+  gap: var(--md-space-1);
   margin-bottom: var(--md-space-2);
 }
 
-.date-field__heading {
+.date-field__nav .date-field__nav-btn:first-child {
+  justify-self: start;
+}
+
+.date-field__nav .date-field__nav-btn:last-child {
+  justify-self: end;
+}
+
+/* The month/year label doubles as the button that opens the quick month
+ * and year selection (task: click-to-select header). */
+button.date-field__heading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 32px;
+  width: 100%;
+  padding: 0 var(--md-space-2);
+  border: none;
+  border-radius: var(--md-shape-small);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
   font-size: var(--md-typescale-title-medium);
   font-weight: 600;
+  transition: background-color var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+button.date-field__heading:hover {
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+/* Small chevron affordance, added in markup so text-only surfaces (year
+ * page ranges) that reuse the heading style stay clean without it. */
+.date-field__heading::after {
+  content: "▾";
+  font-size: 0.75em;
+  opacity: 0.6;
+}
+
+/* Reveal the caret affordance on focus, matching the hover tint. */
+.date-field__heading:focus-visible {
+  outline: none;
+  background-color: var(--md-sys-color-surface-container-high);
+}
+
+/* Month view: the single heading (year label) spans the full row since
+ * there are no prev/next buttons in this view. */
+.date-field__nav--months {
+  grid-template-columns: 1fr;
 }
 
 .date-field__nav-btn {
@@ -1835,6 +1885,57 @@ a.service-card__name:hover {
 
 .date-field__nav-btn:hover {
   background-color: var(--md-sys-color-surface-container-high);
+}
+
+/* --- Quick month / year selection grids (click-to-select header) ---
+ * The month view reuses the nav row with a static heading (no arrows);
+ * the year view replaces the label with a “start – end” range and steps
+ * the whole 12-year page with the arrows. */
+.date-field__choices {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--md-space-1);
+  padding-block: var(--md-space-1);
+}
+
+.date-field__choice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 var(--md-space-1);
+  border-radius: var(--md-shape-extra-small);
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--md-typescale-label-large);
+  transition: background-color var(--md-motion-duration-short) var(--md-motion-easing);
+}
+
+.date-field__choice:hover:not(:disabled) {
+  background-color: var(--md-sys-color-surface-container-highest);
+}
+
+.date-field__choice:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.date-field__choice--selected {
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  font-weight: 700;
+}
+
+/* Narrow phones: the choice cells (especially 4-digit years) compress
+ * instead of overflowing the popover. */
+@media (max-width: 360px) {
+  .date-field__choices {
+    gap: 2px;
+  }
+
+  .date-field__choice {
+    min-height: 32px;
+    font-size: var(--md-typescale-label-medium);
+  }
 }
 
 .date-field__weekdays {

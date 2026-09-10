@@ -84,6 +84,10 @@ export const fa = {
     today: "امروز",
     prevMonth: "ماه قبل",
     nextMonth: "ماه بعد",
+    openMonthMenu: "انتخاب ماه و سال",
+    pickYearHint: "انتخاب سال",
+    prevYears: "۱۲ سال قبل",
+    nextYears: "۱۲ سال بعد",
   },
   status: {
     ok: "سالم",

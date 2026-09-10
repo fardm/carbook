@@ -15,12 +15,21 @@
  * Selecting a day (or successfully parsing typed text) dispatches a
  * bubbling `change` event on the hidden input so the item form's
  * re-render-safe value capture (decision 31) keeps working.
+ *
+ * Popover views: the day grid opens by default, and clicking the
+ * month/year heading switches to a year page (‹ / › page 12 years at a
+ * time) then a 12-month grid of the chosen year — jumping to an older
+ * month takes two clicks instead of dozens of ‹ presses. All views share
+ * the calendar preference: Jalali pages show Jalali years/months,
+ * Gregorian pages the Gregorian ones, and every choice lands on the same
+ * stored Gregorian ISO.
  */
 
 import {
   currentCalendar,
   faDigits,
   formatDate,
+  GREGORIAN_MONTHS,
   gregorianIsoToJalaliIso,
   jalaliIsoToGregorianIso,
   monthGrid,
@@ -29,6 +38,7 @@ import {
   todayIso,
   WEEKDAYS_SHORT,
 } from "../domain/calendar";
+import { JALALI_MONTHS } from "../domain/calendar/jalali";
 import type { CalendarPreference } from "../domain/types";
 import { t } from "../i18n";
 import { escHtml } from "./escape";
@@ -200,7 +210,68 @@ function closePopover(root: HTMLElement, popover: HTMLElement): void {
   root.querySelector<HTMLButtonElement>("[data-df-button]")?.setAttribute("aria-expanded", "false");
 }
 
+/** The view (month grid, year grid, or month grid within a year) currently
+ * rendered in a popover. Each `[data-date-field]` popover renders exactly
+ * one view at a time; a fresh open always shows the month grid. */
+type PopoverView = "days" | "years" | "months";
+
+/** Renders the requested view into the popover. All three views share the
+ * same nav row: ‹ / › always step months while a month grid is open, and
+ * always step years while a year or month grid is open (the relevant
+ * buttons are hidden otherwise). Every render rebuilds from scratch, so
+ * no listener bookkeeping is needed. */
 function renderPopover(
+  root: HTMLElement,
+  popover: HTMLElement,
+  calendar: CalendarPreference,
+  year: number,
+  month: number,
+  selectedIso: string,
+  view: PopoverView = "days",
+): void {
+  // Store the view state so ‹ / › can shift it.
+  popover.dataset.dfYear = String(year);
+  popover.dataset.dfMonth = String(month);
+
+  if (view === "years") {
+    renderYearView(root, popover, calendar, year, selectedIso);
+    return;
+  }
+  if (view === "months") {
+    renderMonthView(root, popover, calendar, year, month, selectedIso);
+    return;
+  }
+  renderDayView(root, popover, calendar, year, month, selectedIso);
+}
+
+/** The shared nav row. In the day view (monthMode) the center label shows
+ * "month year" and the ‹ / › buttons step months; in the month view it
+ * shows the year alone and the arrows are omitted (the heading opens the
+ * year view from both). */
+function navHtml(
+  calendar: CalendarPreference,
+  year: number,
+  month: number,
+  monthMode: boolean,
+): string {
+  return `
+    <div class="date-field__nav${monthMode ? "" : " date-field__nav--months"}">
+      ${monthMode ? `<button type="button" class="date-field__nav-btn" data-df-prev aria-label="${t("dateField.prevMonth")}">‹</button>` : ""}
+      <button type="button" class="date-field__heading" data-df-heading
+        aria-label="${t(monthMode ? "dateField.openMonthMenu" : "dateField.pickYearHint")}">
+        ${monthMode ? `${escHtml(gridMonthName(calendar, month))} ${faDigits(year)}` : faDigits(year)}
+      </button>
+      ${monthMode ? `<button type="button" class="date-field__nav-btn" data-df-next aria-label="${t("dateField.nextMonth")}">›</button>` : ""}
+    </div>
+  `;
+}
+
+/** The localized month name shown in the nav heading for each calendar. */
+function gridMonthName(calendar: CalendarPreference, month: number): string {
+  return calendar === "jalali" ? JALALI_MONTHS[month - 1] : GREGORIAN_MONTHS[month - 1];
+}
+
+function renderDayView(
   root: HTMLElement,
   popover: HTMLElement,
   calendar: CalendarPreference,
@@ -226,11 +297,7 @@ function renderPopover(
   }
 
   popover.innerHTML = `
-    <div class="date-field__nav">
-      <button type="button" class="date-field__nav-btn" data-df-prev aria-label="${t("dateField.prevMonth")}">‹</button>
-      <div class="date-field__heading">${escHtml(grid.monthName)} ${faDigits(grid.year)}</div>
-      <button type="button" class="date-field__nav-btn" data-df-next aria-label="${t("dateField.nextMonth")}">›</button>
-    </div>
+    ${navHtml(calendar, year, month, true)}
     <div class="date-field__weekdays" aria-hidden="true">
       ${WEEKDAYS_SHORT.map((weekday) => `<span>${weekday}</span>`).join("")}
     </div>
@@ -242,10 +309,9 @@ function renderPopover(
     </div>
   `;
 
-  // Store the view so month navigation can shift it.
-  popover.dataset.dfYear = String(year);
-  popover.dataset.dfMonth = String(month);
-
+  popover.querySelector<HTMLButtonElement>("[data-df-heading]")?.addEventListener("click", () => {
+    renderPopover(root, popover, calendar, year, month, selectedIso, "years");
+  });
   popover.querySelector<HTMLButtonElement>("[data-df-prev]")?.addEventListener("click", () => {
     shiftMonth(root, popover, -1, selectedIso);
   });
@@ -262,12 +328,160 @@ function renderPopover(
   });
 }
 
+/** One selectable year button in the year view. Years outside the app's
+ * supported range are rendered disabled (matching the vehicle-year rule
+ * in domain/vehicle — the widest range either calendar supports). */
+function yearButton(year: number, selectedYear: number): string {
+  const supported = year >= 1300 && year <= 2100;
+  const classes = ["date-field__choice"];
+  if (year === selectedYear) classes.push("date-field__choice--selected");
+  return (
+    `<button type="button" class="${classes.join(" ")}" data-df-year="${year}"` +
+    (supported ? ` aria-pressed="${year === selectedYear}">` : " disabled>") +
+    `${faDigits(year)}</button>`
+  );
+}
+
+/** Year of the selected date in the active calendar, or 0 when nothing is
+ * selected (or the selection lies in a different year). */
+function selectedCalendarYear(calendar: CalendarPreference, selectedIso: string): number {
+  if (selectedIso === "") return 0;
+  const calendarIso = toCalendarIso(selectedIso, calendar);
+  if (!calendarIso) return 0;
+  return Number(calendarIso.split("-")[0]);
+}
+
+/** Month (1–12) of the selected date in the active calendar when it falls
+ * in `year`; 0 otherwise (nothing selected / different year). */
+function selectedCalendarMonth(
+  calendar: CalendarPreference,
+  selectedIso: string,
+  year: number,
+): number {
+  if (selectedIso === "") return 0;
+  const calendarIso = toCalendarIso(selectedIso, calendar);
+  if (!calendarIso) return 0;
+  const [y, m] = calendarIso.split("-").map(Number);
+  return y === year ? m : 0;
+}
+
+/** The year view: a heading with a back button, the 12-year page ending at
+ * `year` (so the year being viewed is always on its own page, highlighted
+ * when it is the picked date's year), and prev/next page arrows. */
+function renderYearView(
+  root: HTMLElement,
+  popover: HTMLElement,
+  calendar: CalendarPreference,
+  year: number,
+  selectedIso: string,
+): void {
+  const startYear = year - 11;
+  const page: number[] = [];
+  for (let y = startYear; y <= year; y += 1) page.push(y);
+  const firstYear = page[0];
+  const lastYear = page[page.length - 1];
+  const selectedYear = selectedCalendarYear(calendar, selectedIso);
+
+  popover.innerHTML = `
+    <div class="date-field__nav">
+      <button type="button" class="date-field__nav-btn" data-df-year-page aria-label="${t("dateField.prevYears")}" data-df-year-delta="-12">‹</button>
+      <button type="button" class="date-field__heading" data-df-heading
+        aria-label="${t("dateField.pickYearHint")}">
+        ${faDigits(firstYear)} – ${faDigits(lastYear)}
+      </button>
+      <button type="button" class="date-field__nav-btn" data-df-year-page aria-label="${t("dateField.nextYears")}" data-df-year-delta="12">›</button>
+    </div>
+    <div class="date-field__choices">
+      ${page.map((y) => yearButton(y, selectedYear)).join("")}
+    </div>
+  `;
+
+  // An open year view always has a heading button; the strict query is
+  // just for TypeScript's benefit.
+  popover.querySelector<HTMLButtonElement>("[data-df-heading]")!.addEventListener("click", () => {
+    renderPopover(root, popover, calendar, year, 1, selectedIso, "months");
+  });
+  popover.querySelectorAll<HTMLButtonElement>("[data-df-year-page]").forEach((button) => {
+    button.addEventListener("click", () => {
+      renderYearView(root, popover, calendar, year + Number(button.dataset.dfYearDelta ?? 0), selectedIso);
+    });
+  });
+  popover.querySelectorAll<HTMLButtonElement>("[data-df-year]").forEach((button) => {
+    button.addEventListener("click", () => {
+      renderPopover(
+        root,
+        popover,
+        calendar,
+        Number(button.dataset.dfYear),
+        1,
+        selectedIso,
+        "months",
+      );
+    });
+  });
+}
+
+/** The month view: the picked year's 12 months in a 3×4 grid; the day
+ * grid for the chosen month opens on click. */
+function renderMonthView(
+  root: HTMLElement,
+  popover: HTMLElement,
+  calendar: CalendarPreference,
+  year: number,
+  month: number,
+  selectedIso: string,
+): void {
+  const monthNames =
+    calendar === "jalali" ? JALALI_MONTHS : GREGORIAN_MONTHS;
+  const selectedMonth = selectedCalendarMonth(calendar, selectedIso, year);
+  const monthButtons = monthNames
+    .map((name, index) => {
+      const m = index + 1;
+      const classes = ["date-field__choice"];
+      if (m === selectedMonth) classes.push("date-field__choice--selected");
+      return (
+        `<button type="button" class="${classes.join(" ")}" data-df-month="${m}"` +
+        ` aria-pressed="${m === selectedMonth}">${escHtml(name)}</button>`
+      );
+    })
+    .join("");
+
+  popover.innerHTML = `
+    ${navHtml(calendar, year, month, false)}
+    <div class="date-field__choices">${monthButtons}</div>
+  `;
+
+  popover.querySelector<HTMLButtonElement>("[data-df-heading]")?.addEventListener("click", () => {
+    renderPopover(root, popover, calendar, year, month, selectedIso, "years");
+  });
+  popover.querySelectorAll<HTMLButtonElement>("[data-df-month]").forEach((button) => {
+    button.addEventListener("click", () => {
+      selectMonth(root, popover, calendar, year, Number(button.dataset.dfMonth), selectedIso);
+    });
+  });
+}
+
+/** Moves the day-grid view one month (delta ±1). Month arithmetic is
+ * centralized on the y*12+m linear form; addMonths (§23 date engine) is
+ * a day-level engine and does not apply here. */
 function shiftMonth(root: HTMLElement, popover: HTMLElement, delta: number, selectedIso: string): void {
   const year = Number(popover.dataset.dfYear);
   const month = Number(popover.dataset.dfMonth);
   const calendar = currentCalendar();
   const total = year * 12 + (month - 1) + delta;
   renderPopover(root, popover, calendar, Math.floor(total / 12), (total % 12) + 1, selectedIso);
+}
+
+/** Shows the day grid of `month` in `year` (chosen from the month view). */
+function selectMonth(
+  root: HTMLElement,
+  popover: HTMLElement,
+  calendar: CalendarPreference,
+  year: number,
+  month: number,
+  selectedIso: string,
+): void {
+  renderPopover(root, popover, calendar, year, month, selectedIso, "days");
 }
 
 /** Stores the picked date (Gregorian ISO) in both inputs, notifies the
