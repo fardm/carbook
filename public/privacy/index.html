@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>سیاست حفظ حریم خصوصی | CarBook</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background-color: #f5f5f5;
+        color: #1a1a1a;
+        line-height: 1.7;
+        padding: 20px;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+      @media (max-width: 600px) {
+        .container {
+          padding: 24px;
+        }
+      }
+      h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 24px;
+        color: #f2870d;
+      }
+      h2 {
+        font-size: 20px;
+        font-weight: 600;
+        margin-top: 32px;
+        margin-bottom: 16px;
+        color: #333;
+      }
+      p {
+        margin-bottom: 16px;
+        font-size: 15px;
+      }
+      ul {
+        margin-bottom: 16px;
+        padding-right: 24px;
+      }
+      li {
+        margin-bottom: 8px;
+        font-size: 15px;
+      }
+      .last-updated {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid #e0e0e0;
+        font-size: 13px;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>سیاست حفظ حریم خصوصی</h1>
+
+      <p>
+        CarBook متعهد به حفظ حریم خصوصی شماست. این سیاست توضیح می‌دهد که چگونه داده‌های شما را جمع‌آوری، استفاده و محافظت می‌کنیم.
+      </p>
+
+      <h2>داده‌های جمع‌آوری شده</h2>
+      <p>
+        CarBook داده‌های زیر را ذخیره می‌کند:
+      </p>
+      <ul>
+        <li>اطلاعات خودرو: مدل، سال ساخت، کیلومتر، و مشخصات فنی</li>
+        <li>سوابق سرویس: تاریخ، نوع سرویس، هزینه، و یادداشت‌های نگهداری</li>
+        <li>یادآوری‌ها: تاریخ‌های سرویس بعدی و تنظیمات هشدار</li>
+        <li>اطلاعات حساب: ایمیل و نام کاربری (در صورت استفاده از حساب کاربری)</li>
+      </ul>
+
+      <h2>استفاده از داده‌ها</h2>
+      <p>
+        داده‌های شما فقط برای اهداف زیر استفاده می‌شوند:
+      </p>
+      <ul>
+        <li>فراهم کردن عملکرد اصلی برنامه: ثبت و پیگیری سرویس‌های خودرو</li>
+        <li>همگام‌سازی داده‌ها بین دستگاه‌های شما (در صورت استفاده از حساب کاربری)</li>
+        <li>ارسال یادآوری‌های سرویس (در صورت فعال‌سازی)</li>
+        <li>بهبود عملکرد و پایداری برنامه</li>
+      </ul>
+
+      <h2>احراز هویت</h2>
+      <p>
+        CarBook از Supabase برای احراز هویت استفاده می‌کند. شما می‌توانید با استفاده از:
+      </p>
+      <ul>
+        <li>ایمیل و رمز عبور</li>
+        <li>Google OAuth (ورود با حساب گوگل)</li>
+      </ul>
+      <p>
+        هنگام استفاده از Google OAuth، اطلاعات حساب گوگل شما (نام و ایمیل) به‌صورت امن از طریق Google دریافت می‌شود. ما رمز عبور گوگل شما را ذخیره نمی‌کنیم.
+      </p>
+
+      <h2>ذخیره‌سازی داده‌ها</h2>
+      <p>
+        داده‌های شما به دو روش ذخیره می‌شوند:
+      </p>
+      <ul>
+        <li><strong>حالت مهمان:</strong> داده‌ها فقط در مرورگر دستگاه شما (LocalStorage/IndexedDB) ذخیره می‌شوند و با پاک کردن داده‌های مرورگر حذف می‌شوند.</li>
+        <li><strong>حالت حساب کاربری:</strong> داده‌ها در سرورهای Supabase ذخیره می‌شوند و بین دستگاه‌های شما همگام می‌شوند.</li>
+      </ul>
+
+      <h2>امنیت داده‌ها</h2>
+      <p>
+        ما از روش‌های زیر برای محافظت از داده‌های شما استفاده می‌کنیم:
+      </p>
+      <ul>
+        <li>رمزنگاری در انتقال (HTTPS)</li>
+        <li>احراز هویت امن با Supabase</li>
+        <li>دسترسی محدود به داده‌های کاربران</li>
+      </ul>
+
+      <h2>سرویس‌های شخص ثالث</h2>
+      <p>
+        CarBook از سرویس‌های زیر استفاده می‌کند:
+      </p>
+      <ul>
+        <li><strong>Supabase:</strong> برای احراز هویت و ذخیره‌سازی داده‌های ابری</li>
+        <li><strong>Google:</strong> برای ورود با حساب گوگل (Google OAuth)</li>
+      </ul>
+      <p>
+        این سرویس‌ها دارای سیاست‌های حفظ حریم خصوصی خود هستند. با استفاده از CarBook، شما موافقت می‌کنید که سیاست‌های این سرویس‌ها را بپذیرید.
+      </p>
+
+      <h2>حقوق شما</h2>
+      <p>
+        شما حقوق زیر را در مورد داده‌های خود دارید:
+      </p>
+      <ul>
+        <li>دسترسی به داده‌های خود</li>
+        <li>ویرایش یا حذف داده‌های خود</li>
+        <li>خروجی گرفتن از داده‌های خود (قابلیت Export در برنامه)</li>
+        <li>حذف حساب کاربری خود</li>
+      </ul>
+
+      <h2>تغییرات در این سیاست</h2>
+      <p>
+        ما ممکن است این سیاست را گاهی به‌روزرسانی کنیم. تغییرات مهم از طریق برنامه به شما اطلاع داده می‌شود.
+      </p>
+
+      <h2>تماس با ما</h2>
+      <p>
+        برای سوالات مربوط به حریم خصوصی، می‌توانید از طریق بخش تنظیمات برنامه با ما تماس بگیرید.
+      </p>
+
+      <div class="last-updated">
+        آخرین به‌روزرسانی: سپتامبر ۲۰۲۶
+      </div>
+    </div>
+  </body>
+</html>
