@@ -3303,6 +3303,28 @@ input.type-search__input[type="search"]::-webkit-search-decoration {
   color: var(--md-sys-color-on-surface-variant);
 }
 
+.account-toggle {
+  margin-top: var(--md-space-3);
+  text-align: center;
+  font-size: var(--md-typescale-body-medium);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.account-toggle__link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--md-sys-color-primary);
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.account-toggle__link:hover {
+  text-decoration: underline;
+}
+
 .account-error {
   margin-top: var(--md-space-3);
 }

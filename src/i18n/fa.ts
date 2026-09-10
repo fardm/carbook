@@ -15,6 +15,7 @@ export const fa = {
     reminders: "یادآوری‌ها",
     settings: "تنظیمات",
     account: "حساب کاربری",
+    accountGuest: "ورود | ثبت‌نام",
   },
   account: {
     title: "حساب کاربری",
@@ -29,6 +30,10 @@ export const fa = {
     signInWithGoogle: "ورود با گوگل",
     signUpWithGoogle: "ثبت‌نام با گوگل",
     orSeparator: "یا",
+    noAccount: "حساب ندارید؟",
+    signUpLink: "ثبت‌نام کنید",
+    hasAccount: "قبلاً ثبت‌نام کرده‌اید؟",
+    signInLink: "وارد شوید",
     loginSuccess: "ورود موفقیت‌آمیز بود",
     working: "لطفاً صبر کنید…",
     logoutButton: "خروج از حساب",

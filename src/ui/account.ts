@@ -30,21 +30,23 @@ import { googleLogoHtml } from "../ui/google-logo";
 /* ------------------------------------------------------------------ */
 
 /**
- * The account navigation item markup appended to .nav__list. One markup for
- * BOTH auth states: identical label and icon, so the nav never changes
- * appearance on login/logout. It is a <button> (not a route link) because
- * the guest click must open the modal instead of navigating — but it carries
+ * The account navigation item markup appended to .nav__list. Label changes
+ * based on auth state: "ورود | ثبت‌نام" for guests, "حساب کاربری" for
+ * authenticated users. It is a <button> (not a route link) because the guest
+ * click must open the modal instead of navigating — but it carries
  * data-route="account" so the shared setActiveNav() in main.ts marks it
  * aria-current exactly like the other (route-link) items while the Account
  * page is open. Same mobile active state, zero extra CSS.
  */
 export function navAccountItemHtml(): string {
+  const user = auth.getUser();
+  const label = user ? t("nav.account") : t("nav.accountGuest");
   return `
     <button type="button" class="nav__item nav__item--account js-nav-account"
       data-route="account"
-      aria-label="${t("nav.account")}">
+      aria-label="${label}">
       <span data-lucide="circle-user-round"></span>
-      <span>${t("nav.account")}</span>
+      <span>${label}</span>
     </button>
   `;
 }
@@ -150,18 +152,6 @@ function drawModal(): void {
 
 /** Modal body while signed out: sign in / sign up (switchable in place). */
 function unauthenticatedModalHtml(): string {
-  const tabs = `
-    <div class="account-tabs" role="tablist">
-      <button type="button" role="tab" aria-selected="${state.mode === "signIn"}"
-        class="account-tabs__tab js-tab-sign-in ${state.mode === "signIn" ? "account-tabs__tab--active" : ""}">
-        ${t("account.signInTab")}
-      </button>
-      <button type="button" role="tab" aria-selected="${state.mode === "signUp"}"
-        class="account-tabs__tab js-tab-sign-up ${state.mode === "signUp" ? "account-tabs__tab--active" : ""}">
-        ${t("account.signUpTab")}
-      </button>
-    </div>
-  `;
   const isSignUp = state.mode === "signUp";
   const submitLabel = isSignUp ? t("account.signUpButton") : t("account.signInButton");
   const errorHtml = state.errorKey
@@ -173,6 +163,9 @@ function unauthenticatedModalHtml(): string {
   const passwordError = state.passwordErrorKey
     ? `<p class="field__error">${escHtml(t(state.passwordErrorKey as never))}</p>`
     : "";
+  const toggleHtml = isSignUp
+    ? `<p class="account-toggle">${t("account.hasAccount")} <button type="button" class="account-toggle__link js-toggle-mode">${t("account.signInLink")}</button></p>`
+    : `<p class="account-toggle">${t("account.noAccount")} <button type="button" class="account-toggle__link js-toggle-mode">${t("account.signUpLink")}</button></p>`;
 
   return `
     <div class="modal account-modal" role="dialog" aria-modal="true" aria-label="${t("account.title")}">
@@ -182,7 +175,6 @@ function unauthenticatedModalHtml(): string {
           <span data-lucide="x"></span>
         </button>
       </div>
-      ${tabs}
       ${errorHtml}
       <form class="form account-form" novalidate>
         <button type="button" class="btn btn--secondary btn--full js-google-auth" ${state.busy ? "disabled" : ""}>
@@ -213,6 +205,7 @@ function unauthenticatedModalHtml(): string {
             ${state.busy ? `<span class="account-spinner" data-lucide="loader-circle"></span>${t("account.working")}` : submitLabel}
           </button>
         </div>
+        ${toggleHtml}
       </form>
     </div>
   `;
@@ -235,11 +228,8 @@ function bindModal(overlay: HTMLElement): void {
     overlay.addEventListener("mousedown", outsideClickListener);
   }
 
-  overlay.querySelector(".js-tab-sign-in")?.addEventListener("click", () => {
-    switchMode("signIn");
-  });
-  overlay.querySelector(".js-tab-sign-up")?.addEventListener("click", () => {
-    switchMode("signUp");
+  overlay.querySelector(".js-toggle-mode")?.addEventListener("click", () => {
+    switchMode(state.mode === "signIn" ? "signUp" : "signIn");
   });
   overlay.querySelector(".js-google-auth")?.addEventListener("click", () => {
     void submitGoogleAuth();

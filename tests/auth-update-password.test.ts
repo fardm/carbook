@@ -171,16 +171,18 @@ describe("account nav entry", () => {
     closeAccountModal();
   });
 
-  it("renders the SAME «حساب کاربری» button for guests and signed-in users", () => {
+  it("renders «ورود | ثبت‌نام» for guests and «حساب کاربری» for signed-in users", () => {
     const guestHtml = navAccountItemHtml();
-    expect(guestHtml).toContain("حساب کاربری");
+    expect(guestHtml).toContain("ورود | ثبت‌نام");
     expect(guestHtml).toContain("js-nav-account");
     expect(guestHtml).not.toContain("js-nav-logout");
     expect(guestHtml).not.toContain("log-out");
 
     bootWithUser("22222222-2222-4222-8222-222222222222").then(() => {
-      // Re-render while authenticated: byte-identical markup, no logout item.
-      expect(navAccountItemHtml()).toBe(guestHtml);
+      // Re-render while authenticated: shows "حساب کاربری"
+      const authHtml = navAccountItemHtml();
+      expect(authHtml).toContain("حساب کاربری");
+      expect(authHtml).not.toBe(guestHtml);
     });
   });
 
@@ -189,7 +191,7 @@ describe("account nav entry", () => {
       const before = window.location.hash;
       onNavAccountClicked();
       expect(document.getElementById("account-overlay")).not.toBeNull();
-      expect(document.querySelector(".account-tabs")).not.toBeNull();
+      expect(document.querySelector(".account-toggle")).not.toBeNull();
       expect(window.location.hash).toBe(before);
       // The old authenticated modal content is gone for good.
       expect(document.querySelector(".js-logout-start")).toBeNull();
