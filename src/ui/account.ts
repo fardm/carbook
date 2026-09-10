@@ -6,6 +6,7 @@ import { hashFor } from "../ui/router";
 import { auth } from "../supabase/auth";
 import { mapAuthError, validateEmail, validatePassword } from "../supabase/errors";
 import { afterAuthenticated } from "../views/account";
+import { googleLogoHtml } from "../ui/google-logo";
 
 /**
  * Account entry point — the single account button in the navigation
@@ -184,12 +185,10 @@ function unauthenticatedModalHtml(): string {
       ${tabs}
       ${errorHtml}
       <form class="form account-form" novalidate>
-        <div class="form__actions">
-          <button type="button" class="btn btn--secondary js-google-auth" ${state.busy ? "disabled" : ""}>
-            <span data-lucide="link"></span>
-            ${isSignUp ? t("account.signUpWithGoogle") : t("account.signInWithGoogle")}
-          </button>
-        </div>
+        <button type="button" class="btn btn--secondary btn--full js-google-auth" ${state.busy ? "disabled" : ""}>
+          ${googleLogoHtml()}
+          ${isSignUp ? t("account.signUpWithGoogle") : t("account.signInWithGoogle")}
+        </button>
         <div class="account-separator">
           <span class="account-separator__line"></span>
           <span class="account-separator__text">${t("account.orSeparator")}</span>

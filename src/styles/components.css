@@ -59,6 +59,11 @@
   cursor: not-allowed;
 }
 
+.btn--full {
+  width: 100%;
+  display: flex;
+}
+
 /* --- Icon button --- */
 .icon-btn {
   display: inline-flex;
