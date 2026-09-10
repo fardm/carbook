@@ -1725,25 +1725,12 @@ function bindListEvents(container: HTMLElement): void {
 let activeContainer: HTMLElement | null = null;
 
 /**
- * Events shared by the modals: انصراف / clicking outside must CLOSE the
- * modal AND re-render (state-only changes would leave stale UI behind —
- * decision 27 pattern).
+ * Events shared by the modals: explicit close controls (انصراف / ×) CLOSE
+ * the modal AND re-render (state-only changes would leave stale UI behind —
+ * decision 27 pattern). Clicking outside a modal does NOT close it
+ * (project-wide modal rule).
  */
 function bindModalEvents(container: HTMLElement): void {
-  container.querySelectorAll<HTMLElement>(".modal-overlay").forEach((overlay) => {
-    overlay.addEventListener("click", (event) => {
-      if (event.target !== overlay) return;
-      // The icon picker floats ABOVE the service form: clicking its backdrop
-      // (or Esc) only dismisses the picker, never the form underneath.
-      if (overlay.dataset.overlay === "icon-picker") {
-        state.iconPickerOpen = false;
-        redraw(container);
-        return;
-      }
-      closeModals();
-      redraw(container);
-    });
-  });
   container.querySelectorAll<HTMLButtonElement>(".js-close-overlay").forEach((button) => {
     button.addEventListener("click", () => {
       closeModals();

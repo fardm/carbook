@@ -77,7 +77,6 @@ const state: AccountUiState = {
 
 let modalOpen = false;
 let unsubscribeAuth: (() => void) | null = null;
-let outsideClickListener: ((event: MouseEvent) => void) | null = null;
 
 /**
  * Nav button click. Authenticated → go to the dedicated Account page
@@ -121,10 +120,6 @@ export function closeAccountModal(): void {
   if (overlay) overlay.remove();
   unsubscribeAuth?.();
   unsubscribeAuth = null;
-  if (outsideClickListener) {
-    document.removeEventListener("mousedown", outsideClickListener);
-    outsideClickListener = null;
-  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -219,13 +214,8 @@ function bindModal(overlay: HTMLElement): void {
     button.addEventListener("click", closeAccountModal);
   });
 
-  // Click on the dark overlay itself closes the modal (like other modals).
-  if (!outsideClickListener) {
-    outsideClickListener = (event: MouseEvent) => {
-      if (event.target === overlay) closeAccountModal();
-    };
-    overlay.addEventListener("mousedown", outsideClickListener);
-  }
+  // Clicking outside a modal intentionally does NOT close it (project-wide
+  // modal rule); only the × close button dismisses this dialog.
 
   overlay.querySelector(".js-toggle-mode")?.addEventListener("click", () => {
     switchMode(state.mode === "signIn" ? "signUp" : "signIn");

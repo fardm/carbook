@@ -1345,19 +1345,8 @@ function bind(container: HTMLElement): void {
     });
   });
 
-  /* Modal backdrop click - closes modal when clicking outside the content. */
-  container.querySelectorAll<HTMLElement>(".modal-overlay").forEach((overlay) => {
-    overlay.addEventListener("click", (event) => {
-      // Only close if clicking directly on the overlay, not on the modal content
-      if (event.target === overlay) {
-        closeForm();
-        state.deleteConfirmId = null;
-        state.permissionPrompt = null;
-        state.helpOpen = false;
-        redraw(container);
-      }
-    });
-  });
+  /* Clicking outside a modal intentionally does NOT close it (project-wide
+   * modal rule); only the explicit controls below dismiss a dialog. */
 
   /* Help modal. */
   container.querySelectorAll<HTMLButtonElement>(".js-reminders-help").forEach((button) => {

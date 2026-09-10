@@ -302,13 +302,8 @@ function bind(container: HTMLElement): void {
     button.addEventListener("click", closeModal);
   });
 
-  // Backdrop click closes whichever modal is open without acting (same
-  // pattern as the reminders view).
-  container.querySelectorAll<HTMLElement>(".modal-overlay").forEach((overlay) => {
-    overlay.addEventListener("click", (event) => {
-      if (event.target === overlay) closeModal();
-    });
-  });
+  // Clicking outside a modal intentionally does NOT close it (project-wide
+  // modal rule); only انصراف / × / خروج dismiss a dialog.
 
   const form = container.querySelector<HTMLFormElement>(".account-form");
   form?.addEventListener("submit", (event) => {
