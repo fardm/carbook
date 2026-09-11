@@ -17,7 +17,7 @@ import {
   reloadActiveRepository,
 } from "../supabase/data-source";
 import { hasMeaningfulData, countDataset, type DatasetCounts } from "../supabase/cloud-dataset";
-import { migrateGuestDataToCloud } from "../supabase/migration";
+import { cloudAccountHasData, migrateGuestDataToCloud } from "../supabase/migration";
 
 /**
  * Account page — the dedicated account route (#/account), deliberately
@@ -157,10 +157,10 @@ function accountViewHtml(): string {
           ${t("account.logoutButton")}
         </button>
       </div>
-      ${migrationHtmlSection()}
     </div>
     ${passwordModalHtml()}
     ${logoutConfirmModalHtml()}
+    ${migrationModalHtml()}
   `;
 }
 
@@ -241,9 +241,18 @@ function logoutConfirmModalHtml(): string {
   `;
 }
 
-/* --- One-time guest→cloud migration offer (after a fresh sign-in) --- */
+/* --- One-time guest→account transfer modal (after a fresh sign-in) --- */
 
-function migrationHtmlSection(): string {
+/**
+ * The transfer offer, shown as a MODAL (the project's .modal component) and
+ * ONLY in the one case that needs a decision: the user just signed in, this
+ * browser holds local CarBook data, and the account is still empty (the
+ * offer state is resolved in afterAuthenticated — never set blindly).
+ *
+ * Clicking outside does not dismiss it (project modal rule); the user must
+ * pick one of the two explicit actions.
+ */
+function migrationModalHtml(): string {
   if (state.migration !== "offer" || !state.migrationCounts) return "";
   const counts = state.migrationCounts;
   const countsText = t("account.migrationCounts")
@@ -255,20 +264,26 @@ function migrationHtmlSection(): string {
     ? `<div class="box box--error" role="alert"><span>${escHtml(t(state.migrationErrorKey as never))}</span></div>`
     : "";
   return `
-    <section class="card account-migration">
-      <h3 class="card__title">${t("account.migrationTitle")}</h3>
-      <p class="card__text">${t("account.migrationIntro")}</p>
-      <p class="account-migration__counts">${escHtml(countsText)}</p>
-      ${errorHtml}
-      <div class="form__actions">
-        <button type="button" class="btn btn--text js-migration-decline" ${state.busy ? "disabled" : ""}>
-          ${t("account.migrationDecline")}
-        </button>
-        <button type="button" class="btn btn--filled js-migration-accept" ${state.busy ? "disabled" : ""}>
-          ${state.busy ? `<span class="account-spinner" data-icon="loader-circle"></span>${t("account.working")}` : t("account.migrationButton")}
-        </button>
+    <div class="modal-overlay account-overlay">
+      <div class="modal account-modal" role="dialog" aria-modal="true" aria-label="${t("account.migrationTitle")}">
+        <div class="modal__head">
+          <div class="form__title">${t("account.migrationTitle")}</div>
+        </div>
+        <div class="form">
+          <p class="card__text">${t("account.migrationIntro")}</p>
+          <p class="account-migration__counts">${escHtml(countsText)}</p>
+          ${errorHtml}
+          <div class="form__actions">
+            <button type="button" class="btn btn--text js-migration-decline" ${state.busy ? "disabled" : ""}>
+              ${t("account.migrationDecline")}
+            </button>
+            <button type="button" class="btn btn--filled js-migration-accept" ${state.busy ? "disabled" : ""}>
+              ${state.busy ? `<span class="account-spinner" data-icon="loader-circle"></span>${t("account.working")}` : t("account.migrationButton")}
+            </button>
+          </div>
+        </div>
       </div>
-    </section>
+    </div>
   `;
 }
 
@@ -439,15 +454,31 @@ export async function afterAuthenticated(): Promise<void> {
   // Swap the store to the user's Supabase repository (idempotent if the
   // auth listener already did it).
   await applyAuthState();
-  // One-time migration offer only when the guest dataset was meaningful.
-  if (hasMeaningfulData(guestSnapshot) && getSupabase()) {
-    state.migration = "offer";
-    state.migrationCounts = countDataset(guestSnapshot);
-    state.migrationErrorKey = null;
-  } else {
-    state.migration = "pending";
+  // Offer the transfer ONLY when BOTH hold:
+  //   - this browser has meaningful local CarBook data, and
+  //   - the account is still empty.
+  // Any other combination does NOTHING: no modal, no merge, no overwrite and
+  // no local deletion (an account with data keeps its own data; local data
+  // stays untouched on this browser).
+  const client = getSupabase();
+  state.migration = "pending";
+  state.migrationCounts = null;
+  state.migrationErrorKey = null;
+  if (client && hasMeaningfulData(guestSnapshot)) {
+    let accountEmpty = false;
+    try {
+      accountEmpty = !(await cloudAccountHasData(client, user.id));
+    } catch {
+      // Could not confirm the account is empty (network/RLS): stay silent
+      // rather than risk offering a transfer into an account that has data.
+      accountEmpty = false;
+    }
+    if (accountEmpty) {
+      state.migration = "offer";
+      state.migrationCounts = countDataset(guestSnapshot);
+    }
   }
-  // Keep a reference for the migration upload (reads local data only).
+  // Keep a reference for the transfer upload (reads local data only).
   lastGuestSnapshot = guestSnapshot;
 }
 

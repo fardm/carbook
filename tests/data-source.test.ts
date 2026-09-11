@@ -12,7 +12,8 @@ import {
   resetDataSourceForTests,
 } from "../src/supabase/data-source";
 import { setSupabaseOverride } from "../src/supabase/client";
-import { migrateGuestDataToCloud } from "../src/supabase/migration";
+import { cloudAccountHasData, migrateGuestDataToCloud } from "../src/supabase/migration";
+import { afterAuthenticated, renderAccount } from "../src/views/account";
 import {
   countDataset,
   datasetToItemRows,
@@ -541,6 +542,129 @@ describe("guest → cloud migration", () => {
     await applyAuthState();
     expect(store.get().vehicles[0]?.name).toBe("خودروی مهمان");
     expect(store.get().reminders[0]?.title).toBe("یادآوری مهمان");
+  });
+
+  it("is idempotent when retried — no duplicate rows", async () => {
+    supabase.setAuthUser(USER);
+    const guest = guestDatasetWithReminder();
+    await migrateGuestDataToCloud(supabase.client, USER, guest);
+    const afterFirst = countDataset(guest);
+
+    // Retry the exact same transfer (e.g. after a network hiccup).
+    await migrateGuestDataToCloud(supabase.client, USER, guest);
+
+    expect(supabase.rowsOf("vehicles", USER)).toHaveLength(afterFirst.vehicles);
+    expect(supabase.rowsOf("reminders", USER)).toHaveLength(afterFirst.reminders);
+    expect(supabase.rowsOf("vehicles", USER)).toHaveLength(1);
+    expect(supabase.rowsOf("reminders", USER)).toHaveLength(1);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Local → account transfer offer (modal shown only when needed)        */
+/* ------------------------------------------------------------------ */
+
+describe("local → account transfer offer", () => {
+  let idb: ReturnType<typeof installFakeIndexedDB>;
+  let supabase: ReturnType<typeof fakeSupabase>;
+  let disposers: Array<() => void> = [];
+  let containers: HTMLElement[] = [];
+
+  beforeEach(() => {
+    idb = installFakeIndexedDB();
+    supabase = fakeSupabase({ storedSession: null });
+    setSupabaseOverride(supabase.client);
+    resetDataSourceForTests();
+    disposers = [];
+    containers = [];
+  });
+
+  afterEach(() => {
+    for (const dispose of disposers) dispose();
+    for (const container of containers) container.remove();
+    setSupabaseOverride(null);
+    auth.resetForTests();
+    idb.restore();
+    resetDataSourceForTests();
+  });
+
+  function render(container: HTMLElement): void {
+    document.body.appendChild(container);
+    containers.push(container);
+    const dispose = renderAccount(container);
+    if (typeof dispose === "function") disposers.push(dispose);
+  }
+
+  /** Boots guest mode and writes one local vehicle into IndexedDB. */
+  async function seedGuestData(): Promise<void> {
+    await initializeDataSource();
+    store.update((draft) => {
+      draft.vehicles.push(vehicleNamed("خودروی مهمان").vehicles[0]);
+    });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+
+  it("offers the transfer modal when local data exists and the account is empty", async () => {
+    await seedGuestData();
+    supabase.signInAs(USER);
+    await applyAuthState();
+    await afterAuthenticated();
+
+    const container = document.createElement("div");
+    render(container);
+    expect(container.querySelector(".js-migration-accept")).not.toBeNull();
+    expect(container.querySelector(".js-migration-decline")).not.toBeNull();
+    expect(container.innerHTML).toContain("انتقال داده‌های محلی به حساب");
+  });
+
+  it("does nothing when the account already has data", async () => {
+    supabase.seedDataset(vehicleNamed("داده‌ی حساب"), USER);
+    await seedGuestData();
+    supabase.signInAs(USER);
+    await applyAuthState();
+    await afterAuthenticated();
+
+    const container = document.createElement("div");
+    render(container);
+    expect(container.querySelector(".js-migration-accept")).toBeNull();
+    // The account's own data is used normally; the local copy is untouched.
+    expect(store.get().vehicles[0]?.name).toBe("داده‌ی حساب");
+  });
+
+  it("does nothing when there is no local data", async () => {
+    await initializeDataSource();
+    supabase.signInAs(USER);
+    await applyAuthState();
+    await afterAuthenticated();
+
+    const container = document.createElement("div");
+    render(container);
+    expect(container.querySelector(".js-migration-accept")).toBeNull();
+  });
+
+  it("transfer uploads the data and NEVER deletes the local copy", async () => {
+    await seedGuestData();
+    supabase.signInAs(USER);
+    await applyAuthState();
+    await afterAuthenticated();
+
+    const container = document.createElement("div");
+    render(container);
+    container.querySelector<HTMLButtonElement>(".js-migration-accept")!.click();
+    await new Promise((resolve) => setTimeout(resolve, 40));
+
+    // The account now holds the guest row…
+    expect(supabase.rowsOf("vehicles", USER)).toHaveLength(1);
+    expect(supabase.rowsOf("vehicles", USER)[0].name).toBe("خودروی مهمان");
+    // …and the local IndexedDB envelope was not removed.
+    expect(idb.db.raw()).not.toBeUndefined();
+  });
+
+  it("cloudAccountHasData distinguishes empty from populated accounts", async () => {
+    supabase.setAuthUser(USER);
+    expect(await cloudAccountHasData(supabase.client, USER)).toBe(false);
+    supabase.seedDataset(vehicleNamed("داده"), USER);
+    expect(await cloudAccountHasData(supabase.client, USER)).toBe(true);
   });
 });
 

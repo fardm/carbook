@@ -1,3 +1,4 @@
+import { defaultDataset } from "../domain/defaults";
 import type { Dataset } from "../domain/types";
 import { createDefaultRepository, type Repository } from "../persistence/repository";
 
@@ -16,30 +17,73 @@ import { createDefaultRepository, type Repository } from "../persistence/reposit
  * of the other backend. `ready()` completes only after the ACTIVE backend's
  * initial load has settled, so boot never renders one backend's data for
  * another's.
+ *
+ * Data safety — hydration gate: every repository used by the store may load
+ * asynchronously (IndexedDB / Supabase). Until that load has settled the
+ * in-memory dataset is only the empty default, so persisting a write at that
+ * moment would overwrite the real stored data (the guest refresh data-loss
+ * bug). To prevent that, writes issued before hydration are queued and
+ * replayed on top of the loaded dataset instead of being written blind.
  */
+
+type PendingOp =
+  | { kind: "update"; mutate: (draft: Dataset) => void }
+  | { kind: "replace"; dataset: Dataset }
+  | { kind: "reset" };
+
 export class Store {
   private dataset: Dataset;
   private readonly listeners = new Set<() => void>();
   private readonly initialReady: Promise<void>;
   private repository: Repository;
+  /** True once `dataset` reflects the active repository's persisted data. */
+  private hydrated = false;
+  /** Writes issued before hydration — replayed on top of the loaded data. */
+  private pending: PendingOp[] = [];
+  private draining = false;
 
   constructor(repository: Repository = createDefaultRepository()) {
     this.repository = repository;
+    // Provisional snapshot. For async backends this is the empty default
+    // until hydrate() adopts the stored dataset.
     this.dataset = repository.load();
-    this.initialReady = this.awaitInitialLoad(repository);
+    this.initialReady = this.hydrate(repository);
   }
 
-  /** Resolves once the ACTIVE backend's initial async load has settled. */
+  /** Resolves once the ACTIVE backend's initial async load has settled AND
+   * the in-memory dataset reflects it. */
   ready(): Promise<void> {
     return this.initialReady;
   }
 
-  private awaitInitialLoad(repository: Repository): Promise<void> {
-    // SyncRepositoryAdapter: wait for its background IndexedDB load.
+  /**
+   * Adopts the repository's asynchronously loaded dataset. Writes that
+   * arrived before the load settled are replayed on top of it, so a boot-time
+   * write can never overwrite persisted data with the empty default.
+   */
+  private hydrate(repository: Repository): Promise<void> {
+    // SyncRepositoryAdapter exposes the background IndexedDB/Supabase load;
+    // a plain synchronous repository (localStorage/memory) has none and its
+    // constructor load() is already final.
     const initial = repository.initialLoad?.();
-    if (initial) return initial;
-    // Plain sync repository: load() already ran in the constructor.
-    return Promise.resolve();
+    if (!initial) {
+      this.hydrated = true;
+      return Promise.resolve();
+    }
+    return initial
+      .catch(() => undefined)
+      .then(() => {
+        // A setRepository() swap already adopted the new backend — never
+        // clobber it with this one's (stale) load.
+        if (this.repository !== repository) return;
+        this.dataset = repository.load();
+        this.hydrated = true;
+        if (this.pending.length > 0) {
+          this.flushPending();
+        } else {
+          this.notify();
+        }
+      });
   }
 
   /** Current dataset snapshot. Do not mutate it directly — use update(). */
@@ -47,17 +91,23 @@ export class Store {
     return this.dataset;
   }
 
-  /** Applies `mutate` to a clone, persists it, and notifies listeners. */
+  /** Applies `mutate` to a clone, persists it, and notifies listeners.
+   * Before hydration the mutation is queued so it is applied to the loaded
+   * dataset rather than persisting the empty default over it. */
   update(mutate: (draft: Dataset) => void): void {
-    const draft: Dataset = structuredClone(this.dataset);
-    mutate(draft);
-    this.dataset = draft;
-    this.repository.save(this.dataset);
-    this.notify();
+    if (!this.hydrated) {
+      this.pending.push({ kind: "update", mutate });
+      return;
+    }
+    this.applyUpdate(mutate);
   }
 
   /** Replaces the whole dataset (used by import in Phase 10) and persists. */
   replace(dataset: Dataset): void {
+    if (!this.hydrated) {
+      this.pending.push({ kind: "replace", dataset });
+      return;
+    }
     this.dataset = dataset;
     this.repository.save(this.dataset);
     this.notify();
@@ -65,6 +115,10 @@ export class Store {
 
   /** Discards all data and restores the default dataset. */
   reset(): void {
+    if (!this.hydrated) {
+      this.pending.push({ kind: "reset" });
+      return;
+    }
     this.repository.clear();
     this.dataset = this.repository.load();
     this.notify();
@@ -95,7 +149,13 @@ export class Store {
     }
     this.repository = repository;
     this.dataset = repository.load();
-    this.notify();
+    this.hydrated = true;
+    if (this.pending.length > 0) {
+      // Replay writes that were queued before hydration on the new backend.
+      this.flushPending();
+    } else {
+      this.notify();
+    }
     return true;
   }
 
@@ -105,6 +165,40 @@ export class Store {
     return () => {
       this.listeners.delete(listener);
     };
+  }
+
+  private applyUpdate(mutate: (draft: Dataset) => void): void {
+    const draft: Dataset = structuredClone(this.dataset);
+    mutate(draft);
+    this.dataset = draft;
+    this.repository.save(this.dataset);
+    this.notify();
+  }
+
+  /** Replays queued pre-hydration writes in order with a single persist. */
+  private flushPending(): void {
+    if (!this.hydrated || this.draining || this.pending.length === 0) return;
+    this.draining = true;
+    try {
+      while (this.pending.length > 0) {
+        const op = this.pending.shift();
+        if (!op) break;
+        if (op.kind === "update") {
+          const draft: Dataset = structuredClone(this.dataset);
+          op.mutate(draft);
+          this.dataset = draft;
+        } else if (op.kind === "replace") {
+          this.dataset = op.dataset;
+        } else {
+          this.repository.clear();
+          this.dataset = defaultDataset();
+        }
+      }
+      this.repository.save(this.dataset);
+      this.notify();
+    } finally {
+      this.draining = false;
+    }
   }
 
   private notify(): void {

@@ -29,8 +29,13 @@ export interface MigrationResult {
 }
 
 /** Whether the account's DATA tables hold any rows (settings excluded —
- * an empty account is seeded with a settings row on first load). */
-async function cloudHasUserData(client: SupabaseClient, userId: string): Promise<boolean> {
+ * an empty account is seeded with a settings row on first load).
+ *
+ * Exported so the UI can decide whether to OFFER the guest→account
+ * transfer at all: the offer must only appear when the account is empty.
+ * Throws on a query error (network/RLS) — callers must treat an unconfirmed
+ * account as non-empty and simply not offer anything. */
+export async function cloudAccountHasData(client: SupabaseClient, userId: string): Promise<boolean> {
   const tables = [
     CLOUD_TABLES.vehicles,
     CLOUD_TABLES.maintenanceItems,
@@ -63,7 +68,7 @@ export async function migrateGuestDataToCloud(
     return { status: "empty", counts };
   }
   try {
-    if (await cloudHasUserData(client, userId)) {
+    if (await cloudAccountHasData(client, userId)) {
       return { status: "conflict", counts, cloudAlreadyHasData: true };
     }
     // Upload the whole guest envelope. idempotent upsert + deleteMissing;

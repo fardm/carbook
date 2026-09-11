@@ -145,7 +145,6 @@ function boot(): void {
   render();
   window.addEventListener("hashchange", render);
   registerServiceWorker();
-  registerReminderChecks();
 
   // Account boot: restore the session, route the data layer to Supabase or
   // IndexedDB, and keep the nav's account item in sync. When no Supabase env
@@ -154,6 +153,11 @@ function boot(): void {
   // views re-render from the (possibly cloud) dataset.
   void initializeDataSource().then(() => {
     refreshNavAccountItem();
+    // Reminder checks WRITE through the store, so they must only run after
+    // the active backend has hydrated. Running them during boot previously
+    // persisted the empty default dataset over the guest IndexedDB data
+    // (refresh data loss).
+    registerReminderChecks();
     // Any later login/logout also updates the nav entry immediately, and a
     // logout while the Account page is open closes any modal remnants.
     auth.subscribe((user) => {
