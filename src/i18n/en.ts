@@ -25,6 +25,6 @@ export const en = {
     airFilter: "Engine Air Filter",
     cabinFilter: "Cabin Filter",
     fuelFilter: "Fuel Filter",
-    radiatorWater: "Radiator Water",
+    radiator: "Radiator",
   },
 };

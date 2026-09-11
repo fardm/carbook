@@ -519,7 +519,7 @@ export const fa = {
     airFilter: "فیلتر هوا",
     cabinFilter: "فیلتر کابین",
     fuelFilter: "صافی/فیلتر سوخت",
-    radiatorWater: "تعویض آب رادیاتور",
+    radiator: "رادیاتور",
   },
 } as const;
 

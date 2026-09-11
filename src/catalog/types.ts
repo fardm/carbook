@@ -46,7 +46,7 @@ export type CatalogServiceId =
   | "airFilter"
   | "cabinFilter"
   | "fuelFilter"
-  | "radiatorWater";
+  | "radiator";
 
 /** A predefined maintenance template (§13). */
 export interface CatalogEntry {

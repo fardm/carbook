@@ -130,8 +130,8 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: [30000, 60000],
   },
 
-  // --- Cooling ---
-  { id: "radiatorWater",
+  {
+    id: "radiator",
     category: "filters",
     icon: "radiator",
     suggestedKm: 50000,
