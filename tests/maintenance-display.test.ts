@@ -126,11 +126,12 @@ describe("status labels and urgency (§29, §30)", () => {
     }
   });
 
-  it("classifies green/orange/red bands from the percentage via the configured thresholds", () => {
+  it("classifies green/yellow/orange/red bands from the percentage via the configured thresholds", () => {
     const thresholds = { dueSoonPercent: 20, duePercent: 5 };
     expect(healthBand(100, thresholds)).toBe("high");
-    expect(healthBand(50, thresholds)).toBe("high");
-    expect(healthBand(21, thresholds)).toBe("high");
+    expect(healthBand(51, thresholds)).toBe("high");
+    expect(healthBand(50, thresholds)).toBe("good");
+    expect(healthBand(21, thresholds)).toBe("good");
     expect(healthBand(20, thresholds)).toBe("mid");
     expect(healthBand(10, thresholds)).toBe("mid");
     expect(healthBand(6, thresholds)).toBe("mid");
@@ -141,9 +142,14 @@ describe("status labels and urgency (§29, §30)", () => {
 
   it("respects custom user-configured thresholds", () => {
     const thresholds = { dueSoonPercent: 40, duePercent: 15 };
+    expect(healthBand(51, thresholds)).toBe("high");
+    expect(healthBand(50, thresholds)).toBe("good");
+    expect(healthBand(41, thresholds)).toBe("good");
+    expect(healthBand(40, thresholds)).toBe("mid");
     expect(healthBand(30, thresholds)).toBe("mid");
+    expect(healthBand(16, thresholds)).toBe("mid");
+    expect(healthBand(15, thresholds)).toBe("low");
     expect(healthBand(10, thresholds)).toBe("low");
-    expect(healthBand(50, thresholds)).toBe("high");
   });
 
   it("orders overdue < due < dueSoon < upcoming < ok", () => {

@@ -1261,16 +1261,17 @@ textarea.field__input {
   color: var(--md-sys-color-on-surface-variant);
 }
 
-/* Health percentage matches the chart/bar fill color: the same three-band
- * green/orange/red classification derived from the status. */
+/* Health percentage matches the chart/bar fill color: the same four-band
+ * green/yellow/orange/red classification derived from the status. */
 .status-card__value--high { color: var(--md-status-ok); }
+.status-card__value--good { color: var(--md-status-due-soon); }
 .status-card__value--mid { color: var(--md-status-due); }
 .status-card__value--low { color: var(--md-status-overdue); }
 
 /* Part-health progress bar: minimal 6px track with a neutral, noticeably
  * lighter empty portion (full-strength highest container — clearly
  * distinguishable from the card's soft 45% mix) and a fill colored by the
- * three-band health classification (green / orange / red) from the status. */
+ * four-band health classification (green / yellow / orange / red) from the status. */
 .health-bar {
   width: 100%;
   height: 6px;
@@ -1288,6 +1289,7 @@ textarea.field__input {
 }
 
 .health-bar__fill--high { background-color: var(--md-status-ok); }
+.health-bar__fill--good { background-color: var(--md-status-due-soon); }
 .health-bar__fill--mid { background-color: var(--md-status-due); }
 .health-bar__fill--low { background-color: var(--md-status-overdue); }
 
@@ -2576,14 +2578,16 @@ a.card-menu__item:hover {
   transition: stroke-dasharray var(--md-motion-duration-medium) var(--md-motion-easing);
 }
 
-/* Donut ring AND its center percentage are colored by the same three-band
- * health classification (green / orange / red) derived from the rounded
+/* Donut ring AND its center percentage are colored by the same four-band
+ * health classification (green / yellow / orange / red) derived from the rounded
  * percentage via the configured thresholds, so value and chart match. */
 .donut--high .donut__value { stroke: var(--md-status-ok); }
+.donut--good .donut__value { stroke: var(--md-status-due-soon); }
 .donut--mid .donut__value { stroke: var(--md-status-due); }
 .donut--low .donut__value { stroke: var(--md-status-overdue); }
 
 .donut--high .donut__center { color: var(--md-status-ok); }
+.donut--good .donut__center { color: var(--md-status-due-soon); }
 .donut--mid .donut__center { color: var(--md-status-due); }
 .donut--low .donut__center { color: var(--md-status-overdue); }
 

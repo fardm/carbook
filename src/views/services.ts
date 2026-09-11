@@ -696,8 +696,8 @@ function serviceCardHtml(item: MaintenanceItem, dataset: ReturnType<typeof store
 }
 
 /** Inline SVG donut of the remaining life. The ring and the percentage in
- * its center are colored by the SAME three-band health classification
- * (green / orange / red) derived from the rounded percentage via the
+ * its center are colored by the SAME four-band health classification
+ * (green / yellow / orange / red) derived from the rounded percentage via the
  * configured status thresholds. */
 function donutHtml(
   percent: number,

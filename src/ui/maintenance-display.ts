@@ -108,21 +108,33 @@ export function statusLabel(status: MaintenanceStatus): string {
   return t(STATUS_KEYS[status] as never);
 }
 
-export type HealthBand = "high" | "mid" | "low";
+export type HealthBand = "high" | "good" | "mid" | "low";
 
 /**
- * Three-band health color classification driven by the PERCENTAGE itself
- * (green / orange / red), reusing the engine's configured status thresholds
- * (§28–§29) — no new or duplicate numbers:
- *   at/below duePercent   → low (red)   — also covers negative/overdue
+ * Remaining-life % at or below which a service leaves the green ("high")
+ * band for yellow ("good"). Fixed, not user-configurable: it splits the
+ * wide healthy range above the user's due-soon threshold so the glide from
+ * healthy toward due-soon is visible (green → yellow → orange → red).
+ * The lower bands keep following the configured status thresholds.
+ */
+export const HEALTHY_PERCENT = 50;
+
+/**
+ * Four-band health color classification driven by the PERCENTAGE itself
+ * (green / yellow / orange / red), reusing the engine's configured status
+ * thresholds (§28–§29) for the lower bands — no new or duplicate numbers
+ * there:
+ *   at/below duePercent     → low (red)     — also covers negative/overdue
  *   at/below dueSoonPercent → mid (orange)
- *   otherwise             → high (green)
+ *   at/below HEALTHY_PERCENT → good (yellow)
+ *   otherwise               → high (green)
  * Chart fills and the percentage text must be colored from the SAME rounded
  * value so the two always match.
  */
 export function healthBand(percent: number, thresholds: { duePercent: number; dueSoonPercent: number }): HealthBand {
   if (percent <= thresholds.duePercent) return "low";
   if (percent <= thresholds.dueSoonPercent) return "mid";
+  if (percent <= HEALTHY_PERCENT) return "good";
   return "high";
 }
 
