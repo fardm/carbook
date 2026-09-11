@@ -137,6 +137,38 @@ export const CATALOG: readonly CatalogEntry[] = [
     suggestedKm: 50000,
     kmRange: [40000, 60000],
   },
+
+  // --- HVAC ---
+  {
+    id: "cooler",
+    category: "other",
+    icon: "air-conditioner",
+    suggestedKm: 40000,
+    kmRange: [30000, 50000],
+  },
+  {
+    id: "heater",
+    category: "other",
+    icon: "air-conditioner",
+    suggestedKm: 40000,
+    kmRange: [30000, 50000],
+  },
+
+  // --- Transmission ---
+  {
+    id: "clutchDisc",
+    category: "other",
+    icon: "clutch-disc",
+    suggestedKm: 150000,
+    kmRange: [120000, 180000],
+  },
+  {
+    id: "exhaust",
+    category: "other",
+    icon: "exhaust",
+    suggestedKm: 150000,
+    kmRange: [120000, 180000],
+  }
 ];
 
 const entryById = new Map<string, CatalogEntry>(CATALOG.map((entry) => [entry.id, entry]));

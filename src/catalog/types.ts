@@ -46,7 +46,11 @@ export type CatalogServiceId =
   | "airFilter"
   | "cabinFilter"
   | "fuelFilter"
-  | "radiator";
+  | "radiator"
+  | "cooler"
+  | "heater"
+  | "clutchDisc"
+  | "exhaust";
 
 /** A predefined maintenance template (§13). */
 export interface CatalogEntry {

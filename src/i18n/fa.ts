@@ -520,6 +520,10 @@ export const fa = {
     cabinFilter: "فیلتر کابین",
     fuelFilter: "صافی/فیلتر سوخت",
     radiator: "رادیاتور",
+    cooler: "کولر",
+    heater: "بخاری",
+    clutchDisc: "صفحه کلاج",
+    exhaust: "اگزوز",
   },
 } as const;
 

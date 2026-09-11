@@ -26,5 +26,9 @@ export const en = {
     cabinFilter: "Cabin Filter",
     fuelFilter: "Fuel Filter",
     radiator: "Radiator",
+    cooler: "Air Conditioner",
+    heater: "Heater",
+    clutchDisc: "Clutch Disc",
+    exhaust: "Exhaust",
   },
 };
