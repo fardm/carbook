@@ -139,13 +139,13 @@ export const CATALOG: readonly CatalogEntry[] = [
   },
 ];
 
-const entryById = new Map(CATALOG.map((entry) => [entry.id, entry]));
+const entryById = new Map<string, CatalogEntry>(CATALOG.map((entry) => [entry.id, entry]));
 
 export function catalogEntry(id: string): CatalogEntry | null {
   return entryById.get(id) ?? null;
 }
 
 /** Returns the localized service name for a catalog service ID. */
-export function serviceName(serviceId: CatalogServiceId): string {
+export function serviceName(serviceId: string): string {
   return t(`catalog.${serviceId}` as any);
 }
