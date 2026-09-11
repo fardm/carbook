@@ -182,7 +182,7 @@ export const CATALOG: readonly CatalogEntry[] = [
 
   // --- Cooling ---
   { id: "radiator-water",
-    category: "cooling",
+    category: "filters",
     icon: "radiator",
     name: { fa: "تعویض آب رادیاتور", en: "Radiator Water" },
     suggestedKm: 50000,
