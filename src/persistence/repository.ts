@@ -1,4 +1,6 @@
 import { CURRENT_VERSION, defaultDataset } from "../domain/defaults";
+import { createId } from "../domain/ids";
+import { canonicalIconForCatalogId } from "../domain/service-icon";
 import type { Dataset, Settings } from "../domain/types";
 import { normalizeReminders } from "./reminder-normalize";
 
@@ -381,19 +383,80 @@ function normalize(raw: Record<string, unknown>): Dataset {
     vehicles: Array.isArray(raw.vehicles)
       ? (withOdometerStamp(raw.vehicles) as Dataset["vehicles"])
       : [],
-    maintenanceItems: withVehicleId(Array.isArray(raw.maintenanceItems) ? raw.maintenanceItems : []) as Dataset["maintenanceItems"],
-    serviceHistory: withVehicleId(Array.isArray(raw.serviceHistory) ? raw.serviceHistory : []) as Dataset["serviceHistory"],
+    maintenanceItems: normalizeMaintenanceItems(
+      Array.isArray(raw.maintenanceItems) ? raw.maintenanceItems : [],
+    ),
+    serviceHistory: normalizeServiceHistory(
+      Array.isArray(raw.serviceHistory) ? raw.serviceHistory : [],
+    ),
     reminders: normalizeReminders(raw.reminders),
     settings: normalizeSettings(raw.settings, fallback.settings),
   };
 }
 
-/** Defensive repair: every item/record carries a `vehicleId` (null default). */
-function withVehicleId(rows: unknown[]): unknown[] {
-  return rows.map((row) => {
-    if (!isRecord(row)) return row;
-    return row.vehicleId === undefined ? { ...row, vehicleId: null } : row;
-  });
+/**
+ * Normalizes persisted service instances (maintenance items).
+ *
+ * Data-model guarantees:
+ * - Every instance keeps its own stable unique `id` (the service INSTANCE
+ *   id — never the service TYPE / catalog id). Missing or duplicate ids are
+ *   repaired with a fresh unique id so two identical "تسمه تایم" services can
+ *   never collide, overwrite each other via put(), or delete together.
+ * - `catalogId` stays a pure type reference (may repeat across instances).
+ * - All user-entered facts (name, category, rule, active, timestamps,
+ *   vehicleId) are preserved untouched — only developer-owned metadata
+ *   (the catalog icon) is refreshed to the current canonical definition so
+ *   an icon change in app code propagates to existing users.
+ */
+function normalizeMaintenanceItems(rows: unknown[]): Dataset["maintenanceItems"] {
+  const seen = new Set<string>();
+  const out: Dataset["maintenanceItems"] = [];
+  for (const row of rows) {
+    if (!isRecord(row)) continue;
+    let id = typeof row.id === "string" && row.id !== "" ? row.id : createId();
+    if (seen.has(id)) id = createId();
+    seen.add(id);
+    const catalogId =
+      typeof row.catalogId === "string" && row.catalogId !== "" ? row.catalogId : null;
+    // Catalog-linked items inherit the current canonical icon; custom items
+    // and unknown catalog ids keep their stored icon (never blank them).
+    const storedIcon = typeof row.icon === "string" && row.icon !== "" ? row.icon : "wrench";
+    const canonical = canonicalIconForCatalogId(catalogId);
+    out.push({
+      ...(row as object),
+      id,
+      vehicleId: (row.vehicleId as string | null | undefined) ?? null,
+      catalogId,
+      icon: canonical ?? storedIcon,
+    } as Dataset["maintenanceItems"][number]);
+  }
+  return out;
+}
+
+/**
+ * Normalizes persisted service events. Each record keeps its own stable
+ * unique `id` and references its owning service INSTANCE via
+ * `maintenanceItemId` (never a service-type id). Date, odometer, cost,
+ * notes and timestamps are preserved verbatim so a refresh never empties
+ * service date/time or mileage.
+ */
+function normalizeServiceHistory(rows: unknown[]): Dataset["serviceHistory"] {
+  const seen = new Set<string>();
+  const out: Dataset["serviceHistory"] = [];
+  for (const row of rows) {
+    if (!isRecord(row)) continue;
+    let id = typeof row.id === "string" && row.id !== "" ? row.id : createId();
+    if (seen.has(id)) id = createId();
+    seen.add(id);
+    out.push({
+      ...(row as object),
+      id,
+      maintenanceItemId:
+        typeof row.maintenanceItemId === "string" ? row.maintenanceItemId : "",
+      vehicleId: (row.vehicleId as string | null | undefined) ?? null,
+    } as Dataset["serviceHistory"][number]);
+  }
+  return out;
 }
 
 /** Defensive repair: every vehicle carries an `odometerUpdatedAt` (null). */

@@ -1,5 +1,6 @@
 import type { Dataset } from "../domain/types";
 import { defaultDataset, CURRENT_VERSION } from "../domain/defaults";
+import { canonicalIconForCatalogId } from "../domain/service-icon";
 import { normalizeReminders } from "../persistence/reminder-normalize";
 import type {
   MaintenanceItem,
@@ -191,7 +192,9 @@ export function datasetToItemRows(dataset: Dataset, userId: string): Maintenance
     catalog_id: item.catalogId,
     name: item.name,
     category: item.category,
-    icon: item.icon,
+    // Persist the canonical icon for catalog-linked items so cloud rows
+    // converge on developer updates; custom items keep the user icon.
+    icon: item.catalogId != null ? (canonicalIconForCatalogId(item.catalogId) ?? item.icon) : item.icon,
     interval_km: item.rule.intervalKm,
     interval_months: item.rule.intervalMonths,
     trigger: item.rule.trigger,
@@ -303,13 +306,18 @@ function rowToItem(row: MaintenanceItemRow): MaintenanceItem {
     trigger: (row.trigger as MaintenanceRule["trigger"]) ?? "any",
     displayMode: (row.display_mode as MaintenanceRule["displayMode"]) ?? "auto",
   };
+  const catalogId = row.catalog_id ?? null;
+  // Catalog-linked items inherit the current canonical icon so a developer
+  // icon change propagates to existing cloud users; custom items and unknown
+  // catalog ids keep their stored icon. All user facts stay untouched.
+  const icon = catalogId != null ? (canonicalIconForCatalogId(catalogId) ?? row.icon) : row.icon;
   return {
     id: row.id.toLowerCase(),
     vehicleId: row.vehicle_id ? row.vehicle_id.toLowerCase() : null,
-    catalogId: row.catalog_id ?? null,
+    catalogId,
     name: row.name,
     category: row.category,
-    icon: row.icon,
+    icon,
     rule,
     active: row.active,
     createdAt: row.created_at,

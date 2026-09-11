@@ -1,6 +1,7 @@
 import { CATALOG, catalogEntry, categoryName, serviceName } from "../catalog";
 import { diffDays } from "../domain/calendar/dates";
 import { createId } from "../domain/ids";
+import { canonicalIconForCatalogId, resolveServiceIcon } from "../domain/service-icon";
 import {
   buildItem,
   validateInitialService,
@@ -662,7 +663,7 @@ function serviceCardHtml(item: MaintenanceItem, dataset: ReturnType<typeof store
     <article class="card service-card">
       <a class="service-card__link" href="${maintenanceDetailHash(item.id)}">
         <div class="service-card__head">
-          <span class="service-card__icon" data-icon="${item.icon}"></span>
+          <span class="service-card__icon" data-icon="${resolveServiceIcon(item)}"></span>
           <div class="service-card__info">
             <div class="service-card__name">${escHtml(item.name)}</div>
           </div>
@@ -745,7 +746,7 @@ function inactiveItemRowHtml(item: MaintenanceItem): string {
   return `
     <li class="item-list__row">
       <a class="item-list__main" href="${maintenanceDetailHash(item.id)}">
-        <span class="item-list__icon" data-icon="${item.icon}"></span>
+        <span class="item-list__icon" data-icon="${resolveServiceIcon(item)}"></span>
         <div class="item-list__info">
           <div class="item-list__name">${escHtml(item.name)}</div>
           <div class="item-list__meta">${categoryName(item.category)}</div>
@@ -1094,7 +1095,7 @@ function itemDetailPageHtml(itemId: string): string {
         <section class="service-detail-card__header">
           <div class="service-detail-card__header-row">
             <div class="service-info">
-              <span class="service-info__icon" data-icon="${item.icon}"></span>
+              <span class="service-info__icon" data-icon="${resolveServiceIcon(item)}"></span>
               <div class="service-info__main">
                 <div class="service-info__name">${escHtml(item.name)}</div>
                 ${detailLifetimeRowHtml(item, dataset)}
@@ -1820,7 +1821,10 @@ function openEditServiceForm(item: MaintenanceItem): void {
   state.form = { mode: "edit", itemId: item.id };
   state.iconPickerOpen = false;
   state.formValues = {};
-  state.icon = item.icon;
+  // Catalog-linked items always display the canonical icon; seed the form
+  // with the resolved value so a stale persisted icon can never be written
+  // back on save. Custom items keep their stored (user-chosen) icon.
+  state.icon = resolveServiceIcon(item);
   state.displayMode = healthMode(item.rule.displayMode);
 }
 
@@ -2147,10 +2151,14 @@ function submitServiceForm(container: HTMLElement, form: HTMLFormElement): void 
   if (editing) {
     const item = store.get().maintenanceItems.find((c) => c.id === serviceForm.itemId);
     if (!item) return;
+    // Catalog-linked items are developer-owned for the icon: always persist
+    // the canonical icon so a stale stored value can never survive an edit.
+    // Custom items keep the user-chosen icon from the picker.
+    const canonical = canonicalIconForCatalogId(item.catalogId);
     const draft: ItemDraft = {
       name,
       category: item.category as ItemDraft["category"],
-      icon: state.icon,
+      icon: canonical ?? state.icon,
       intervalKm,
       intervalMonths,
       displayMode: state.displayMode,
@@ -2187,7 +2195,9 @@ function submitServiceForm(container: HTMLElement, form: HTMLFormElement): void 
   const draft: ItemDraft = {
     name,
     category: entry?.category ?? "other",
-    icon: state.icon,
+    // New catalog services always start from the current canonical icon
+    // (acceptance 7); custom services use the user-picked icon.
+    icon: entry ? (entry.icon ?? state.icon) : state.icon,
     intervalKm,
     intervalMonths,
     displayMode: state.displayMode,

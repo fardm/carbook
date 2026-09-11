@@ -43,7 +43,7 @@ function populatedDataset(): Dataset {
       catalogId: "engineOil",
       name: "روغن موتور",
       category: "engine",
-      icon: "droplets",
+      icon: "oil",
       rule: { intervalKm: 10000, intervalMonths: 6, trigger: "any", displayMode: "auto" },
       active: true,
       createdAt: "2026-09-04T10:00:00.000Z",
