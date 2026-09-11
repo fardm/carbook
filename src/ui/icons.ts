@@ -50,18 +50,7 @@ export const STATUS_ICONS: Record<string, string> = {
 
 /** Icons offered to the user when creating a custom item (§37). */
 export const CUSTOM_ICON_CHOICES = [
-  "wrench",
-  "settings-2",
-  "filter",
-  "droplets",
-  "zap",
-  "gauge",
-  "battery",
-  "lightbulb",
-  "snowflake",
-  "spray-can",
-  "fan",
-  "fuel",
+
 ] as const;
 
 /** Parses an SVG file's markup into its root `<svg>` element. The file's
