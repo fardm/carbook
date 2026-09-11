@@ -107,7 +107,7 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     id: "brakePads",
     category: "brakes",
-    icon: "disc",
+    icon: "brake-pads",
     name: { fa: "لنت ترمز", en: "Brake Pads" },
     suggestedKm: 10000,
     kmRange: [5000, 15000],
