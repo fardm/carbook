@@ -104,24 +104,13 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     id: "powerSteeringFluid",
     category: "fluids",
-    icon: "oil",
+    icon: "oil-red",
     name: { fa: "روغن هیدرولیک", en: "Power Steering Fluid" },
     suggestedKm: 40000,
     kmRange: [30000, 60000],
     suggestedMonths: null,
     monthsRange: null,
   },
-  {
-    id: "washerFluid",
-    category: "fluids",
-    icon: "spray-can",
-    name: { fa: "مایع شیشه‌شوی", en: "Windshield Washer Fluid" },
-    suggestedKm: null,
-    kmRange: null,
-    suggestedMonths: 3,
-    monthsRange: [2, 6],
-  },
-
   // --- Brakes ---
   {
     id: "brakePads",
@@ -132,16 +121,6 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: [5000, 15000],
     suggestedMonths: 6,
     monthsRange: [6, 12],
-  },
-  {
-    id: "brakeDiscs",
-    category: "brakes",
-    icon: "circle-dot",
-    name: { fa: "دیسک ترمز", en: "Brake Discs" },
-    suggestedKm: 30000,
-    kmRange: [20000, 50000],
-    suggestedMonths: 12,
-    monthsRange: [12, 24],
   },
 
   // --- Tires & Wheels ---

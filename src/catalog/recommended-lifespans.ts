@@ -20,11 +20,9 @@ export const RECOMMENDED_LIFESPAN_KM: Readonly<Record<string, number>> = {
   brakeFluid: 40000,
   transmissionFluid: 60000,
   powerSteeringFluid: 40000,
-  washerFluid: 10000,
 
   // Brakes
   brakePads: 10000,
-  brakeDiscs: 30000,
 
   // Tires & wheels
   tires: 40000,

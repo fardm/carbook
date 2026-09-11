@@ -820,7 +820,7 @@ function typePickerModalHtml(): string {
           </div>
           <button type="button" class="type-card type-card--custom js-pick-type js-type-card" data-catalog-id=""
             data-search="${escHtml(normalizeTypeSearch(`${t("services.customType")} custom`))}">
-            <span class="type-card__icon" data-icon="wrench"></span>
+            <span class="type-card__icon" data-icon="custom"></span>
             <span class="type-card__name">${t("services.customType")}</span>
           </button>
         </div>
