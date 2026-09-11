@@ -501,6 +501,26 @@ export const fa = {
     promptDeniedNote:
       "دسترسی اعلان‌ها رد شد. بعداً می‌توانید از تنظیمات فعالش کنید.",
   },
+  catalog: {
+    engineOil: "روغن موتور",
+    oilFilter: "فیلتر روغن",
+    sparkPlugs: "شمع",
+    alternatorBelt: "تسمه دینام",
+    acBelt: "تسمه کولر",
+    timingChain: "تسمه تایم",
+    coolant: "ضدیخ",
+    brakeFluid: "روغن ترمز",
+    transmissionFluid: "روغن گیربکس",
+    powerSteeringFluid: "روغن هیدرولیک",
+    brakePads: "لنت ترمز",
+    tires: "لاستیک",
+    wheelBalancing: "تنظیم باد لاستیک",
+    battery: "باتری",
+    airFilter: "فیلتر هوا",
+    cabinFilter: "فیلتر کابین",
+    fuelFilter: "صافی/فیلتر سوخت",
+    radiatorWater: "تعویض آب رادیاتور",
+  },
 } as const;
 
 export type Messages = typeof fa;

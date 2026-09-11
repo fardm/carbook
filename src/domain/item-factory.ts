@@ -1,4 +1,5 @@
 import type { CatalogEntry, CatalogCategoryId } from "../catalog";
+import { serviceName } from "../catalog";
 import { createId } from "./ids";
 import { isIsoDate } from "./odometer";
 import type { DisplayMode, MaintenanceItem } from "./types";
@@ -52,11 +53,11 @@ export function buildItem(
 export function itemFromCatalog(entry: CatalogEntry, now: string): MaintenanceItem {
   return buildItem(
     {
-      name: entry.name.fa, // localized snapshot; catalogId allows re-resolving
+      name: serviceName(entry.id), // localized snapshot; catalogId allows re-resolving
       category: entry.category,
       icon: entry.icon,
       intervalKm: entry.suggestedKm,
-      intervalMonths: entry.suggestedMonths,
+      intervalMonths: null, // Time-based tracking removed; km-only
       displayMode: entry.displayMode ?? "auto",
     },
     { catalogId: entry.id, now },

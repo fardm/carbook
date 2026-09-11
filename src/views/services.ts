@@ -1,4 +1,4 @@
-import { CATALOG, catalogEntry, categoryName, recommendedLifespanKm } from "../catalog";
+import { CATALOG, catalogEntry, categoryName, serviceName } from "../catalog";
 import { diffDays } from "../domain/calendar/dates";
 import { createId } from "../domain/ids";
 import {
@@ -786,13 +786,17 @@ function normalizeTypeSearch(text: string): string {
 function typePickerModalHtml(): string {
   const query = state.typeQuery;
   const typeCards = CATALOG.map(
-    (entry) => `
+    (entry) => {
+      const nameFa = serviceName(entry.id);
+      const nameEn = t(`catalog.${entry.id}` as const);
+      return `
       <button type="button" class="type-card js-pick-type js-type-card" data-catalog-id="${escHtml(entry.id)}"
-        data-search="${escHtml(normalizeTypeSearch(`${entry.name.fa} ${entry.name.en}`))}">
+        data-search="${escHtml(normalizeTypeSearch(`${nameFa} ${nameEn}`))}">
         <span class="type-card__icon" data-icon="${entry.icon}"></span>
-        <span class="type-card__name">${escHtml(entry.name.fa)}</span>
+        <span class="type-card__name">${escHtml(nameFa)}</span>
       </button>
-    `,
+    `;
+    },
   ).join("");
   return `
     <div class="modal-overlay">
@@ -890,12 +894,12 @@ function serviceFormModalHtml(): string {
   // Recommendation follows the catalog template (add) or the item's linked
   // catalog id (edit); custom services have none.
   const catalogIdForHint = editing ? item?.catalogId ?? null : form.catalogId;
-  const recommendedKm = recommendedLifespanKm(catalogIdForHint);
+  const recommendedKm = catalogIdForHint ? catalogEntry(catalogIdForHint)?.suggestedKm ?? null : null;
 
   // Add mode: lifespan stays empty — user types it or applies the hint.
   // Edit mode: show the item's saved interval only (not the recommendation).
   const prefillKm = editing ? item?.rule.intervalKm ?? null : null;
-  const prefillName = editing ? item?.name ?? "" : entry?.name.fa ?? "";
+  const prefillName = editing ? item?.name ?? "" : (entry ? serviceName(entry.id) : "");
   const title = t(editing ? "maintenance.editTitle" : "services.addService");
   const vehicleId = resolveSelectedVehicleId(dataset);
   // The icon field belongs to custom services only (دلخواه); catalog-based

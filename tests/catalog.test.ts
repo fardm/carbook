@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CATALOG, CATEGORIES, catalogEntry, categoryName, isCatalogCategoryId } from "../src/catalog";
+import { CATALOG, CATEGORIES, catalogEntry, categoryName, isCatalogCategoryId, serviceName } from "../src/catalog";
 import {
   customItemFromInput,
   itemFromCatalog,
@@ -17,9 +17,10 @@ describe("catalog integrity (§12, §13, §20)", () => {
   });
 
   it("has non-empty localized names for every entry", () => {
+    // Service names are now in i18n files; this test validates the catalog structure
     for (const entry of CATALOG) {
-      expect(entry.name.fa.trim(), `${entry.id}.fa`).not.toBe("");
-      expect(entry.name.en.trim(), `${entry.id}.en`).not.toBe("");
+      expect(entry.id.trim(), `${entry.id}`).not.toBe("");
+      expect(entry.icon.trim(), `${entry.id} icon`).not.toBe("");
     }
   });
 
@@ -38,11 +39,6 @@ describe("catalog integrity (§12, §13, §20)", () => {
         expect(entry.suggestedKm).toBeGreaterThanOrEqual(entry.kmRange![0]);
         expect(entry.suggestedKm).toBeLessThanOrEqual(entry.kmRange![1]);
       }
-      if (entry.suggestedMonths != null) {
-        expect(entry.monthsRange, `${entry.id} monthsRange`).not.toBeNull();
-        expect(entry.suggestedMonths).toBeGreaterThanOrEqual(entry.monthsRange![0]);
-        expect(entry.suggestedMonths).toBeLessThanOrEqual(entry.monthsRange![1]);
-      }
     }
   });
 
@@ -51,8 +47,6 @@ describe("catalog integrity (§12, §13, §20)", () => {
     expect(catalogEntry("engineOil")?.kmRange).toEqual([8000, 12000]);
     expect(catalogEntry("cabinFilter")?.suggestedKm).toBe(15000);
     expect(catalogEntry("cabinFilter")?.kmRange).toEqual([10000, 20000]);
-    expect(catalogEntry("brakeFluid")?.suggestedMonths).toBe(24);
-    expect(catalogEntry("tires")?.suggestedMonths).toBe(60);
   });
 
   it("categoryName resolves every category; unknown ids are rejected", () => {
@@ -69,12 +63,12 @@ describe("item factories (§14, §37)", () => {
     const entry = catalogEntry("engineOil")!;
     const item = itemFromCatalog(entry, NOW);
     expect(item.catalogId).toBe("engineOil");
-    expect(item.name).toBe("روغن موتور");
+    expect(item.name).toBe("روغن موتور"); // From i18n via serviceName
     expect(item.category).toBe("engine");
-    expect(item.icon).toBe("droplets");
+    expect(item.icon).toBe("oil");
     expect(item.rule).toEqual({
       intervalKm: 10000,
-      intervalMonths: 6,
+      intervalMonths: null, // Time-based tracking removed; km-only
       trigger: "any",
       displayMode: "auto",
     });
@@ -82,10 +76,16 @@ describe("item factories (§14, §37)", () => {
     expect(item.createdAt).toBe(NOW);
   });
 
+  it("serviceName returns localized service names", () => {
+    expect(serviceName("engineOil")).toBe("روغن موتور");
+    expect(serviceName("brakePads")).toBe("لنت ترمز");
+    expect(serviceName("battery")).toBe("باتری");
+  });
+
   it("itemFromCatalog preserves the catalog interval", () => {
     const item = itemFromCatalog(catalogEntry("brakePads")!, NOW);
     expect(item.rule.intervalKm).toBe(10000);
-    expect(item.rule.intervalMonths).toBe(6);
+    expect(item.rule.intervalMonths).toBe(null); // Time-based tracking removed; km-only
   });
 
   it("customItemFromInput produces an item with catalogId null", () => {

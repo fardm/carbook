@@ -28,22 +28,37 @@ export interface CatalogCategory {
   name: LocalizedName;
 }
 
+export type CatalogServiceId =
+  | "engineOil"
+  | "oilFilter"
+  | "sparkPlugs"
+  | "alternatorBelt"
+  | "acBelt"
+  | "timingChain"
+  | "coolant"
+  | "brakeFluid"
+  | "transmissionFluid"
+  | "powerSteeringFluid"
+  | "brakePads"
+  | "tires"
+  | "wheelBalancing"
+  | "battery"
+  | "airFilter"
+  | "cabinFilter"
+  | "fuelFilter"
+  | "radiatorWater";
+
 /** A predefined maintenance template (§13). */
 export interface CatalogEntry {
   /** Language-independent id, e.g. "engineOil". */
-  id: string;
+  id: CatalogServiceId;
   category: CatalogCategoryId;
   /** Lucide icon name (kebab-case). */
   icon: string;
-  name: LocalizedName;
   /** Suggested km interval — becomes the default intervalKm when activated. */
   suggestedKm: number | null;
   /** Reasonable km range for display: [min, max]. */
   kmRange: [number, number] | null;
-  /** Suggested months interval — default intervalMonths when activated. */
-  suggestedMonths: number | null;
-  /** Reasonable months range for display. */
-  monthsRange: [number, number] | null;
   /** Default display preference (§26); "auto" unless stated otherwise. */
   displayMode?: DisplayMode;
 }

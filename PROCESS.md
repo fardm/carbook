@@ -296,8 +296,7 @@ service-synchronized reminders work (files listed under Files Changed).
 
 ### Catalog (`src/catalog/`)
 - `types.ts` — `CatalogEntry` (id, category, lucide icon, `{fa,en}` name,
-  suggestedKm/suggestedMonths + kmRange/monthsRange, `inspectionBased`,
-  optional `displayMode`) and `CatalogCategoryId` (§7, §12–§13, §20).
+  suggestedKm + kmRange, optional `displayMode`) and `CatalogCategoryId` (§7, §12–§13, §20).
 - `catalog.ts` — **27 predefined templates** across the six §12 categories
   (engine, fluids, brakes, tiresWheels, electrical, filters): engine oil
   (8–12k / suggested 10k + 6 mo), oil filter, spark plugs, timing belt,

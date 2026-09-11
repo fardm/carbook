@@ -1,4 +1,3 @@
-export { CATALOG, catalogEntry } from "./catalog";
+export { CATALOG, catalogEntry, serviceName } from "./catalog";
 export { CATEGORIES, categoryName, isCatalogCategoryId } from "./categories";
-export { RECOMMENDED_LIFESPAN_KM, recommendedLifespanKm } from "./recommended-lifespans";
-export type { CatalogCategory, CatalogCategoryId, CatalogEntry, LocalizedName } from "./types";
+export type { CatalogCategory, CatalogCategoryId, CatalogEntry, CatalogServiceId, LocalizedName } from "./types";
