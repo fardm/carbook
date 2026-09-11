@@ -1018,7 +1018,7 @@ function serviceFormModalHtml(): string {
           </div>` : ""}
 
           <div class="form__actions">
-            <button type="button" class="btn btn--text js-close-overlay">${t("common.cancel")}</button>
+            <button type="button" class="btn btn--text js-form-back">${t("maintenance.form.back")}</button>
             <button type="submit" class="btn btn--filled">
               ${editing ? t("common.save") : t("services.submit")}
             </button>
@@ -2027,6 +2027,25 @@ function deleteItemPermanently(itemId: string | null): void {
 
 /** Events for the service form modal (icon picker, calc mode, submit). */
 function bindFormEvents(container: HTMLElement): void {
+  container.querySelectorAll<HTMLButtonElement>(".js-form-back").forEach((button) => {
+    button.addEventListener("click", () => {
+      // Returning to the service-type picker keeps the whole modal flow
+      // open (search query preserved) instead of discarding it. Editing
+      // a service starts from the detail page, not the picker — there
+      // the back button closes the form and returns to the item.
+      if (state.form && state.form.mode === "add") {
+        state.pickerOpen = true;
+        state.form = null;
+        state.iconPickerOpen = false;
+        state.formValues = {};
+        redraw(container);
+        return;
+      }
+      closeModals();
+      redraw(container);
+    });
+  });
+
   container.querySelectorAll<HTMLButtonElement>(".js-icon-toggle").forEach((button) => {
     button.addEventListener("click", () => {
       state.iconPickerOpen = !state.iconPickerOpen;

@@ -1,13 +1,5 @@
 import type { CatalogEntry } from "./types";
 
-/**
- * Predefined maintenance catalog (§12, §20).
- *
- * Intervals follow sensible general maintenance guidance and are labeled as
- * recommendations in the UI (§13): they vary by vehicle, engine, fluids,
- * manufacturer guidance, and driving conditions. Users always customize.
- */
-
 export const CATALOG: readonly CatalogEntry[] = [
   // --- Engine ---
   {
@@ -186,6 +178,17 @@ export const CATALOG: readonly CatalogEntry[] = [
     kmRange: [30000, 60000],
     suggestedMonths: null,
     monthsRange: null,
+  },
+
+  // --- Cooling ---
+  { id: "radiator-water",
+    category: "cooling",
+    icon: "radiator",
+    name: { fa: "تعویض آب رادیاتور", en: "Radiator Water" },
+    suggestedKm: 50000,
+    kmRange: [40000, 60000],
+    suggestedMonths: 24,
+    monthsRange: [24, 36],
   },
 ];
 
