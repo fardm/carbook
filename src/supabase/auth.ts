@@ -9,13 +9,19 @@ import { getSupabase } from "./client";
  * notifies subscribers on every transition so UI + data layer react
  * immediately after login/logout.
  *
- * Session persistence across refreshes: the Supabase client is created with
- * `persistSession: true` + `autoRefreshToken: true` (client.ts), so the
- * session lives in localStorage. initialize() explicitly AWAITS
- * `auth.getSession()` — the SDK resolves it only after it has restored (or
- * definitively failed to restore) the persisted session. No timeout and no
- * guesswork: a normal F5 boots as authenticated exactly when a session is
- * actually stored, and as guest exactly when it is not.
+ * Session persistence across launches (browser tabs AND installed Android PWA
+ * cold starts — both share the same per-origin localStorage):
+ *  - client.ts persists sessions with `persistSession: true` + PKCE OAuth
+ *    (PKCE sessions carry a refresh_token; implicit ones do not and can
+ *    never survive a restart).
+ *  - initialize() explicitly AWAITS `auth.getSession()` — the SDK resolves it
+ *    only after it has restored (or definitively failed to restore) the
+ *    persisted session. No timeout and no guesswork: the app boots as
+ *    authenticated exactly when a session is actually stored, and as guest
+ *    exactly when it is not.
+ *  - Transient null-session events delivered while restoration is still in
+ *    flight are ignored (see applySession) so the "still loading" state can
+ *    never be mistaken for a logout.
  */
 
 export interface AccountUser {
@@ -39,6 +45,13 @@ export interface AuthInitResult {
 class AuthController {
   private user: AccountUser | null = null;
   private initialized = false;
+  /** True between initialize() start and the restored session being applied.
+   * While true, a null session event is the SDK's transient "still loading"
+   * state (or a spurious pre-restoration SIGNED_OUT) — NOT a real logout —
+   * so it must never clear the signed-in user or notify listeners. */
+  private restoring = false;
+  /** In-flight initialize() promise (drives re-entrant calls + test reset). */
+  private initPromise: Promise<AuthInitResult> | null = null;
   private client: SupabaseClient | null = null;
   private readonly listeners = new Set<AuthListener>();
   private unsubscribe: (() => void) | null = null;
@@ -77,13 +90,28 @@ class AuthController {
     if (this.initialized) {
       return { reason: this.client ? "configured" : "not-configured", restored: this.user != null };
     }
+    // Re-entrant call while initialization is still running: do NOT register a
+    // second subscription and do NOT re-apply a provisional null (which would
+    // log the user out mid-boot). Await the SAME in-flight init and report its
+    // outcome — every concurrent caller gets the final answer.
+    if (this.restoring) {
+      return this.initPromise ?? { reason: "configured", restored: false };
+    }
     const client = getSupabase();
     if (!client) {
       this.initialized = true;
       return { reason: "no-client", restored: false };
     }
     this.client = client;
+    this.restoring = true;
+    this.initPromise = this.initializeInner(client).finally(() => {
+      this.restoring = false;
+      this.initPromise = null;
+    });
+    return this.initPromise;
+  }
 
+  private async initializeInner(client: SupabaseClient): Promise<AuthInitResult> {
     // ONE subscription for the app's lifetime: it receives the SDK's
     // INITIAL_SESSION event, then every later SIGNED_IN / SIGNED_OUT /
     // TOKEN_REFRESHED / USER_UPDATED event. TOKEN_REFRESHED carries the
@@ -173,6 +201,8 @@ class AuthController {
     this.listeners.clear();
     this.client = null;
     this.initialized = false;
+    this.restoring = false;
+    this.initPromise = null;
     this.user = null;
   }
 
@@ -185,6 +215,16 @@ class AuthController {
     const next: AccountUser | null = session?.user
       ? { id: session.user.id, email: session.user.email ?? "" }
       : null;
+    // Startup gate: while restoration is still in flight, a null session is
+    // the SDK's transient "not loaded yet" state (INITIAL_SESSION(null), an
+    // early SIGNED_OUT broadcast, or a pending refresh) — NOT a user logout.
+    // Dropping it here keeps the previous user (and their repository/data)
+    // intact until getSession() delivers the definitive persisted session.
+    // This is exactly the window an installed PWA's cold start opens: the
+    // onAuthStateChange subscription exists before the stored session is read.
+    // Only genuine post-init sign-outs (real SIGNED_OUT / signOut()) reach
+    // listeners as null.
+    if (next === null && this.restoring) return;
     const sameUser = this.user?.id === next?.id;
     this.user = next;
     if (!sameUser) {

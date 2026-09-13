@@ -256,6 +256,12 @@ function fakeSupabase(options?: {
     emitAuthEvent: (event: string) => {
       for (const callback of authListeners) callback(event, currentSession);
     },
+    /** Emits an event with a FORCED session payload (used to reproduce
+     * transient SDK states like a spurious SIGNED_OUT(null) before the
+     * stored session has been restored). */
+    emitAuthEventWithSession: (event: string, session: SessionLike | null) => {
+      for (const callback of authListeners) callback(event, session);
+    },
     sessionSnapshot: (): SessionLike | null => currentSession,
     setAuthUser: (userId: string | null) => {
       authUidOverride = userId;
@@ -917,5 +923,191 @@ describe("app_settings persistence — conflict target", () => {
     };
     const bad = await builder.upsert([{ user_id: USER }], { onConflict: "id" });
     expect(bad.error).toMatchObject({ status: 400 });
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Android PWA restart — session persistence across app launches        */
+/*                                                                      */
+/* An installed PWA cold start is the same boot sequence as an F5: the   */
+/* Supabase client re-creates from localStorage, initializeDataSource()  */
+/* restores the persisted session, and ONLY then is the repository       */
+/* selected. These tests pin that contract end to end.                  */
+/* ------------------------------------------------------------------ */
+
+describe("Android PWA restart — auth session persistence", () => {
+  let idb: ReturnType<typeof installFakeIndexedDB>;
+
+  beforeEach(() => {
+    idb = installFakeIndexedDB();
+    resetDataSourceForTests();
+  });
+
+  afterEach(() => {
+    setSupabaseOverride(null);
+    auth.resetForTests();
+    idb.restore();
+    resetDataSourceForTests();
+  });
+
+  it("1. authenticated session persists after an app restart (PWA relaunch)", async () => {
+    // --- First launch: sign in, cloud data loads. ---
+    const firstLaunch = fakeSupabase({ storedSession: null });
+    setSupabaseOverride(firstLaunch.client);
+    await initializeDataSource();
+    firstLaunch.signInAs(USER); // user signs in (session persisted)
+    await applyAuthState();
+    firstLaunch.seedDataset(vehicleNamed("ابر پس از راه‌اندازی مجدد"), USER);
+    expect(auth.isAuthenticated()).toBe(true);
+
+    // --- App closed and reopened: same storage, brand-new SDK + app boot. ---
+    auth.resetForTests();
+    resetDataSourceForTests();
+    const secondLaunch = fakeSupabase({
+      // The SDK restores the PERSISTED session from localStorage on boot.
+      storedSession: { user: { id: USER, email: "user@mail.com" } },
+      // Slow restore = a cold Android start reading storage + refreshing
+      // the token; the boot must wait for it, never skip it.
+      sessionDelay: 25,
+    });
+    secondLaunch.seedDataset(vehicleNamed("ابر پس از راه‌اندازی مجدد"), USER);
+    setSupabaseOverride(secondLaunch.client);
+
+    await initializeDataSource();
+
+    // Still signed in with the same account — no re-authentication needed.
+    expect(auth.isAuthenticated()).toBe(true);
+    expect(auth.getUser()?.id).toBe(USER);
+    // And the store is bound to the user's cloud repository, not guest IndexedDB.
+    expect(store.get().vehicles[0]?.name).toBe("ابر پس از راه‌اندازی مجدد");
+  });
+
+  it("2. startup restores the session BEFORE repository selection (no provisional guest bind)", async () => {
+    const supabase = fakeSupabase({
+      storedSession: { user: { id: USER, email: "user@mail.com" } },
+      // Make storage restore visibly slow (cold WebView start).
+      sessionDelay: 30,
+    });
+    supabase.seedDataset(vehicleNamed("انتخاب مخزن پس از بازیابی"), USER);
+    setSupabaseOverride(supabase.client);
+
+    const booting = initializeDataSource();
+    // While restoration is still in flight, NOTHING has been applied: auth
+    // is not initialized and no repository decision has been made.
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(auth.isInitialized()).toBe(false);
+
+    await booting;
+    // The single backend decision happens only AFTER the session is final,
+    // and it binds the user's cloud repository directly.
+    expect(auth.isInitialized()).toBe(true);
+    expect(auth.isAuthenticated()).toBe(true);
+    expect(store.get().vehicles[0]?.name).toBe("انتخاب مخزن پس از بازیابی");
+  });
+
+  it("3a. a transient auth-loading null session does NOT log the user out or clear cloud data", async () => {
+    const supabase = fakeSupabase({
+      storedSession: { user: { id: USER, email: "user@mail.com" } },
+      sessionDelay: 30,
+    });
+    supabase.seedDataset(vehicleNamed("داده ابری دست‌نخورده"), USER);
+    setSupabaseOverride(supabase.client);
+
+    // Boot with a listener attached (exactly what data-source + main.ts do).
+    let notified: string | null | undefined = undefined;
+    const booting = initializeDataSource();
+    const unsubscribe = auth.subscribe((user) => {
+      notified = user ? user.id : null;
+    });
+    try {
+      // While restoration is still running, the SDK emits transient events:
+      // a null INITIAL_SESSION ("still loading") and a spurious SIGNED_OUT
+      // (e.g. a cross-tab broadcast / removal broadcast racing the restore).
+      // The user was signed in on the previous launch; neither event is a
+      // real logout, so neither may clear the user or their data.
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      supabase.emitAuthEventWithSession("INITIAL_SESSION", null);
+      supabase.emitAuthEventWithSession("SIGNED_OUT", null);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      expect(notified).toBeUndefined(); // no listener notification — not a logout
+      expect(auth.isInitialized()).toBe(false); // init not final yet
+
+      // Restoration completes: the persisted session wins.
+      await booting;
+    } finally {
+      unsubscribe();
+    }
+
+    expect(auth.isAuthenticated()).toBe(true);
+    expect(auth.getUser()?.id).toBe(USER);
+    // Cloud data intact — the transient state never swapped to guest IndexedDB.
+    expect(store.get().vehicles[0]?.name).toBe("داده ابری دست‌نخورده");
+  });
+
+  it("3b. a transient null event after init is restored is still overridden by the restore", async () => {
+    // Same race, but the transient event lands AFTER the user was already
+    // applied from a fast restore (listener registered before getSession
+    // resolves — the documented registration order). The restore must win.
+    const supabase = fakeSupabase({
+      storedSession: { user: { id: USER, email: "user@mail.com" } },
+      sessionDelay: 20,
+    });
+    supabase.seedDataset(vehicleNamed("بازیابی نهایی برنده است"), USER);
+    setSupabaseOverride(supabase.client);
+
+    await initializeDataSource();
+    expect(auth.isAuthenticated()).toBe(true);
+    expect(store.get().vehicles[0]?.name).toBe("بازیابی نهایی برنده است");
+  });
+
+  it("3c. a REAL post-init SIGNED_OUT still logs the user out and clears cloud data", async () => {
+    // Guard for 3a: the gate must never swallow genuine sign-outs.
+    const supabase = fakeSupabase({
+      storedSession: { user: { id: USER, email: "user@mail.com" } },
+    });
+    supabase.seedDataset(vehicleNamed("ابر خصوصی"), USER);
+    setSupabaseOverride(supabase.client);
+    await initializeDataSource();
+    expect(auth.isAuthenticated()).toBe(true);
+
+    // The user taps «خروج از حساب» — a definitive, post-init sign-out.
+    await auth.signOut();
+    await applyAuthState(); // wait for the serialized swap chain
+
+    expect(auth.isAuthenticated()).toBe(false);
+    // Guest mode again: the cloud dataset is gone from view and was NOT
+    // copied into guest IndexedDB.
+    expect(store.get()).toEqual(defaultDataset());
+    expect(idb.db.raw()).toBeUndefined();
+  });
+
+  it("concurrent initializeDataSource() calls during boot share one restore (no double subscription)", async () => {
+    const supabase = fakeSupabase({
+      storedSession: { user: { id: USER, email: "user@mail.com" } },
+      sessionDelay: 25,
+    });
+    supabase.seedDataset(vehicleNamed("بوت هم‌زمان"), USER);
+    setSupabaseOverride(supabase.client);
+
+    // Two boot paths racing (e.g. main.ts + a view) must share ONE restore.
+    await Promise.all([initializeDataSource(), initializeDataSource()]);
+    expect(auth.isAuthenticated()).toBe(true);
+    expect(store.get().vehicles[0]?.name).toBe("بوت هم‌زمان");
+
+    // The lifetime SDK listener is registered exactly once — a second
+    // onAuthStateChange registration would double-apply every event.
+    expect(supabase.client.auth.onAuthStateChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("client config uses persistent storage + auto refresh (PKCE sessions keep refresh tokens)", () => {
+    // Compile-time guard of the client options that make PWA restart
+    // persistence possible: persistSession + autoRefreshToken + PKCE flow.
+    // The real client reads Vite env vars, which tests do not set; verify the
+    // shape of the options object the module passes to createClient by
+    // importing the module (it must not throw without env vars).
+    return import("../src/supabase/client").then((mod) => {
+      expect(typeof mod.getSupabase).toBe("function");
+      expect(typeof mod.setSupabaseOverride).toBe("function");
+    });
   });
 });

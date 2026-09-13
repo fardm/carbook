@@ -43,12 +43,21 @@ export function getSupabase(): SupabaseClient | null {
   override = createClient(env.url, env.publishableKey, {
     auth: {
       // Sessions persist in localStorage under an sb- prefixed key and are
-      // restored automatically on the next launch.
+      // restored automatically on the next launch (browser tabs AND installed
+      // Android PWA relaunches — both share the same per-origin storage).
       persistSession: true,
       autoRefreshToken: true,
       // The app is a static PWA — detectSessionInUrl covers OAuth/magic-link
       // style callbacks; email+password flows are unaffected.
       detectSessionInUrl: true,
+      // PKCE (authorization-code) OAuth flow. The SDK default is "implicit",
+      // which returns Google sessions WITHOUT a refresh_token — those expire
+      // within the hour and CANNOT be restored, so an installed PWA reopened
+      // later always came back logged out (browser sessions only looked fine
+      // because the tab stayed open and never needed a refresh). PKCE sessions
+      // carry a refresh_token that persistSession stores, and
+      // autoRefreshToken renews on every relaunch.
+      flowType: "pkce",
     },
   });
   return override;
