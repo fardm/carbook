@@ -1,823 +1,852 @@
 <!doctype html>
 <html lang="fa" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    
-    <!-- Primary Meta Tags -->
-    <title>کاربوک (CarBook) — دفترچه هوشمند نگهداری و سرویس خودرو</title>
-    <meta name="title" content="کاربوک (CarBook) — دفترچه هوشمند نگهداری و سرویس خودرو" />
-    <meta name="description" content="کاربوک ابزار ساده و مدرن ثبت سوابق سرویس، پایش طول عمر قطعات و یادآوری هوشمند نگهداری خودرو است. همه اطلاعات خودرو همیشه همراه شماست." />
-    <meta name="keywords" content="کاربوک, CarBook, نگهداری خودرو, سرویس خودرو, سوابق سرویس خودرو, یادآوری سرویس خودرو, دفترچه خودرو" />
-    <link rel="canonical" href="https://carbook.fardm.ir/" />
 
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://carbook.fardm.ir/" />
-    <meta property="og:title" content="کاربوک — دفترچه هوشمند نگهداری و سرویس خودرو" />
-    <meta property="og:description" content="ثبت سرویس‌ها، رصد طول عمر قطعات و یادآوری موعد نگهداری خودرو در یک دفترچه دیجیتال." />
-    <meta property="og:image" content="/icons/icon-512.png" />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://carbook.fardm.ir/" />
-    <meta property="twitter:title" content="کاربوک — دفترچه هوشمند نگهداری و سرویس خودرو" />
-    <meta property="twitter:description" content="ثبت سرویس‌ها، رصد طول عمر قطعات و یادآوری موعد نگهداری خودرو در یک دفترچه دیجیتال." />
-    <meta property="twitter:image" content="/icons/icon-512.png" />
+  <!-- Primary Meta Tags -->
+  <title>کاربوک (CarBook) — دفترچه هوشمند نگهداری و سرویس خودرو</title>
+  <meta name="title" content="کاربوک (CarBook) — دفترچه هوشمند نگهداری و سرویس خودرو" />
+  <meta name="description"
+    content="کاربوک ابزار ساده و مدرن ثبت سوابق سرویس، پایش طول عمر قطعات و یادآوری هوشمند نگهداری خودرو است. همه اطلاعات خودرو همیشه همراه شماست." />
+  <meta name="keywords"
+    content="کاربوک, CarBook, نگهداری خودرو, سرویس خودرو, سوابق سرویس خودرو, یادآوری سرویس خودرو, دفترچه خودرو" />
+  <link rel="canonical" href="https://carbook.fardm.ir/" />
 
-    <!-- Favicon & PWA -->
-    <meta name="theme-color" content="#f2870d" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="manifest" href="/manifest.json" />
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://carbook.fardm.ir/" />
+  <meta property="og:title" content="کاربوک — دفترچه هوشمند نگهداری و سرویس خودرو" />
+  <meta property="og:description"
+    content="ثبت سرویس‌ها، رصد طول عمر قطعات و یادآوری موعد نگهداری خودرو در یک دفترچه دیجیتال." />
+  <meta property="og:image" content="/icons/icon-512.png" />
 
-    <!-- Pre-paint Theme Script -->
-    <script>
-      (function () {
-        try {
-          var saved = localStorage.getItem("carbook-landing-theme");
-          if (!saved) {
-            var stored = JSON.parse(localStorage.getItem("car-maintenance-tracker.dataset"));
-            saved = stored && stored.settings && stored.settings.theme;
-          }
-          var dark =
-            saved === "dark" ||
-            (saved !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-          if (dark) document.documentElement.dataset.theme = "dark";
-        } catch (e) {}
-      })();
-    </script>
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://carbook.fardm.ir/" />
+  <meta property="twitter:title" content="کاربوک — دفترچه هوشمند نگهداری و سرویس خودرو" />
+  <meta property="twitter:description"
+    content="ثبت سرویس‌ها، رصد طول عمر قطعات و یادآوری موعد نگهداری خودرو در یک دفترچه دیجیتال." />
+  <meta property="twitter:image" content="/icons/icon-512.png" />
 
-    <!-- Supabase OAuth Forwarder -->
-    <script>
-      (function () {
-        var search = window.location.search;
-        var hash = window.location.hash;
-        if (
-          search.indexOf("code=") !== -1 ||
-          search.indexOf("error=") !== -1 ||
-          hash.indexOf("access_token=") !== -1
-        ) {
-          window.location.replace("/app/" + search + hash);
+  <!-- Favicon & PWA -->
+  <meta name="theme-color" content="#f2870d" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
+  <!-- Pre-paint Theme Script -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("carbook-landing-theme");
+        if (!saved) {
+          var stored = JSON.parse(localStorage.getItem("car-maintenance-tracker.dataset"));
+          saved = stored && stored.settings && stored.settings.theme;
         }
-      })();
-    </script>
+        var dark =
+          saved === "dark" ||
+          (saved !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        if (dark) document.documentElement.dataset.theme = "dark";
+      } catch (e) { }
+    })();
+  </script>
 
-    <!-- Stylesheet -->
-    <link rel="stylesheet" href="/src/styles/landing.css" />
-  </head>
-  <body class="landing-page">
-    <!-- Header -->
-    <header class="landing-header">
-      <div class="landing-container landing-header__inner">
-        <a href="/" class="landing-brand" aria-label="کاربوک — صفحه اصلی">
-          <img class="landing-brand__icon" src="/favicon.svg" alt="" width="32" height="32" />
-          <div class="landing-brand__titles">
-            <span class="landing-brand__title">کاربوک</span>
-            <span class="landing-brand__subtitle">دفترچه نگهداری خودرو</span>
+  <!-- Supabase OAuth Forwarder -->
+  <script>
+    (function () {
+      var search = window.location.search;
+      var hash = window.location.hash;
+      if (
+        search.indexOf("code=") !== -1 ||
+        search.indexOf("error=") !== -1 ||
+        hash.indexOf("access_token=") !== -1
+      ) {
+        window.location.replace("/app/" + search + hash);
+      }
+    })();
+  </script>
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="/src/styles/landing.css" />
+</head>
+
+<body class="landing-page">
+  <!-- Header -->
+  <header class="landing-header">
+    <div class="landing-container landing-header__inner">
+      <a href="/" class="landing-brand" aria-label="کاربوک — صفحه اصلی">
+        <img class="landing-brand__icon" src="/favicon.svg" alt="" width="32" height="32" />
+        <div class="landing-brand__titles">
+          <span class="landing-brand__title">کاربوک</span>
+          <span class="landing-brand__subtitle">دفترچه نگهداری خودرو</span>
+        </div>
+      </a>
+
+      <nav class="landing-nav" aria-label="ناوبری اصلی">
+        <a class="landing-nav__link" href="#features">امکانات</a>
+        <a class="landing-nav__link" href="/blog">وبلاگ</a>
+      </nav>
+
+      <div class="landing-header__actions">
+        <button type="button" class="icon-btn" id="theme-toggle" aria-label="تغییر تم رنگی"></button>
+        <a href="/app" class="btn btn--primary">ورود به کاربوک</a>
+        <button type="button" class="menu-toggle-btn" id="menu-toggle" aria-label="باز کردن منو" aria-expanded="false">
+          <span class="hamburger-box" aria-hidden="true">
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Navigation Drawer -->
+    <div class="mobile-drawer" id="mobile-drawer" aria-label="منوی موبایل">
+      <a class="mobile-drawer__link" href="#features">امکانات</a>
+      <a class="mobile-drawer__link" href="/blog">وبلاگ کاربوک</a>
+      <a class="mobile-drawer__link" href="/support">حمایت مالی</a>
+      <div style="margin-top: 12px;">
+        <a href="/app" class="btn btn--primary" style="width: 100%;">ورود به کاربوک</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="landing-container">
+        <div class="hero-badge reveal-on-scroll">
+          <span class="hero-badge__dot"></span>
+          <span>دسترسی آسان روی تمام دستگاه‌ها</span>
+        </div>
+
+        <h1 class="hero-title reveal-on-scroll">
+          نگهداری خودرو، ساده و همیشه در دسترس
+        </h1>
+
+        <p class="hero-description reveal-on-scroll">
+          کاربوک ابزار ثبت منظم سرویس‌ها، رصد طول عمر قطعات مصرفی و یادآوری هوشمند نگهداری خودروی شماست.
+        </p>
+
+        <div class="hero-actions reveal-on-scroll">
+          <a href="/app" class="btn btn--primary btn--large">ورود به کاربوک</a>
+          <a href="#features" class="btn btn--secondary btn--large">آشنایی با امکانات</a>
+        </div>
+
+        <!-- Hero UI Mockup Representation -->
+        <div class="hero-mockup-wrapper reveal-on-scroll">
+          <div class="mockup-window">
+            <div class="mockup-window__bar">
+              <div class="mockup-dots">
+                <span class="mockup-dot mockup-dot--red"></span>
+                <span class="mockup-dot mockup-dot--yellow"></span>
+                <span class="mockup-dot mockup-dot--green"></span>
+              </div>
+              <div class="mockup-url-bar">carbook.fardm.ir/app</div>
+              <div class="mockup-window__spacer" style="width: 48px;"></div>
+            </div>
+
+            <div class="mockup-content">
+              <!-- Selected Vehicle Mock Card -->
+              <div class="mock-vehicle-row">
+                <div class="mock-vehicle-info">
+                  <div class="mock-vehicle-icon">
+                    <span data-icon="car-front"></span>
+                  </div>
+                  <div>
+                    <div class="mock-vehicle-name">پژو ۲۰۶ تیپ ۵</div>
+                    <div class="mock-vehicle-meta">ایران خودرو — ۱۳۹۶ — میانگین ۳۵ کیلومتر در روز</div>
+                  </div>
+                </div>
+                <div class="mock-vehicle-mileage">
+                  <span data-icon="gauge" style="color: var(--md-sys-color-primary);"></span>
+                  <span class="mock-mileage-val">۱۲۸٬۵۰۰ کیلومتر</span>
+                  <span class="btn btn--text" style="font-size: 0.8125rem; padding: 4px 8px;">بروزرسانی</span>
+                </div>
+              </div>
+
+              <!-- Active Services Grid Mock -->
+              <div class="mock-services-grid">
+                <!-- Service 1: Ok -->
+                <div class="mock-service-card">
+                  <div class="mock-card-head">
+                    <div class="mock-card-title-group">
+                      <span class="mock-card-icon" data-icon="oil"></span>
+                      <span class="mock-card-name">روغن موتور و فیلترها</span>
+                    </div>
+                    <span class="status-chip status-chip--ok">
+                      <span data-icon="circle-check"></span>
+                      مناسب
+                    </span>
+                  </div>
+                  <div class="mock-card-body">
+                    <div class="donut donut--ok" role="img" aria-label="۸۲ درصد عمر مفید">
+                      <svg viewBox="0 0 100 100" aria-hidden="true">
+                        <circle class="donut__track" cx="50" cy="50" r="42" pathLength="100"></circle>
+                        <circle class="donut__value" cx="50" cy="50" r="42" pathLength="100" stroke-dasharray="82 18">
+                        </circle>
+                      </svg>
+                      <span class="donut__center">۸۲<small>٪</small></span>
+                    </div>
+                    <div class="mock-card-stats">
+                      <div style="font-weight: 600; color: var(--md-sys-color-on-surface); margin-bottom: 2px;">تعویض
+                        بعدی:</div>
+                      <div class="mock-stat-item">
+                        <span data-icon="calendar"></span>
+                        <span>۴۲ روز دیگر</span>
+                      </div>
+                      <div class="mock-stat-item">
+                        <span data-icon="gauge"></span>
+                        <span>۳٬۲۰۰ کیلومتر مانده</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Service 2: Due Soon -->
+                <div class="mock-service-card">
+                  <div class="mock-card-head">
+                    <div class="mock-card-title-group">
+                      <span class="mock-card-icon" data-icon="brake-pads"></span>
+                      <span class="mock-card-name">لنت ترمز جلو</span>
+                    </div>
+                    <span class="status-chip status-chip--dueSoon">
+                      <span data-icon="clock"></span>
+                      نزدیک موعد
+                    </span>
+                  </div>
+                  <div class="mock-card-body">
+                    <div class="donut donut--dueSoon" role="img" aria-label="۳۴ درصد عمر مفید">
+                      <svg viewBox="0 0 100 100" aria-hidden="true">
+                        <circle class="donut__track" cx="50" cy="50" r="42" pathLength="100"></circle>
+                        <circle class="donut__value" cx="50" cy="50" r="42" pathLength="100" stroke-dasharray="34 66">
+                        </circle>
+                      </svg>
+                      <span class="donut__center">۳۴<small>٪</small></span>
+                    </div>
+                    <div class="mock-card-stats">
+                      <div style="font-weight: 600; color: var(--md-sys-color-on-surface); margin-bottom: 2px;">تعویض
+                        بعدی:</div>
+                      <div class="mock-stat-item">
+                        <span data-icon="calendar"></span>
+                        <span>۱۸ روز دیگر</span>
+                      </div>
+                      <div class="mock-stat-item">
+                        <span data-icon="gauge"></span>
+                        <span>۱٬۱۰۰ کیلومتر مانده</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Service 3: Due -->
+                <div class="mock-service-card">
+                  <div class="mock-card-head">
+                    <div class="mock-card-title-group">
+                      <span class="mock-card-icon" data-icon="timing-belt"></span>
+                      <span class="mock-card-name">تسمه تایم</span>
+                    </div>
+                    <span class="status-chip status-chip--due">
+                      <span data-icon="triangle-alert"></span>
+                      نیازمند سرویس
+                    </span>
+                  </div>
+                  <div class="mock-card-body">
+                    <div class="donut donut--due" role="img" aria-label="۱۲ درصد عمر مفید">
+                      <svg viewBox="0 0 100 100" aria-hidden="true">
+                        <circle class="donut__track" cx="50" cy="50" r="42" pathLength="100"></circle>
+                        <circle class="donut__value" cx="50" cy="50" r="42" pathLength="100" stroke-dasharray="12 88">
+                        </circle>
+                      </svg>
+                      <span class="donut__center">۱۲<small>٪</small></span>
+                    </div>
+                    <div class="mock-card-stats">
+                      <div style="font-weight: 600; color: var(--md-sys-color-on-surface); margin-bottom: 2px;">تعویض
+                        بعدی:</div>
+                      <div class="mock-stat-item">
+                        <span data-icon="calendar"></span>
+                        <span>موعد فرا رسیده</span>
+                      </div>
+                      <div class="mock-stat-item">
+                        <span data-icon="gauge"></span>
+                        <span>۴۰۰ کیلومتر مانده</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </a>
-
-        <nav class="landing-nav" aria-label="ناوبری اصلی">
-          <a class="landing-nav__link" href="#features">امکانات</a>
-          <a class="landing-nav__link" href="/blog">وبلاگ</a>
-        </nav>
-
-        <div class="landing-header__actions">
-          <button type="button" class="icon-btn" id="theme-toggle" aria-label="تغییر تم رنگی"></button>
-          <a href="/app" class="btn btn--primary">ورود به کاربوک</a>
-          <button type="button" class="menu-toggle-btn" id="menu-toggle" aria-label="باز کردن منو" aria-expanded="false">
-            <span class="hamburger-box" aria-hidden="true">
-              <span class="hamburger-line"></span>
-              <span class="hamburger-line"></span>
-              <span class="hamburger-line"></span>
-            </span>
-          </button>
         </div>
       </div>
+    </section>
 
-      <!-- Mobile Navigation Drawer -->
-      <div class="mobile-drawer" id="mobile-drawer" aria-label="منوی موبایل">
-        <a class="mobile-drawer__link" href="#features">امکانات</a>
-        <a class="mobile-drawer__link" href="/blog">وبلاگ کاربوک</a>
-        <a class="mobile-drawer__link" href="/support">حمایت مالی</a>
-        <div style="margin-top: 12px;">
-          <a href="/app" class="btn btn--primary" style="width: 100%;">ورود به کاربوک</a>
-        </div>
-      </div>
-    </header>
-
-    <main id="main-content">
-      <!-- Hero Section -->
-      <section class="hero-section">
-        <div class="landing-container">
-          <div class="hero-badge reveal-on-scroll">
-            <span class="hero-badge__dot"></span>
-            <span>نسخه وب و PWA — دسترسی آسان روی تمام دستگاه‌ها</span>
-          </div>
-
-          <h1 class="hero-title reveal-on-scroll">
-            نگهداری خودرو، ساده و همیشه در دسترس
-          </h1>
-
-          <p class="hero-description reveal-on-scroll">
-            کاربوک ابزار ثبت منظم سرویس‌ها، رصد طول عمر قطعات مصرفی و یادآوری هوشمند نگهداری خودروی شماست. همه اطلاعات فنی خودرو در یک دفترچه دیجیتال، همیشه همراه شما.
-          </p>
-
-          <div class="hero-actions reveal-on-scroll">
-            <a href="/app" class="btn btn--primary btn--large">ورود به کاربوک</a>
-            <a href="#features" class="btn btn--secondary btn--large">آشنایی با امکانات</a>
-          </div>
-
-          <!-- Hero UI Mockup Representation -->
-          <div class="hero-mockup-wrapper reveal-on-scroll">
-            <div class="mockup-window">
-              <div class="mockup-window__bar">
-                <div class="mockup-dots">
-                  <span class="mockup-dot mockup-dot--red"></span>
-                  <span class="mockup-dot mockup-dot--yellow"></span>
-                  <span class="mockup-dot mockup-dot--green"></span>
-                </div>
-                <div class="mockup-url-bar">carbook.fardm.ir/app</div>
-                <div class="mockup-window__spacer" style="width: 48px;"></div>
-              </div>
-
-              <div class="mockup-content">
-                <!-- Selected Vehicle Mock Card -->
-                <div class="mock-vehicle-row">
-                  <div class="mock-vehicle-info">
-                    <div class="mock-vehicle-icon">
-                      <span data-icon="car-front"></span>
-                    </div>
-                    <div>
-                      <div class="mock-vehicle-name">پژو ۲۰۶ تیپ ۵</div>
-                      <div class="mock-vehicle-meta">ایران خودرو — ۱۳۹۶ — میانگین ۳۵ کیلومتر در روز</div>
-                    </div>
-                  </div>
-                  <div class="mock-vehicle-mileage">
-                    <span data-icon="gauge" style="color: var(--md-sys-color-primary);"></span>
-                    <span class="mock-mileage-val">۱۲۸٬۵۰۰ کیلومتر</span>
-                    <span class="btn btn--text" style="font-size: 0.8125rem; padding: 4px 8px;">بروزرسانی</span>
-                  </div>
-                </div>
-
-                <!-- Active Services Grid Mock -->
-                <div class="mock-services-grid">
-                  <!-- Service 1: Ok -->
-                  <div class="mock-service-card">
-                    <div class="mock-card-head">
-                      <div class="mock-card-title-group">
-                        <span class="mock-card-icon" data-icon="oil"></span>
-                        <span class="mock-card-name">روغن موتور و فیلترها</span>
-                      </div>
-                      <span class="status-chip status-chip--ok">
-                        <span data-icon="circle-check"></span>
-                        مناسب
-                      </span>
-                    </div>
-                    <div class="mock-card-body">
-                      <div class="donut donut--ok" role="img" aria-label="۸۲ درصد عمر مفید">
-                        <svg viewBox="0 0 100 100" aria-hidden="true">
-                          <circle class="donut__track" cx="50" cy="50" r="42" pathLength="100"></circle>
-                          <circle class="donut__value" cx="50" cy="50" r="42" pathLength="100" stroke-dasharray="82 18"></circle>
-                        </svg>
-                        <span class="donut__center">۸۲<small>٪</small></span>
-                      </div>
-                      <div class="mock-card-stats">
-                        <div style="font-weight: 600; color: var(--md-sys-color-on-surface); margin-bottom: 2px;">تعویض بعدی:</div>
-                        <div class="mock-stat-item">
-                          <span data-icon="calendar"></span>
-                          <span>۴۲ روز دیگر</span>
-                        </div>
-                        <div class="mock-stat-item">
-                          <span data-icon="gauge"></span>
-                          <span>۳٬۲۰۰ کیلومتر مانده</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Service 2: Due Soon -->
-                  <div class="mock-service-card">
-                    <div class="mock-card-head">
-                      <div class="mock-card-title-group">
-                        <span class="mock-card-icon" data-icon="brake-pads"></span>
-                        <span class="mock-card-name">لنت ترمز جلو</span>
-                      </div>
-                      <span class="status-chip status-chip--dueSoon">
-                        <span data-icon="clock"></span>
-                        نزدیک موعد
-                      </span>
-                    </div>
-                    <div class="mock-card-body">
-                      <div class="donut donut--dueSoon" role="img" aria-label="۳۴ درصد عمر مفید">
-                        <svg viewBox="0 0 100 100" aria-hidden="true">
-                          <circle class="donut__track" cx="50" cy="50" r="42" pathLength="100"></circle>
-                          <circle class="donut__value" cx="50" cy="50" r="42" pathLength="100" stroke-dasharray="34 66"></circle>
-                        </svg>
-                        <span class="donut__center">۳۴<small>٪</small></span>
-                      </div>
-                      <div class="mock-card-stats">
-                        <div style="font-weight: 600; color: var(--md-sys-color-on-surface); margin-bottom: 2px;">تعویض بعدی:</div>
-                        <div class="mock-stat-item">
-                          <span data-icon="calendar"></span>
-                          <span>۱۸ روز دیگر</span>
-                        </div>
-                        <div class="mock-stat-item">
-                          <span data-icon="gauge"></span>
-                          <span>۱٬۱۰۰ کیلومتر مانده</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Service 3: Due -->
-                  <div class="mock-service-card">
-                    <div class="mock-card-head">
-                      <div class="mock-card-title-group">
-                        <span class="mock-card-icon" data-icon="timing-belt"></span>
-                        <span class="mock-card-name">تسمه تایم</span>
-                      </div>
-                      <span class="status-chip status-chip--due">
-                        <span data-icon="triangle-alert"></span>
-                        نیازمند سرویس
-                      </span>
-                    </div>
-                    <div class="mock-card-body">
-                      <div class="donut donut--due" role="img" aria-label="۱۲ درصد عمر مفید">
-                        <svg viewBox="0 0 100 100" aria-hidden="true">
-                          <circle class="donut__track" cx="50" cy="50" r="42" pathLength="100"></circle>
-                          <circle class="donut__value" cx="50" cy="50" r="42" pathLength="100" stroke-dasharray="12 88"></circle>
-                        </svg>
-                        <span class="donut__center">۱۲<small>٪</small></span>
-                      </div>
-                      <div class="mock-card-stats">
-                        <div style="font-weight: 600; color: var(--md-sys-color-on-surface); margin-bottom: 2px;">تعویض بعدی:</div>
-                        <div class="mock-stat-item">
-                          <span data-icon="calendar"></span>
-                          <span>موعد فرا رسیده</span>
-                        </div>
-                        <div class="mock-stat-item">
-                          <span data-icon="gauge"></span>
-                          <span>۴۰۰ کیلومتر مانده</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Problem & Value Proposition -->
-      <section class="problem-section">
-        <div class="landing-container">
-          <div class="section-header reveal-on-scroll">
-            <span class="section-tag">چرا کاربوک؟</span>
-            <h2 class="section-title">پایانی بر سوابق پراکنده و هزینه‌های غیرمنتظره</h2>
-            <p class="section-subtitle">
-              اطلاعات نگهداری خودرو معمولاً در فاکتورهای کاغذی، یادداشت‌های پراکنده تلفن همراه یا پیام‌رسان‌ها گم می‌شوند. کاربوک همه سوابق فنی را در یک مکان امن گردآوری می‌کند.
-            </p>
-          </div>
-
-          <div class="problem-grid">
-            <div class="problem-card problem-card--bad reveal-on-scroll">
-              <div class="problem-card__head">
-                <div class="problem-card__icon">
-                  <span data-icon="circle-alert"></span>
-                </div>
-                <h3 class="problem-card__title">نگهداری سنتی و پراکنده</h3>
-              </div>
-              <ul class="problem-list">
-                <li class="problem-item">
-                  <span class="problem-item__bullet" data-icon="x" style="color: var(--md-sys-color-error);"></span>
-                  <span>فاکتورهای کاغذی مفقود، پاره یا ناخوانا پس از گذشت چند ماه</span>
-                </li>
-                <li class="problem-item">
-                  <span class="problem-item__bullet" data-icon="x" style="color: var(--md-sys-color-error);"></span>
-                  <span>فراموشی زمان دقیق آخرین تعویض روغن، شمع، تسمه یا لنت ترمز</span>
-                </li>
-                <li class="problem-item">
-                  <span class="problem-item__bullet" data-icon="x" style="color: var(--md-sys-color-error);"></span>
-                  <span>تعمیرات سنگین و ناگهانی به دلیل غفلت از پایان عمر مفید قطعات</span>
-                </li>
-                <li class="problem-item">
-                  <span class="problem-item__bullet" data-icon="x" style="color: var(--md-sys-color-error);"></span>
-                  <span>نبود سابقه مستند و قابل اعتماد هنگام خرید و فروش خودرو</span>
-                </li>
-              </ul>
-            </div>
-
-            <div class="problem-card problem-card--good reveal-on-scroll">
-              <div class="problem-card__head">
-                <div class="problem-card__icon">
-                  <span data-icon="circle-check"></span>
-                </div>
-                <h3 class="problem-card__title">با دفترچه دیجیتال کاربوک</h3>
-              </div>
-              <ul class="problem-list">
-                <li class="problem-item">
-                  <span class="problem-item__bullet" data-icon="circle-check" style="color: var(--md-sys-color-primary);"></span>
-                  <span>ثبت سریع و مادام‌العمر تاریخ، کیلومتر، هزینه و شرح قطعات تعویضی</span>
-                </li>
-                <li class="problem-item">
-                  <span class="problem-item__bullet" data-icon="circle-check" style="color: var(--md-sys-color-primary);"></span>
-                  <span>تخمین هوشمند درصد سلامت قطعات مصرفی بر اساس کارکرد و زمان</span>
-                </li>
-                <li class="problem-item">
-                  <span class="problem-item__bullet" data-icon="circle-check" style="color: var(--md-sys-color-primary);"></span>
-                  <span>یادآوری‌های پیش‌از‌موعد برای جلوگیری از استهلاک قطعات کلیدی موتور</span>
-                </li>
-                <li class="problem-item">
-                  <span class="problem-item__bullet" data-icon="circle-check" style="color: var(--md-sys-color-primary);"></span>
-                  <span>دسترسی به شناسنامه کامل و تفکیک‌شده سوابق خودرو در هر لحظه</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Core Features Section -->
-      <section class="features-section" id="features">
-        <div class="landing-container">
-          <div class="section-header reveal-on-scroll">
-            <span class="section-tag">امکانات اصلی</span>
-            <h2 class="section-title">طراحی‌شده برای مدیریت اصولی خودرو</h2>
-            <p class="section-subtitle">
-              هر آنچه برای مدیریت منظم، نگهداری پیشگیرانه و پایش فنی خودرو نیاز دارید.
-            </p>
-          </div>
-
-          <div class="features-grid">
-            <!-- Feature 1: Vehicles -->
-            <div class="feature-card reveal-on-scroll">
-              <div class="feature-card__header">
-                <div class="feature-card__icon">
-                  <span data-icon="car-front"></span>
-                </div>
-                <h3 class="feature-card__title">مدیریت چند خودرو</h3>
-              </div>
-              <p class="feature-card__desc">
-                خودروهای شخصی، خانوادگی یا کاری خود را ثبت کنید. برای هر خودرو مدل، سال ساخت، کیلومتر کارکرد فعلی و میانگین رانندگی روزانه را مشخص کنید.
-              </p>
-              <div class="feature-card__preview">
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <span style="font-weight: 600;">تویوتا کرولا — ۱۳۹۸</span>
-                  <span class="status-chip status-chip--ok">پیش‌فرض</span>
-                </div>
-                <div style="font-size: 0.8125rem; color: var(--md-sys-color-on-surface-variant); margin-top: 6px;">
-                  کارکرد: ۸۴٬۰۰۰ کیلومتر • آخرین بروزرسانی: ۲ روز پیش
-                </div>
-              </div>
-            </div>
-
-            <!-- Feature 2: Service History -->
-            <div class="feature-card reveal-on-scroll">
-              <div class="feature-card__header">
-                <div class="feature-card__icon">
-                  <span data-icon="wrench"></span>
-                </div>
-                <h3 class="feature-card__title">ثبت دقیق سوابق سرویس</h3>
-              </div>
-              <p class="feature-card__desc">
-                هزینه قطعات، اجرت تعمیرگاه، تاریخ و کیلومتر هر بار سرویس را ذخیره کنید. یادداشت‌های مکانیک و جزئیات فاکتور در دسترس شما می‌مانند.
-              </p>
-              <div class="feature-card__preview">
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <span style="font-weight: 600;">تعویض روغن گیربکس و فیلتر</span>
-                  <span style="font-weight: 700; color: var(--md-sys-color-primary);">۳٬۴۰۰٬۰۰۰ تومان</span>
-                </div>
-                <div style="font-size: 0.8125rem; color: var(--md-sys-color-on-surface-variant); margin-top: 6px;">
-                  کیلومتر ۱۲۰٬۰۰۰ • تعمیرگاه تخصصی پایتخت
-                </div>
-              </div>
-            </div>
-
-            <!-- Feature 3: Part Health -->
-            <div class="feature-card reveal-on-scroll">
-              <div class="feature-card__header">
-                <div class="feature-card__icon">
-                  <span data-icon="heart"></span>
-                </div>
-                <h3 class="feature-card__title">پایش استهلاک و سلامت قطعات</h3>
-              </div>
-              <p class="feature-card__desc">
-                نمودارهای گرافیکی دوناتی وضعیت باقی‌مانده طول عمر هر قطعه مصرفی را بر اساس کیلومتر و زمان محاسبه‌شده نشان می‌دهند.
-              </p>
-              <div class="feature-card__preview" style="display: flex; align-items: center; gap: 14px;">
-                <div class="donut donut--dueSoon" style="width: 48px; height: 48px;">
-                  <svg viewBox="0 0 100 100" aria-hidden="true">
-                    <circle class="donut__track" cx="50" cy="50" r="42" pathLength="100"></circle>
-                    <circle class="donut__value" cx="50" cy="50" r="42" pathLength="100" stroke-dasharray="28 72"></circle>
-                  </svg>
-                  <span class="donut__center" style="font-size: 0.75rem;">۲۸٪</span>
-                </div>
-                <div>
-                  <div style="font-weight: 600;">شمع و وایر</div>
-                  <div style="font-size: 0.8125rem; color: var(--md-sys-color-on-surface-variant);">۲٬۲۰۰ کیلومتر تا موعد پیشنهادی تعویض</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Feature 4: Smart Reminders -->
-            <div class="feature-card reveal-on-scroll">
-              <div class="feature-card__header">
-                <div class="feature-card__icon">
-                  <span data-icon="bell"></span>
-                </div>
-                <h3 class="feature-card__title">یادآوری‌های هوشمند زمان و کارکرد</h3>
-              </div>
-              <p class="feature-card__desc">
-                اعلان‌های موعد را بر اساس کیلومتر، تاریخ تقویمی یا دوره‌های تکرارشونده هفتگی، ماهانه و سالانه تنظیم کنید و چند روز زودتر مطلع شوید.
-              </p>
-              <div class="feature-card__preview">
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <span style="font-weight: 600;">تمدید بیمه شخص ثالث</span>
-                  <span class="status-chip status-chip--dueSoon">اعلان فعال</span>
-                </div>
-                <div style="font-size: 0.8125rem; color: var(--md-sys-color-on-surface-variant); margin-top: 6px;">
-                  موعد: ۲۵ فروردین ۱۴۰۵ (۱۵ روز پیش از موعد اعلام شود)
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- History & Timeline Section -->
-      <section class="history-section" id="history">
-        <div class="landing-container">
-          <div class="history-layout">
-            <div class="history-text reveal-on-scroll">
-              <span class="section-tag">سوابق شفاف</span>
-              <h2 class="section-title">همه سوابق خودرو، یکجا و با جزئیات کامل</h2>
-              <p class="section-subtitle">
-                تاریخ تعویض، کیلومترشمار در لحظه سرویس، هزینه پرداختی قطعات و اجرت، و نکات ثبت‌شده توسط مکانیک را در یک خط زمانی مرتب مشاهده کنید.
-              </p>
-              <p class="section-subtitle">
-                هنگام تصمیم‌گیری برای سرویس‌های دوره‌ای یا هنگام فروش خودرو، یک کارنامه معتبر و منسجم از نگهداری فنی در دست دارید.
-              </p>
-            </div>
-
-            <div class="history-timeline reveal-on-scroll">
-              <div class="timeline-item">
-                <div class="timeline-dot"></div>
-                <div class="timeline-content">
-                  <div class="timeline-date-mileage">
-                    <span>۱۲ اسفند ۱۴۰۴</span>
-                    <span>•</span>
-                    <span>کیلومتر ۱۲۵٬۰۰۰</span>
-                  </div>
-                  <h4 class="timeline-title">تعویض روغن موتور، فیلتر روغن و فیلتر هوا</h4>
-                  <div class="timeline-cost-garage">
-                    <span class="timeline-cost">۱٬۸۵۰٬۰۰۰ تومان</span>
-                    <span>تعویض‌روغنی بهار</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="timeline-item">
-                <div class="timeline-dot"></div>
-                <div class="timeline-content">
-                  <div class="timeline-date-mileage">
-                    <span>۲۰ آذر ۱۴۰۴</span>
-                    <span>•</span>
-                    <span>کیلومتر ۱۱۸٬۰۰۰</span>
-                  </div>
-                  <h4 class="timeline-title">تعویض لنت ترمز جلو و تراش دیسک</h4>
-                  <div class="timeline-cost-garage">
-                    <span class="timeline-cost">۲٬۲۰۰٬۰۰۰ تومان</span>
-                    <span>تعمیرگاه تخصصی ترمز</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="timeline-item">
-                <div class="timeline-dot"></div>
-                <div class="timeline-content">
-                  <div class="timeline-date-mileage">
-                    <span>۱۵ مرداد ۱۴۰۴</span>
-                    <span>•</span>
-                    <span>کیلومتر ۱۱۰٬۰۰۰</span>
-                  </div>
-                  <h4 class="timeline-title">سرویس دوره‌ای شمع و وایر و فیلتر بنزین</h4>
-                  <div class="timeline-cost-garage">
-                    <span class="timeline-cost">۱٬۴۰۰٬۰۰۰ تومان</span>
-                    <span>اتوسرویس البرز</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Part Health Section -->
-      <section class="health-section" id="health">
-        <div class="landing-container">
-          <div class="section-header reveal-on-scroll">
-            <span class="section-tag">سلامت قطعات</span>
-            <h2 class="section-title">تخمین هوشمند طول عمر قطعات مصرفی</h2>
-            <p class="section-subtitle">
-              کاربوک بر اساس کارکرد کیلومتری ثبت‌شده و میانگین رانندگی، وضعیت استهلاک قطعات را تخمین می‌زند تا بتوانید پیش از وقوع نقص فنی، برای تعویض برنامه‌ریزی کنید.
-            </p>
-          </div>
-
-          <div class="health-grid reveal-on-scroll">
-            <!-- Card 1 -->
-            <div class="health-card">
-              <div class="donut donut--ok">
-                <svg viewBox="0 0 100 100" aria-hidden="true">
-                  <circle class="donut__track" cx="50" cy="50" r="42" pathLength="100"></circle>
-                  <circle class="donut__value" cx="50" cy="50" r="42" pathLength="100" stroke-dasharray="88 12"></circle>
-                </svg>
-                <span class="donut__center">۸۸<small>٪</small></span>
-              </div>
-              <h4 class="health-card__title">فیلتر هوای موتور</h4>
-              <p class="health-card__desc">وضعیت: مناسب • ۴٬۵۰۰ کیلومتر مانده</p>
-            </div>
-
-            <!-- Card 2 -->
-            <div class="health-card">
-              <div class="donut donut--ok">
-                <svg viewBox="0 0 100 100" aria-hidden="true">
-                  <circle class="donut__track" cx="50" cy="50" r="42" pathLength="100"></circle>
-                  <circle class="donut__value" cx="50" cy="50" r="42" pathLength="100" stroke-dasharray="65 35"></circle>
-                </svg>
-                <span class="donut__center">۶۵<small>٪</small></span>
-              </div>
-              <h4 class="health-card__title">روغن ترمز</h4>
-              <p class="health-card__desc">وضعیت: مناسب • ۱۶۰ روز تا موعد</p>
-            </div>
-
-            <!-- Card 3 -->
-            <div class="health-card">
-              <div class="donut donut--dueSoon">
-                <svg viewBox="0 0 100 100" aria-hidden="true">
-                  <circle class="donut__track" cx="50" cy="50" r="42" pathLength="100"></circle>
-                  <circle class="donut__value" cx="50" cy="50" r="42" pathLength="100" stroke-dasharray="32 68"></circle>
-                </svg>
-                <span class="donut__center">۳۲<small>٪</small></span>
-              </div>
-              <h4 class="health-card__title">لنت ترمز عقب</h4>
-              <p class="health-card__desc">نزدیک به موعد • ۱٬۲۰۰ کیلومتر مانده</p>
-            </div>
-
-            <!-- Card 4 -->
-            <div class="health-card">
-              <div class="donut donut--due">
-                <svg viewBox="0 0 100 100" aria-hidden="true">
-                  <circle class="donut__track" cx="50" cy="50" r="42" pathLength="100"></circle>
-                  <circle class="donut__value" cx="50" cy="50" r="42" pathLength="100" stroke-dasharray="10 90"></circle>
-                </svg>
-                <span class="donut__center">۱۰<small>٪</small></span>
-              </div>
-              <h4 class="health-card__title">تسمه دینام</h4>
-              <p class="health-card__desc">نیازمند سرویس • ۳۰۰ کیلومتر مانده</p>
-            </div>
-          </div>
-
-          <p class="health-disclaimer reveal-on-scroll">
-            * توجه: درصدهای نمایش‌داده‌شده بر پایه کارکرد اعلام‌شده توسط کاربر، زمان ثبت‌شده و بازه‌های استاندارد تعریف‌شده برای هر سرویس محاسبه می‌شوند و به عنوان راهنمای برنامه‌ریزی کاربرد دارند.
+    <!-- Problem & Value Proposition -->
+    <section class="problem-section">
+      <div class="landing-container">
+        <div class="section-header reveal-on-scroll">
+          <span class="section-tag">چرا کاربوک؟</span>
+          <h2 class="section-title">پایانی بر سوابق پراکنده و هزینه‌های غیرمنتظره</h2>
+          <p class="section-subtitle">
+            اطلاعات نگهداری خودرو معمولاً در فاکتورهای کاغذی، یادداشت‌های پراکنده تلفن همراه یا پیام‌رسان‌ها گم می‌شوند.
+            کاربوک همه سوابق فنی را در یک مکان امن گردآوری می‌کند.
           </p>
         </div>
-      </section>
 
-      <!-- Reminders Section -->
-      <section class="reminders-section" id="reminders">
-        <div class="landing-container">
-          <div class="section-header reveal-on-scroll">
-            <span class="section-tag">یادآوری‌های به‌موقع</span>
-            <h2 class="section-title">یادآوری سرویس، بدون نیاز به حفظ کردن</h2>
-            <p class="section-subtitle">
-              یادآوری‌های اختصاصی بر اساس تاریخ تقویمی، کیلومتر کارکرد، یا دوره‌های منظم تکرارشونده ثبت کنید تا سرویس‌های مهم را از دست ندهید.
-            </p>
+        <div class="problem-grid">
+          <div class="problem-card problem-card--bad reveal-on-scroll">
+            <div class="problem-card__head">
+              <div class="problem-card__icon">
+                <span data-icon="circle-alert"></span>
+              </div>
+              <h3 class="problem-card__title">نگهداری سنتی و پراکنده</h3>
+            </div>
+            <ul class="problem-list">
+              <li class="problem-item">
+                <span class="problem-item__bullet" data-icon="x" style="color: var(--md-sys-color-error);"></span>
+                <span>فاکتورهای کاغذی مفقود، پاره یا ناخوانا پس از گذشت چند ماه</span>
+              </li>
+              <li class="problem-item">
+                <span class="problem-item__bullet" data-icon="x" style="color: var(--md-sys-color-error);"></span>
+                <span>فراموشی زمان دقیق آخرین تعویض روغن، شمع، تسمه یا لنت ترمز</span>
+              </li>
+              <li class="problem-item">
+                <span class="problem-item__bullet" data-icon="x" style="color: var(--md-sys-color-error);"></span>
+                <span>تعمیرات سنگین و ناگهانی به دلیل غفلت از پایان عمر مفید قطعات</span>
+              </li>
+              <li class="problem-item">
+                <span class="problem-item__bullet" data-icon="x" style="color: var(--md-sys-color-error);"></span>
+                <span>نبود سابقه مستند و قابل اعتماد هنگام خرید و فروش خودرو</span>
+              </li>
+            </ul>
           </div>
 
-          <div class="reminders-grid reveal-on-scroll">
-            <div class="reminder-mock-card">
-              <div class="reminder-card-top">
-                <h4 class="reminder-title">تمدید بیمه شخص ثالث</h4>
-                <div class="mock-toggle" aria-hidden="true"><span class="mock-toggle__thumb"></span></div>
-              </div>
-              <div class="reminder-meta-list">
-                <div class="reminder-meta-item">
-                  <span data-icon="calendar"></span>
-                  <span>۲۵ فروردین ۱۴۰۵ (۲۰ روز مانده)</span>
-                </div>
-                <div class="reminder-repeat-badge">
-                  <span data-icon="repeat"></span>
-                  <span>تکرار: سالانه</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="reminder-mock-card">
-              <div class="reminder-card-top">
-                <h4 class="reminder-title">تعویض روغن گیربکس</h4>
-                <div class="mock-toggle" aria-hidden="true"><span class="mock-toggle__thumb"></span></div>
-              </div>
-              <div class="reminder-meta-list">
-                <div class="reminder-meta-item">
-                  <span data-icon="gauge"></span>
-                  <span>۱۴۰٬۰۰۰ کیلومتر (۱۱٬۵۰۰ کیلومتر مانده)</span>
-                </div>
-                <div class="reminder-repeat-badge">
-                  <span data-icon="repeat"></span>
-                  <span>همگام با سرویس دوره ای</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="reminder-mock-card">
-              <div class="reminder-card-top">
-                <h4 class="reminder-title">تنظیم باد و بازرسی چرخ‌ها</h4>
-                <div class="mock-toggle" aria-hidden="true"><span class="mock-toggle__thumb"></span></div>
-              </div>
-              <div class="reminder-meta-list">
-                <div class="reminder-meta-item">
-                  <span data-icon="calendar"></span>
-                  <span>اول هر ماه شمسی</span>
-                </div>
-                <div class="reminder-repeat-badge">
-                  <span data-icon="repeat"></span>
-                  <span>تکرار: ماهانه</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Works Across Devices & PWA Section -->
-      <section class="pwa-section">
-        <div class="landing-container">
-          <div class="section-header reveal-on-scroll">
-            <span class="section-tag">دسترسی همه‌جانبه</span>
-            <h2 class="section-title">روی همه دستگاه‌ها، بدون نیاز به نصب اجباری</h2>
-            <p class="section-subtitle">
-              کاربوک به عنوان یک وب‌اپلیکیشن پیشرو (PWA) توسعه یافته تا بدون دغدغه دانلود فایل‌های حجیم از مارکت‌ها، همیشه در دسترستان باشد.
-            </p>
-          </div>
-
-          <div class="pwa-grid reveal-on-scroll">
-            <div class="pwa-card">
-              <div class="pwa-card__icon">
-                <span data-icon="gauge"></span>
-              </div>
-              <h4 class="pwa-card__title">دسترسی آنی با مرورگر وب</h4>
-              <p class="pwa-card__desc">
-                بدون نیاز به ثبت‌نام اجباری یا نصب اپلیکیشن، بلافاصله در مرورگر گوشی یا رایانه باز می‌شود.
-              </p>
-            </div>
-
-            <div class="pwa-card">
-              <div class="pwa-card__icon">
-                <span data-icon="download"></span>
-              </div>
-              <h4 class="pwa-card__title">نصب روی صفحه اصلی (PWA)</h4>
-              <p class="pwa-card__desc">
-                با یک لمس در مرورگر، آیکون کاربوک را به صفحه اصلی گوشی بیفزایید تا مانند برنامه بومی اجرا شود.
-              </p>
-            </div>
-
-            <div class="pwa-card">
-              <div class="pwa-card__icon">
-                <span data-icon="refresh-cw"></span>
-              </div>
-              <h4 class="pwa-card__title">سبک، پرسرعت و پایدار</h4>
-              <p class="pwa-card__desc">
-                طراحی بهینه‌شده با فونت‌های استاندارد فارسی، حداقل حجم بارگذاری و بالاترین سرعت پاسخگویی.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Trust & Data Section -->
-      <section class="trust-section">
-        <div class="landing-container">
-          <div class="section-header reveal-on-scroll">
-            <span class="section-tag">حریم خصوصی و داده‌ها</span>
-            <h2 class="section-title">مالکیت کامل اطلاعات، شفاف و بی‌واسطه</h2>
-            <p class="section-subtitle">
-              اطلاعات فنی و مالی خودروی شما اهمیت دارد؛ کاربوک با معماری تقدم حافظه محلی، اطلاعات را تحت کنترل خودتان نگه می‌دارد.
-            </p>
-          </div>
-
-          <div class="trust-grid reveal-on-scroll">
-            <div class="trust-card">
-              <div class="trust-card__icon">
+          <div class="problem-card problem-card--good reveal-on-scroll">
+            <div class="problem-card__head">
+              <div class="problem-card__icon">
                 <span data-icon="circle-check"></span>
               </div>
-              <div class="trust-card__content">
-                <h4 class="trust-card__title">استفاده مستقل بدون حساب</h4>
-                <p class="trust-card__desc">
-                  می‌توانید بدون وارد کردن اطلاعات هویتی یا ایمیل، داده‌ها را مستقیماً در مرورگر دستگاه خود ذخیره کنید.
-                </p>
-              </div>
+              <h3 class="problem-card__title">با دفترچه دیجیتال کاربوک</h3>
             </div>
-
-            <div class="trust-card">
-              <div class="trust-card__icon">
-                <span data-icon="file-input"></span>
-              </div>
-              <div class="trust-card__content">
-                <h4 class="trust-card__title">پشتیبان‌گیری و خروجی کامل</h4>
-                <p class="trust-card__desc">
-                  در هر زمان امکان دریافت خروجی استاندارد JSON از کلیه سوابق و بازیابی آن روی دستگاه‌های دیگر فراهم است.
-                </p>
-              </div>
-            </div>
-
-            <div class="trust-card">
-              <div class="trust-card__icon">
-                <span data-icon="circle-user-round"></span>
-              </div>
-              <div class="trust-card__content">
-                <h4 class="trust-card__title">همگام‌سازی ابری اختیاری</h4>
-                <p class="trust-card__desc">
-                  در صورت تمایل می‌توانید با ورود امن گوگل یا ثبت ایمیل، سوابق خود را میان دستگاه‌های مختلف همگام نگه دارید.
-                </p>
-              </div>
-            </div>
+            <ul class="problem-list">
+              <li class="problem-item">
+                <span class="problem-item__bullet" data-icon="circle-check"
+                  style="color: var(--md-sys-color-primary);"></span>
+                <span>ثبت سریع و مادام‌العمر تاریخ، کیلومتر، هزینه و شرح قطعات تعویضی</span>
+              </li>
+              <li class="problem-item">
+                <span class="problem-item__bullet" data-icon="circle-check"
+                  style="color: var(--md-sys-color-primary);"></span>
+                <span>تخمین هوشمند درصد سلامت قطعات مصرفی بر اساس کارکرد و زمان</span>
+              </li>
+              <li class="problem-item">
+                <span class="problem-item__bullet" data-icon="circle-check"
+                  style="color: var(--md-sys-color-primary);"></span>
+                <span>یادآوری‌های پیش‌از‌موعد برای جلوگیری از استهلاک قطعات کلیدی موتور</span>
+              </li>
+              <li class="problem-item">
+                <span class="problem-item__bullet" data-icon="circle-check"
+                  style="color: var(--md-sys-color-primary);"></span>
+                <span>دسترسی به شناسنامه کامل و تفکیک‌شده سوابق خودرو در هر لحظه</span>
+              </li>
+            </ul>
           </div>
-        </div>
-      </section>
-
-      <!-- Final CTA Section -->
-      <section class="cta-section">
-        <div class="landing-container">
-          <div class="cta-box reveal-on-scroll">
-            <h2 class="cta-box__title">از امروز، سابقه نگهداری خودروی خودت را مرتب نگه دار</h2>
-            <p class="cta-box__desc">
-              ثبت اولین خودرو و اولین سرویس کمتر از یک دقیقه زمان می‌برد. بدون نیاز به نصب پیچیده یا ورود طولانی.
-            </p>
-            <a href="/app" class="btn btn--primary btn--large">شروع استفاده از کاربوک</a>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <!-- Footer -->
-    <footer class="landing-footer">
-      <div class="landing-container">
-        <div class="footer-top">
-          <div class="footer-brand">
-            <a href="/" class="landing-brand">
-              <img class="landing-brand__icon" src="/favicon.svg" alt="" width="28" height="28" />
-              <div class="landing-brand__titles">
-                <span class="landing-brand__title">کاربوک</span>
-                <span class="landing-brand__subtitle">دفترچه نگهداری خودرو</span>
-              </div>
-            </a>
-            <p class="footer-desc">
-              سامانه دیجیتال ثبت، مدیریت و پیگیری سرویس‌ها و استهلاک قطعات مصرفی خودرو.
-            </p>
-          </div>
-
-          <div class="footer-col">
-            <h5 class="footer-col__title">دسترسی سریع</h5>
-            <a class="footer-col__link" href="/app">ورود به برنامه</a>
-            <a class="footer-col__link" href="/app/#/vehicle">خودروها</a>
-            <a class="footer-col__link" href="/app/#/reminders">بخش یادآوری‌ها</a>
-            <a class="footer-col__link" href="/blog">وبلاگ کاربوک</a>
-          </div>
-
-          <div class="footer-col">
-            <h5 class="footer-col__title">اطلاعات و قوانین</h5>
-            <a class="footer-col__link" href="/privacy">حریم خصوصی</a>
-            <a class="footer-col__link" href="/terms">شرایط استفاده</a>
-          </div>
-
-          <div class="footer-col">
-            <h5 class="footer-col__title">لینک ها</h5>
-            <a class="footer-col__link footer-support-link" href="/support">
-              <span data-icon="heart" aria-hidden="true"></span>
-              <span>حمایت مالی</span>
-            </a>
-            <a class="footer-col__link footer-social-link" href="https://github.com/fardm/tamrinsaz-next" target="_blank" rel="noopener noreferrer">
-              <span data-icon="github" aria-hidden="true"></span>
-              <span>گیت هاب</span>
-            </a>
-            <a class="footer-col__link footer-social-link" href="https://t.me/ifard_ir/" target="_blank" rel="noopener noreferrer">
-              <span data-icon="telegram" aria-hidden="true"></span>
-              <span>تلگرام</span>
-            </a>
-          </div>
-        </div>
-
-        <div class="footer-bottom">
-          <span>© ۲۰۲۶ کاربوک (CarBook). تمامی حقوق محفوظ است.</span>
-          <span>ساخته‌شده با تمرکز بر سادگی، سرعت و احترام به حریم خصوصی.</span>
         </div>
       </div>
-    </footer>
+    </section>
 
-    <!-- Interactive Logic -->
-    <script type="module" src="/src/landing.ts"></script>
-  </body>
+    <!-- Core Features Section -->
+    <section class="features-section" id="features">
+      <div class="landing-container">
+        <div class="section-header reveal-on-scroll">
+          <span class="section-tag">امکانات اصلی</span>
+          <h2 class="section-title">طراحی‌شده برای مدیریت اصولی خودرو</h2>
+          <p class="section-subtitle">
+            هر آنچه برای مدیریت منظم، نگهداری پیشگیرانه و پایش فنی خودرو نیاز دارید.
+          </p>
+        </div>
+
+        <div class="features-grid">
+          <!-- Feature 1: Vehicles -->
+          <div class="feature-card reveal-on-scroll">
+            <div class="feature-card__header">
+              <div class="feature-card__icon">
+                <span data-icon="car-front"></span>
+              </div>
+              <h3 class="feature-card__title">مدیریت چند خودرو</h3>
+            </div>
+            <p class="feature-card__desc">
+              خودروهای شخصی، خانوادگی یا کاری خود را ثبت کنید. برای هر خودرو مدل، سال ساخت، کیلومتر کارکرد فعلی و
+              میانگین رانندگی روزانه را مشخص کنید.
+            </p>
+            <div class="feature-card__preview">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-weight: 600;">تویوتا کرولا — ۱۳۹۸</span>
+                <span class="status-chip status-chip--ok">پیش‌فرض</span>
+              </div>
+              <div style="font-size: 0.8125rem; color: var(--md-sys-color-on-surface-variant); margin-top: 6px;">
+                کارکرد: ۸۴٬۰۰۰ کیلومتر • آخرین بروزرسانی: ۲ روز پیش
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 2: Service History -->
+          <div class="feature-card reveal-on-scroll">
+            <div class="feature-card__header">
+              <div class="feature-card__icon">
+                <span data-icon="wrench"></span>
+              </div>
+              <h3 class="feature-card__title">ثبت دقیق سوابق سرویس</h3>
+            </div>
+            <p class="feature-card__desc">
+              هزینه قطعات، اجرت تعمیرگاه، تاریخ و کیلومتر هر بار سرویس را ذخیره کنید. یادداشت‌های مکانیک و جزئیات فاکتور
+              در دسترس شما می‌مانند.
+            </p>
+            <div class="feature-card__preview">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-weight: 600;">تعویض روغن گیربکس و فیلتر</span>
+                <span style="font-weight: 700; color: var(--md-sys-color-primary);">۳٬۴۰۰٬۰۰۰ تومان</span>
+              </div>
+              <div style="font-size: 0.8125rem; color: var(--md-sys-color-on-surface-variant); margin-top: 6px;">
+                کیلومتر ۱۲۰٬۰۰۰ • تعمیرگاه تخصصی پایتخت
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 3: Part Health -->
+          <div class="feature-card reveal-on-scroll">
+            <div class="feature-card__header">
+              <div class="feature-card__icon">
+                <span data-icon="heart"></span>
+              </div>
+              <h3 class="feature-card__title">پایش استهلاک و سلامت قطعات</h3>
+            </div>
+            <p class="feature-card__desc">
+              نمودارهای گرافیکی دوناتی وضعیت باقی‌مانده طول عمر هر قطعه مصرفی را بر اساس کیلومتر و زمان محاسبه‌شده نشان
+              می‌دهند.
+            </p>
+            <div class="feature-card__preview" style="display: flex; align-items: center; gap: 14px;">
+              <div class="donut donut--dueSoon" style="width: 48px; height: 48px;">
+                <svg viewBox="0 0 100 100" aria-hidden="true">
+                  <circle class="donut__track" cx="50" cy="50" r="42" pathLength="100"></circle>
+                  <circle class="donut__value" cx="50" cy="50" r="42" pathLength="100" stroke-dasharray="28 72">
+                  </circle>
+                </svg>
+                <span class="donut__center" style="font-size: 0.75rem;">۲۸٪</span>
+              </div>
+              <div>
+                <div style="font-weight: 600;">شمع و وایر</div>
+                <div style="font-size: 0.8125rem; color: var(--md-sys-color-on-surface-variant);">۲٬۲۰۰ کیلومتر تا موعد
+                  پیشنهادی تعویض</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 4: Smart Reminders -->
+          <div class="feature-card reveal-on-scroll">
+            <div class="feature-card__header">
+              <div class="feature-card__icon">
+                <span data-icon="bell"></span>
+              </div>
+              <h3 class="feature-card__title">یادآوری‌های هوشمند زمان و کارکرد</h3>
+            </div>
+            <p class="feature-card__desc">
+              اعلان‌های موعد را بر اساس کیلومتر، تاریخ تقویمی یا دوره‌های تکرارشونده هفتگی، ماهانه و سالانه تنظیم کنید و
+              چند روز زودتر مطلع شوید.
+            </p>
+            <div class="feature-card__preview">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-weight: 600;">تمدید بیمه شخص ثالث</span>
+                <span class="status-chip status-chip--dueSoon">اعلان فعال</span>
+              </div>
+              <div style="font-size: 0.8125rem; color: var(--md-sys-color-on-surface-variant); margin-top: 6px;">
+                موعد: ۲۵ فروردین ۱۴۰۵ (۱۵ روز پیش از موعد اعلام شود)
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- History & Timeline Section -->
+    <section class="history-section" id="history">
+      <div class="landing-container">
+        <div class="history-layout">
+          <div class="history-text reveal-on-scroll">
+            <span class="section-tag">سوابق شفاف</span>
+            <h2 class="section-title">همه سوابق خودرو، یکجا و با جزئیات کامل</h2>
+            <p class="section-subtitle">
+              تاریخ تعویض، کیلومترشمار در لحظه سرویس، هزینه پرداختی قطعات و اجرت، و نکات ثبت‌شده توسط مکانیک را در یک خط
+              زمانی مرتب مشاهده کنید.
+            </p>
+            <p class="section-subtitle">
+              هنگام تصمیم‌گیری برای سرویس‌های دوره‌ای یا هنگام فروش خودرو، یک کارنامه معتبر و منسجم از نگهداری فنی در
+              دست دارید.
+            </p>
+          </div>
+
+          <div class="history-timeline reveal-on-scroll">
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <div class="timeline-date-mileage">
+                  <span>۱۲ اسفند ۱۴۰۴</span>
+                  <span>•</span>
+                  <span>کیلومتر ۱۲۵٬۰۰۰</span>
+                </div>
+                <h4 class="timeline-title">تعویض روغن موتور، فیلتر روغن و فیلتر هوا</h4>
+                <div class="timeline-cost-garage">
+                  <span class="timeline-cost">۱٬۸۵۰٬۰۰۰ تومان</span>
+                  <span>تعویض‌روغنی بهار</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <div class="timeline-date-mileage">
+                  <span>۲۰ آذر ۱۴۰۴</span>
+                  <span>•</span>
+                  <span>کیلومتر ۱۱۸٬۰۰۰</span>
+                </div>
+                <h4 class="timeline-title">تعویض لنت ترمز جلو و تراش دیسک</h4>
+                <div class="timeline-cost-garage">
+                  <span class="timeline-cost">۲٬۲۰۰٬۰۰۰ تومان</span>
+                  <span>تعمیرگاه تخصصی ترمز</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <div class="timeline-date-mileage">
+                  <span>۱۵ مرداد ۱۴۰۴</span>
+                  <span>•</span>
+                  <span>کیلومتر ۱۱۰٬۰۰۰</span>
+                </div>
+                <h4 class="timeline-title">سرویس دوره‌ای شمع و وایر و فیلتر بنزین</h4>
+                <div class="timeline-cost-garage">
+                  <span class="timeline-cost">۱٬۴۰۰٬۰۰۰ تومان</span>
+                  <span>اتوسرویس البرز</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Part Health Section -->
+    <section class="health-section" id="health">
+      <div class="landing-container">
+        <div class="section-header reveal-on-scroll">
+          <span class="section-tag">سلامت قطعات</span>
+          <h2 class="section-title">تخمین هوشمند طول عمر قطعات مصرفی</h2>
+          <p class="section-subtitle">
+            کاربوک بر اساس کارکرد کیلومتری ثبت‌شده و میانگین رانندگی، وضعیت استهلاک قطعات را تخمین می‌زند تا بتوانید پیش
+            از وقوع نقص فنی، برای تعویض برنامه‌ریزی کنید.
+          </p>
+        </div>
+
+        <div class="health-grid reveal-on-scroll">
+          <!-- Card 1 -->
+          <div class="health-card">
+            <div class="donut donut--ok">
+              <svg viewBox="0 0 100 100" aria-hidden="true">
+                <circle class="donut__track" cx="50" cy="50" r="42" pathLength="100"></circle>
+                <circle class="donut__value" cx="50" cy="50" r="42" pathLength="100" stroke-dasharray="88 12"></circle>
+              </svg>
+              <span class="donut__center">۸۸<small>٪</small></span>
+            </div>
+            <h4 class="health-card__title">فیلتر هوای موتور</h4>
+            <p class="health-card__desc">وضعیت: مناسب • ۴٬۵۰۰ کیلومتر مانده</p>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="health-card">
+            <div class="donut donut--ok">
+              <svg viewBox="0 0 100 100" aria-hidden="true">
+                <circle class="donut__track" cx="50" cy="50" r="42" pathLength="100"></circle>
+                <circle class="donut__value" cx="50" cy="50" r="42" pathLength="100" stroke-dasharray="65 35"></circle>
+              </svg>
+              <span class="donut__center">۶۵<small>٪</small></span>
+            </div>
+            <h4 class="health-card__title">روغن ترمز</h4>
+            <p class="health-card__desc">وضعیت: مناسب • ۱۶۰ روز تا موعد</p>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="health-card">
+            <div class="donut donut--dueSoon">
+              <svg viewBox="0 0 100 100" aria-hidden="true">
+                <circle class="donut__track" cx="50" cy="50" r="42" pathLength="100"></circle>
+                <circle class="donut__value" cx="50" cy="50" r="42" pathLength="100" stroke-dasharray="32 68"></circle>
+              </svg>
+              <span class="donut__center">۳۲<small>٪</small></span>
+            </div>
+            <h4 class="health-card__title">لنت ترمز عقب</h4>
+            <p class="health-card__desc">نزدیک به موعد • ۱٬۲۰۰ کیلومتر مانده</p>
+          </div>
+
+          <!-- Card 4 -->
+          <div class="health-card">
+            <div class="donut donut--due">
+              <svg viewBox="0 0 100 100" aria-hidden="true">
+                <circle class="donut__track" cx="50" cy="50" r="42" pathLength="100"></circle>
+                <circle class="donut__value" cx="50" cy="50" r="42" pathLength="100" stroke-dasharray="10 90"></circle>
+              </svg>
+              <span class="donut__center">۱۰<small>٪</small></span>
+            </div>
+            <h4 class="health-card__title">تسمه دینام</h4>
+            <p class="health-card__desc">نیازمند سرویس • ۳۰۰ کیلومتر مانده</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reminders Section -->
+    <section class="reminders-section" id="reminders">
+      <div class="landing-container">
+        <div class="section-header reveal-on-scroll">
+          <span class="section-tag">یادآوری‌های به‌موقع</span>
+          <h2 class="section-title">یادآوری سرویس، بدون نیاز به حفظ کردن</h2>
+          <p class="section-subtitle">
+            یادآوری‌های اختصاصی بر اساس تاریخ تقویمی، کیلومتر کارکرد، یا دوره‌های منظم تکرارشونده ثبت کنید تا سرویس‌های
+            مهم را از دست ندهید.
+          </p>
+        </div>
+
+        <div class="reminders-grid reveal-on-scroll">
+          <div class="reminder-mock-card">
+            <div class="reminder-card-top">
+              <h4 class="reminder-title">تمدید بیمه شخص ثالث</h4>
+              <div class="mock-toggle" aria-hidden="true"><span class="mock-toggle__thumb"></span></div>
+            </div>
+            <div class="reminder-meta-list">
+              <div class="reminder-meta-item">
+                <span data-icon="calendar"></span>
+                <span>۲۵ فروردین ۱۴۰۵ (۲۰ روز مانده)</span>
+              </div>
+              <div class="reminder-repeat-badge">
+                <span data-icon="repeat"></span>
+                <span>تکرار: سالانه</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="reminder-mock-card">
+            <div class="reminder-card-top">
+              <h4 class="reminder-title">تعویض روغن گیربکس</h4>
+              <div class="mock-toggle" aria-hidden="true"><span class="mock-toggle__thumb"></span></div>
+            </div>
+            <div class="reminder-meta-list">
+              <div class="reminder-meta-item">
+                <span data-icon="gauge"></span>
+                <span>۱۴۰٬۰۰۰ کیلومتر (۱۱٬۵۰۰ کیلومتر مانده)</span>
+              </div>
+              <div class="reminder-repeat-badge">
+                <span data-icon="repeat"></span>
+                <span>همگام با سرویس دوره ای</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="reminder-mock-card">
+            <div class="reminder-card-top">
+              <h4 class="reminder-title">تنظیم باد و بازرسی چرخ‌ها</h4>
+              <div class="mock-toggle" aria-hidden="true"><span class="mock-toggle__thumb"></span></div>
+            </div>
+            <div class="reminder-meta-list">
+              <div class="reminder-meta-item">
+                <span data-icon="calendar"></span>
+                <span>اول هر ماه شمسی</span>
+              </div>
+              <div class="reminder-repeat-badge">
+                <span data-icon="repeat"></span>
+                <span>تکرار: ماهانه</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Works Across Devices & PWA Section -->
+    <section class="pwa-section">
+      <div class="landing-container">
+        <div class="section-header reveal-on-scroll">
+          <span class="section-tag">دسترسی همه‌جانبه</span>
+          <h2 class="section-title">روی همه دستگاه‌ها، بدون نیاز به نصب اجباری</h2>
+          <p class="section-subtitle">
+            کاربوک به عنوان یک وب‌اپلیکیشن پیشرو (PWA) توسعه یافته تا بدون دغدغه دانلود فایل‌های حجیم از مارکت‌ها، همیشه
+            در دسترستان باشد.
+          </p>
+        </div>
+
+        <div class="pwa-grid reveal-on-scroll">
+          <div class="pwa-card">
+            <div class="pwa-card__icon">
+              <span data-icon="gauge"></span>
+            </div>
+            <h4 class="pwa-card__title">دسترسی آنی با مرورگر وب</h4>
+            <p class="pwa-card__desc">
+              بدون نیاز به ثبت‌نام اجباری یا نصب اپلیکیشن، بلافاصله در مرورگر گوشی یا رایانه باز می‌شود.
+            </p>
+          </div>
+
+          <div class="pwa-card">
+            <div class="pwa-card__icon">
+              <span data-icon="download"></span>
+            </div>
+            <h4 class="pwa-card__title">نصب روی صفحه اصلی (PWA)</h4>
+            <p class="pwa-card__desc">
+              با یک لمس در مرورگر، آیکون کاربوک را به صفحه اصلی گوشی بیفزایید تا مانند برنامه بومی اجرا شود.
+            </p>
+          </div>
+
+          <div class="pwa-card">
+            <div class="pwa-card__icon">
+              <span data-icon="refresh-cw"></span>
+            </div>
+            <h4 class="pwa-card__title">سبک، پرسرعت و پایدار</h4>
+            <p class="pwa-card__desc">
+              طراحی بهینه‌شده با فونت‌های استاندارد فارسی، حداقل حجم بارگذاری و بالاترین سرعت پاسخگویی.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Trust & Data Section -->
+    <section class="trust-section">
+      <div class="landing-container">
+        <div class="section-header reveal-on-scroll">
+          <span class="section-tag">حریم خصوصی و داده‌ها</span>
+          <h2 class="section-title">مالکیت کامل اطلاعات، شفاف و بی‌واسطه</h2>
+          <p class="section-subtitle">
+            اطلاعات فنی و مالی خودروی شما اهمیت دارد؛ کاربوک با معماری تقدم حافظه محلی، اطلاعات را تحت کنترل خودتان نگه
+            می‌دارد.
+          </p>
+        </div>
+
+        <div class="trust-grid reveal-on-scroll">
+          <div class="trust-card">
+            <div class="trust-card__icon">
+              <span data-icon="circle-check"></span>
+            </div>
+            <div class="trust-card__content">
+              <h4 class="trust-card__title">استفاده مستقل بدون حساب</h4>
+              <p class="trust-card__desc">
+                می‌توانید بدون وارد کردن اطلاعات هویتی یا ایمیل، داده‌ها را مستقیماً در مرورگر دستگاه خود ذخیره کنید.
+              </p>
+            </div>
+          </div>
+
+          <div class="trust-card">
+            <div class="trust-card__icon">
+              <span data-icon="file-input"></span>
+            </div>
+            <div class="trust-card__content">
+              <h4 class="trust-card__title">پشتیبان‌گیری و خروجی کامل</h4>
+              <p class="trust-card__desc">
+                در هر زمان امکان دریافت خروجی استاندارد JSON از کلیه سوابق و بازیابی آن روی دستگاه‌های دیگر فراهم است.
+              </p>
+            </div>
+          </div>
+
+          <div class="trust-card">
+            <div class="trust-card__icon">
+              <span data-icon="circle-user-round"></span>
+            </div>
+            <div class="trust-card__content">
+              <h4 class="trust-card__title">همگام‌سازی ابری اختیاری</h4>
+              <p class="trust-card__desc">
+                در صورت تمایل می‌توانید با ورود امن گوگل یا ثبت ایمیل، سوابق خود را میان دستگاه‌های مختلف همگام نگه
+                دارید.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final CTA Section -->
+    <section class="cta-section">
+      <div class="landing-container">
+        <div class="cta-box reveal-on-scroll">
+          <h2 class="cta-box__title">از امروز، سابقه نگهداری خودروی خودت را مرتب نگه دار</h2>
+          <p class="cta-box__desc">
+            ثبت اولین خودرو و اولین سرویس کمتر از یک دقیقه زمان می‌برد. بدون نیاز به نصب پیچیده یا ورود طولانی.
+          </p>
+          <a href="/app" class="btn btn--primary btn--large">شروع استفاده از کاربوک</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="landing-footer">
+    <div class="landing-container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a href="/" class="landing-brand">
+            <img class="landing-brand__icon" src="/favicon.svg" alt="" width="28" height="28" />
+            <div class="landing-brand__titles">
+              <span class="landing-brand__title">کاربوک</span>
+              <span class="landing-brand__subtitle">دفترچه نگهداری خودرو</span>
+            </div>
+          </a>
+          <p class="footer-desc">
+            سامانه دیجیتال ثبت، مدیریت و پیگیری سرویس‌ها و استهلاک قطعات مصرفی خودرو.
+          </p>
+        </div>
+
+        <div class="footer-col">
+          <h5 class="footer-col__title">دسترسی سریع</h5>
+          <a class="footer-col__link" href="/app">ورود به برنامه</a>
+          <a class="footer-col__link" href="/app/#/vehicle">خودروها</a>
+          <a class="footer-col__link" href="/app/#/reminders">بخش یادآوری‌ها</a>
+          <a class="footer-col__link" href="/blog">وبلاگ کاربوک</a>
+        </div>
+
+        <div class="footer-col">
+          <h5 class="footer-col__title">اطلاعات و قوانین</h5>
+          <a class="footer-col__link" href="/privacy">حریم خصوصی</a>
+          <a class="footer-col__link" href="/terms">شرایط استفاده</a>
+        </div>
+
+        <div class="footer-col">
+          <h5 class="footer-col__title">لینک ها</h5>
+          <a class="footer-col__link footer-support-link" href="/support">
+            <span data-icon="heart" aria-hidden="true"></span>
+            <span>حمایت مالی</span>
+          </a>
+          <a class="footer-col__link footer-social-link" href="https://github.com/fardm/tamrinsaz-next" target="_blank"
+            rel="noopener noreferrer">
+            <span data-icon="github" aria-hidden="true"></span>
+            <span>گیت هاب</span>
+          </a>
+          <a class="footer-col__link footer-social-link" href="https://t.me/ifard_ir/" target="_blank"
+            rel="noopener noreferrer">
+            <span data-icon="telegram" aria-hidden="true"></span>
+            <span>تلگرام</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <span>© ۲۰۲۶ کاربوک (CarBook). تمامی حقوق محفوظ است.</span>
+        <span>ساخته‌شده با تمرکز بر سادگی، سرعت و احترام به حریم خصوصی.</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Interactive Logic -->
+  <script type="module" src="/src/landing.ts"></script>
+</body>
+
 </html>
