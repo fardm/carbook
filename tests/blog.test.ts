@@ -4,7 +4,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it, beforeEach } from "vitest";
-import { parseBlogRoute } from "../src/blog";
+import { parseBlogRoute, renderBlog } from "../src/blog";
 import { parseFrontMatter, renderMarkdown, slugifyHeading } from "../src/blog/markdown";
 import { getAllArticles, getArticleBySlug, getCategories, formatPersianDate } from "../src/blog/articles";
 import { updateBlogIndexSeo, updateArticleSeo } from "../src/blog/seo";
@@ -201,4 +201,96 @@ describe("Blog Shell & Layout", () => {
     expect(blogHtml).toContain("/src/blog.ts");
   });
 });
+
+describe("Blog Breadcrumbs Specifications", () => {
+  beforeEach(() => {
+    window.scrollTo = () => {};
+    document.body.innerHTML = '<main id="blog-app" class="blog-main"></main>';
+  });
+
+  it("blog index breadcrumb does NOT include 'صفحه اصلی' and starts directly from 'وبلاگ'", () => {
+    window.history.replaceState(null, "", "/blog");
+    renderBlog();
+
+    const breadcrumbs = document.querySelector(".blog-breadcrumbs");
+    expect(breadcrumbs).not.toBeNull();
+    expect(breadcrumbs!.textContent).not.toContain("صفحه اصلی");
+    expect(breadcrumbs!.textContent?.trim()).toBe("وبلاگ");
+    expect(breadcrumbs!.querySelector('a[href="/"]')).toBeNull();
+
+    const currentItem = breadcrumbs!.querySelector(".blog-breadcrumbs__current");
+    expect(currentItem).not.toBeNull();
+    expect(currentItem!.textContent?.trim()).toBe("وبلاگ");
+  });
+
+  it("article page breadcrumb removes 'صفحه اصلی' and adheres to structure 'وبلاگ ← [عنوان مقاله]'", () => {
+    const article = getAllArticles()[0];
+    window.history.replaceState(null, "", `/blog/${article.slug}`);
+    renderBlog();
+
+    const breadcrumbs = document.querySelector(".blog-breadcrumbs");
+    expect(breadcrumbs).not.toBeNull();
+    expect(breadcrumbs!.textContent).not.toContain("صفحه اصلی");
+    expect(breadcrumbs!.querySelector('a[href="/"]')).toBeNull();
+
+    // First item is link to /blog
+    const blogLink = breadcrumbs!.querySelector('a[href="/blog"]');
+    expect(blogLink).not.toBeNull();
+    expect(blogLink!.textContent?.trim()).toBe("وبلاگ");
+
+    // Separator is ←
+    const sep = breadcrumbs!.querySelector(".blog-breadcrumbs__sep");
+    expect(sep).not.toBeNull();
+    expect(sep!.textContent?.trim()).toBe("←");
+
+    // Current page is article title
+    const current = breadcrumbs!.querySelector(".blog-breadcrumbs__current");
+    expect(current).not.toBeNull();
+    expect(current!.textContent?.trim()).toBe(article.title);
+
+    // Exact normalized structure
+    const items = Array.from(breadcrumbs!.children).map((el) => el.textContent?.trim());
+    expect(items).toEqual(["وبلاگ", "←", article.title]);
+  });
+});
+
+describe("Sticky Table of Contents (TOC) Specifications", () => {
+  const blogCss = readFileSync(resolve(import.meta.dirname, "../src/styles/blog.css"), "utf-8");
+
+  it("article-sidebar has position: sticky and top offset below header", () => {
+    expect(blogCss).toMatch(/\.article-sidebar\s*\{[^}]*position:\s*sticky;/);
+    expect(blogCss).toMatch(/\.article-sidebar\s*\{[^}]*top:\s*96px;/);
+  });
+
+  it("blog-toc card has position: sticky, top offset, max-height, and overflow-y: auto", () => {
+    expect(blogCss).toMatch(/\.blog-toc\s*\{[^}]*position:\s*sticky;/);
+    expect(blogCss).toMatch(/\.blog-toc\s*\{[^}]*top:\s*96px;/);
+    expect(blogCss).toMatch(/\.blog-toc\s*\{[^}]*overflow-y:\s*auto;/);
+  });
+
+  it("on mobile (max-width: 992px), article-sidebar is hidden and mobile TOC is non-sticky", () => {
+    const mobileQuery = blogCss.slice(blogCss.indexOf("@media (max-width: 992px)"));
+    expect(mobileQuery).toMatch(/\.article-sidebar\s*\{[^}]*display:\s*none;/);
+    expect(mobileQuery).toMatch(/\.blog-toc-mobile\s*\{[^}]*display:\s*block;/);
+    // .blog-toc-mobile does not declare sticky in desktop or mobile
+    expect(blogCss).not.toMatch(/\.blog-toc-mobile\s*\{[^}]*position:\s*sticky;/);
+  });
+
+  it("article DOM contains desktop sticky sidebar with TOC nav and header", () => {
+    document.body.innerHTML = '<main id="blog-app" class="blog-main"></main>';
+    const article = getAllArticles()[0];
+    window.history.replaceState(null, "", `/blog/${article.slug}`);
+    renderBlog();
+
+    const sidebar = document.querySelector(".article-sidebar");
+    expect(sidebar).not.toBeNull();
+    expect(sidebar!.getAttribute("aria-label")).toBe("فهرست مطالب");
+
+    const toc = sidebar!.querySelector(".blog-toc");
+    expect(toc).not.toBeNull();
+    expect(toc!.querySelector(".blog-toc__header")?.textContent).toContain("فهرست مطالب");
+    expect(toc!.querySelectorAll(".blog-toc__link").length).toBeGreaterThan(0);
+  });
+});
+
 

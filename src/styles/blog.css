@@ -556,6 +556,13 @@
   gap: 16px;
 }
 
+/* Sidebar Column for Article Detail (Sticky TOC container) */
+.article-sidebar {
+  position: sticky;
+  top: 96px;
+  align-self: flex-start;
+}
+
 /* --- Table of Contents (TOC) --- */
 
 .blog-toc {

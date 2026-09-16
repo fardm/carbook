@@ -99,7 +99,7 @@ describe("Landing Page Refinements Specification", () => {
 
       // 2. گیت هاب
       expect(links[1].textContent).toContain("گیت هاب");
-      expect(links[1].getAttribute("href")).toBe("https://github.com/fardm/tamrinsaz-next");
+      expect(links[1].getAttribute("href")).toBe("https://github.com/fardm/carbook");
       expect(links[1].querySelector('[data-icon="github"]')).not.toBeNull();
 
       // 3. تلگرام
@@ -208,7 +208,7 @@ describe("Landing Page Refinements Specification", () => {
       expect(navLinks[1].getAttribute("href")).toBe("/app");
       expect(navLinks[2].getAttribute("href")).toBe("/blog");
       expect(navLinks[3].getAttribute("href")).toBe("/support");
-      expect(navLinks[4].getAttribute("href")).toBe("https://github.com/fardm/tamrinsaz-next");
+      expect(navLinks[4].getAttribute("href")).toBe("https://github.com/fardm/carbook");
 
       const divider = drawer!.querySelector(".mobile-drawer__divider");
       expect(divider).not.toBeNull();

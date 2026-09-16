@@ -84,7 +84,7 @@ describe("HTML Entry Points", () => {
     expect(landingHtml).toContain("لینک ها");
     expect(landingHtml).toContain("حمایت مالی");
     expect(landingHtml).toContain("/support");
-    expect(landingHtml).toContain("https://github.com/fardm/tamrinsaz-next");
+    expect(landingHtml).toContain("https://github.com/fardm/carbook");
     expect(landingHtml).toContain("https://t.me/ifard_ir/");
     expect(landingHtml).toContain("hamburger-line");
   });

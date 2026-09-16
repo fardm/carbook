@@ -158,8 +158,6 @@ function renderBlogIndex(container: HTMLElement): void {
     <section class="blog-hero">
       <div class="landing-container blog-hero__inner">
         <nav class="blog-breadcrumbs" aria-label="مسیر راهنما">
-          <a href="/" data-link>صفحه اصلی</a>
-          <span class="blog-breadcrumbs__sep">/</span>
           <span class="blog-breadcrumbs__current">وبلاگ</span>
         </nav>
         <h1 class="blog-hero__title">وبلاگ کاربوک</h1>
@@ -378,12 +376,8 @@ function renderArticlePage(container: HTMLElement, slug: string): void {
     <section class="blog-hero" style="margin-bottom: 0; padding-bottom: 24px;">
       <div class="landing-container">
         <nav class="blog-breadcrumbs" aria-label="مسیر راهنما">
-          <a href="/" data-link>صفحه اصلی</a>
-          <span class="blog-breadcrumbs__sep">/</span>
           <a href="/blog" data-link>وبلاگ</a>
-          <span class="blog-breadcrumbs__sep">/</span>
-          <span class="blog-breadcrumbs__sep">${escapeHtml(article.category)}</span>
-          <span class="blog-breadcrumbs__sep">/</span>
+          <span class="blog-breadcrumbs__sep">←</span>
           <span class="blog-breadcrumbs__current">${escapeHtml(article.title)}</span>
         </nav>
       </div>
@@ -562,7 +556,7 @@ function setupToc(container: HTMLElement): void {
   }
 }
 
-function renderBlog(): void {
+export function renderBlog(): void {
   const appEl = document.getElementById("blog-app");
   if (!appEl) return;
 
