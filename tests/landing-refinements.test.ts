@@ -77,15 +77,39 @@ describe("Landing Page Refinements Specification", () => {
     });
   });
 
-  describe("5. Footer Support Section & Dedicated Support Page", () => {
-    it("footer includes 'حمایت مالی' with heart icon linking to /support", () => {
+  describe("5. Footer Links Section & Dedicated Support Page", () => {
+    it("footer includes 'لینک ها' column with 'حمایت مالی' first, then GitHub and Telegram", () => {
       const footer = document.querySelector(".landing-footer");
       expect(footer).not.toBeNull();
-      const supportLink = footer!.querySelector('a[href="/support"]') as HTMLAnchorElement;
-      expect(supportLink).not.toBeNull();
-      expect(supportLink.textContent).toContain("حمایت مالی");
-      const heartIcon = supportLink.querySelector('[data-icon="heart"]');
-      expect(heartIcon).not.toBeNull();
+      expect(footer!.textContent).toContain("لینک ها");
+
+      const linksCol = Array.from(footer!.querySelectorAll(".footer-col")).find(
+        (col) => col.querySelector(".footer-col__title")?.textContent?.trim() === "لینک ها"
+      );
+      expect(linksCol).toBeDefined();
+
+      const links = Array.from(linksCol!.querySelectorAll("a"));
+      expect(links.length).toBe(3);
+
+      // 1. حمایت مالی
+      expect(links[0].textContent).toContain("حمایت مالی");
+      expect(links[0].getAttribute("href")).toBe("/support");
+      expect(links[0].querySelector('[data-icon="heart"]')).not.toBeNull();
+
+      // 2. گیت هاب
+      expect(links[1].textContent).toContain("گیت هاب");
+      expect(links[1].getAttribute("href")).toBe("https://github.com/fardm/tamrinsaz-next");
+      expect(links[1].querySelector('[data-icon="github"]')).not.toBeNull();
+
+      // 3. تلگرام
+      expect(links[2].textContent).toContain("تلگرام");
+      expect(links[2].getAttribute("href")).toBe("https://t.me/ifard_ir/");
+      expect(links[2].querySelector('[data-icon="telegram"]')).not.toBeNull();
+    });
+
+    it("github and telegram icons are in assets", () => {
+      expect(ICON_ASSETS["github"]).toBeDefined();
+      expect(ICON_ASSETS["telegram"]).toBeDefined();
     });
 
     it("support page contains exact required text, title, and payment link", () => {

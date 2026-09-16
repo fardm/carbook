@@ -77,12 +77,15 @@ describe("HTML Entry Points", () => {
     expect(termsHtml).toContain("/src/landing.ts");
   });
 
-  it("landing page index.html has unwanted items and button removed and includes support link", () => {
+  it("landing page index.html has unwanted items and button removed and includes support link and social links", () => {
     const landingHtml = readFileSync(resolve(import.meta.dirname, "../index.html"), "utf-8");
     expect(landingHtml).not.toContain("مشاهده محیط ثبت سرویس");
     expect(landingHtml).not.toContain("بخش‌های صفحه");
+    expect(landingHtml).toContain("لینک ها");
     expect(landingHtml).toContain("حمایت مالی");
     expect(landingHtml).toContain("/support");
+    expect(landingHtml).toContain("https://github.com/fardm/tamrinsaz-next");
+    expect(landingHtml).toContain("https://t.me/ifard_ir/");
     expect(landingHtml).toContain("hamburger-line");
   });
 

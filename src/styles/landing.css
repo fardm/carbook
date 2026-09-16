@@ -1231,26 +1231,21 @@ body.landing-page {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
-  border-radius: var(--md-shape-small);
-  background-color: var(--md-sys-color-surface-container-lowest);
-  border: 1px solid var(--md-sys-color-surface-variant);
-  color: var(--md-sys-color-primary) !important;
-  font-weight: 600;
   width: fit-content;
-  transition: all var(--md-motion-duration-short) ease;
+  color: var(--md-sys-color-primary) !important;
+  transition: opacity var(--md-motion-duration-short) ease,
+              color var(--md-motion-duration-short) ease;
 }
 
 .footer-support-link:hover {
-  background-color: var(--md-sys-color-primary);
-  color: #ffffff !important;
-  border-color: var(--md-sys-color-primary);
-  transform: translateY(-1px);
+  color: var(--md-sys-color-primary) !important;
+  opacity: 0.8;
 }
 
 .footer-support-link svg {
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
   fill: currentColor;
   stroke: currentColor;
 }
@@ -1260,6 +1255,19 @@ body.landing-page {
   color: var(--md-sys-color-on-surface-variant);
   margin: 4px 0 0;
   line-height: 1.5;
+}
+
+.footer-social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+}
+
+.footer-social-link svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 .footer-bottom {
