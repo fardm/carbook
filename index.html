@@ -3,56 +3,115 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>CarBook — Landing Page</title>
+    <meta name="description" content="CarBook — ابزار شخصی ثبت و پیگیری سرویس‌های خودرو" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <script>
-      // Pre-paint theme: avoid a light flash for dark-mode users before
-      // src/ui/theme.ts runs. Mirrors that module — if the storage key or
-      // settings.theme shape changes, update BOTH places.
+      // OAuth forwarder: If user returns from Supabase OAuth at the root URL,
+      // forward auth parameters directly to the application workspace under /app.
       (function () {
-        try {
-          var stored = JSON.parse(localStorage.getItem("car-maintenance-tracker.dataset"));
-          var pref = stored && stored.settings && stored.settings.theme;
-          var dark =
-            pref === "dark" ||
-            (pref !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-          if (dark) document.documentElement.dataset.theme = "dark";
-        } catch (e) {
-          /* no stored data yet — light default */
+        var search = window.location.search;
+        var hash = window.location.hash;
+        if (
+          search.indexOf("code=") !== -1 ||
+          search.indexOf("error=") !== -1 ||
+          hash.indexOf("access_token=") !== -1
+        ) {
+          window.location.replace("/app/" + search + hash);
         }
       })();
     </script>
-    <!-- theme-color content is kept in sync with the resolved theme by src/ui/theme.ts -->
-    <meta name="theme-color" content="#f2870d" />
-    <meta name="description" content="CarBook — ابزار شخصی ثبت و پیگیری سرویس‌های خودرو" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="CarBook" />
-    <title>CarBook</title>
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <link rel="manifest" href="./manifest.json" />
-    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png" />
+    <style>
+      :root {
+        --bg: #f6f5f3;
+        --text: #1a1a1a;
+        --primary: #f2870d;
+        --border: #e0deda;
+        --card-bg: #ffffff;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #121212;
+          --text: #f0f0f0;
+          --border: #2a2a2a;
+          --card-bg: #1e1e1e;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background-color: var(--bg);
+        color: var(--text);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 24px;
+        text-align: center;
+      }
+      .container {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 40px 32px;
+        max-width: 480px;
+        width: 100%;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      }
+      h1 {
+        margin: 0 0 16px;
+        font-size: 1.75rem;
+      }
+      p {
+        margin: 0 0 24px;
+        color: #888;
+        font-size: 0.95rem;
+      }
+      .nav-links {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 20px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.95rem;
+        transition: opacity 0.2s ease;
+      }
+      .btn--primary {
+        background-color: var(--primary);
+        color: #ffffff;
+      }
+      .btn--secondary {
+        background-color: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+      .btn:hover {
+        opacity: 0.85;
+      }
+    </style>
   </head>
   <body>
-    <div class="app-shell">
-      <header class="app-bar" id="app-bar">
-        <div class="app-bar__inner">
-          <div class="app-bar__title">
-            <img class="app-bar__icon" src="./favicon.svg" alt="" width="24" height="24" />
-            <span class="app-bar__titles">
-              <span class="app-bar__title-main" id="app-title"></span>
-              <span class="app-bar__subtitle" id="app-subtitle"></span>
-            </span>
-          </div>
-          <div class="app-bar__actions" id="app-bar-actions"></div>
-        </div>
-      </header>
-
-      <main class="app-content" id="app-content" tabindex="-1"></main>
-
-      <nav class="nav" id="app-nav" aria-label="ناوبری اصلی"></nav>
+    <div class="container">
+      <h1>CarBook — Landing Page</h1>
+      <p>پایگاه عمومی کاربوک در دست ساخت است.</p>
+      <div class="nav-links">
+        <a class="btn btn--primary" href="/app">ورود به برنامه کاربوک</a>
+        <a class="btn btn--secondary" href="/blog">وبلاگ</a>
+      </div>
     </div>
-
-    <script type="module" src="./src/main.ts"></script>
   </body>
 </html>

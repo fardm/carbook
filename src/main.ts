@@ -37,7 +37,7 @@ function renderNav(): void {
   // <nav> keeps height: 100dvh while .nav__list is content-sized).
   nav.innerHTML = `
     <div class="nav__brand">
-      <img class="app-bar__icon" src="./favicon.svg" alt="" width="24" height="24" />
+      <img class="app-bar__icon" src="/favicon.svg" alt="" width="24" height="24" />
       <span class="app-bar__titles">
         <span class="app-bar__title-main" id="nav-brand-title"></span>
         <span class="app-bar__subtitle" id="nav-brand-subtitle"></span>

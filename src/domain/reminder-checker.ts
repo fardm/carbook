@@ -95,7 +95,7 @@ export async function ensureServiceWorkerRegistered(): Promise<ServiceWorkerRegi
   try {
     let registration = await navigator.serviceWorker.getRegistration();
     if (!registration && import.meta.env.PROD) {
-      registration = await navigator.serviceWorker.register("./sw.js");
+      registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
     }
     if (!registration) return null;
     // Prefer an active worker; ready resolves once one is controlling/available.
@@ -133,8 +133,8 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
 function notificationOptions(body: string): NotificationOptions {
   return {
     body,
-    icon: "./icons/icon-192.png",
-    badge: "./favicon.svg",
+    icon: "/icons/icon-192.png",
+    badge: "/favicon.svg",
     lang: "fa",
     dir: "rtl",
   };

@@ -8,8 +8,27 @@
 import { describe, expect, it } from "vitest";
 import { applyIcons, CUSTOM_ICON_CHOICES, ICON_ASSETS, STATUS_ICONS } from "../src/ui/icons";
 
-/** The one intentionally non-lucide asset (own viewBox + internal fills). */
+/** The one intentionally non-lucide asset tested in detail below. */
 const CUSTOM_FORMAT_ICON = "carbook-badge";
+/** Intentionally non-lucide assets (own viewBox + internal fills / custom artwork). */
+const CUSTOM_FORMAT_ICONS = new Set([
+  "carbook-badge",
+  "air-conditioner",
+  "battery",
+  "brake-pads",
+  "car-filter",
+  "clutch-disc",
+  "custom",
+  "exhaust",
+  "oil-red",
+  "oil",
+  "radiator",
+  "snowflake",
+  "spark-plug",
+  "timing-belt",
+  "tire",
+  "wheel-balancing",
+]);
 
 describe("local icon assets", () => {
   it("ships a standalone SVG file for every status, custom-item, and choice icon", () => {
@@ -31,7 +50,7 @@ describe("local icon assets", () => {
 
   it("lucide-derived assets draw with currentColor so CSS/theme keeps controlling color", () => {
     for (const [name, markup] of Object.entries(ICON_ASSETS)) {
-      if (name === CUSTOM_FORMAT_ICON) continue; // custom artwork, tested below
+      if (CUSTOM_FORMAT_ICONS.has(name)) continue; // custom artwork, tested below
       expect(markup, name).toContain('stroke="currentColor"');
       expect(markup, name).not.toMatch(/stroke="#[0-9a-fA-F]/);
       expect(markup, name).not.toMatch(/fill="#[0-9a-fA-F]/);
