@@ -16,6 +16,12 @@
           return;
         }
 
+        // Public MPA routes without trailing slash on static hosts
+        if (path === "/blog" || path === "/support" || path === "/privacy" || path === "/terms") {
+          window.location.replace(path + "/" + search + hash);
+          return;
+        }
+
         // /blog/:slug -> redirect to /blog/?slug=... so blog/index.html can render it
         var blogMatch = path.match(/^\/blog\/([^/]+)/);
         if (blogMatch && blogMatch[1]) {

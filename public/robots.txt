@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Allow: /blog
+Allow: /blog/
+Allow: /support
+Allow: /privacy
+Allow: /terms
+Disallow: /app/
+Disallow: /app
+
+Sitemap: https://carbook.fardm.ir/sitemap.xml

@@ -31,6 +31,17 @@ export function setCanonicalUrl(url: string): void {
   link.setAttribute("href", url);
 }
 
+export function setStructuredData(id: string, schema: object): void {
+  let el = document.getElementById(id);
+  if (!el) {
+    el = document.createElement("script");
+    el.id = id;
+    el.setAttribute("type", "application/ld+json");
+    document.head.appendChild(el);
+  }
+  el.textContent = JSON.stringify(schema, null, 2);
+}
+
 export function updateBlogIndexSeo(): void {
   const title = "وبلاگ کاربوک — مقالات و نکات نگهداری خودرو";
   const desc = "مجموعه مقالات آموزشی و تخصصی درباره سرویس‌های دوره‌ای، استهلاک قطعات و راهکارهای نگهداری بهینه خودرو در وبلاگ کاربوک.";
@@ -49,6 +60,33 @@ export function updateBlogIndexSeo(): void {
   setMetaTag('meta[property="twitter:title"]', "content", title);
   setMetaTag('meta[property="twitter:description"]', "content", desc);
   setMetaTag('meta[property="twitter:image"]', "content", image);
+
+  // Breadcrumbs schema
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "خانه",
+        item: "https://carbook.fardm.ir/",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "وبلاگ",
+        item: "https://carbook.fardm.ir/blog",
+      },
+    ],
+  };
+  setStructuredData("blog-breadcrumbs-schema", breadcrumbSchema);
+
+  // Remove single article posting schema when on index
+  const articlePostingEl = document.getElementById("blog-article-schema");
+  if (articlePostingEl) {
+    articlePostingEl.remove();
+  }
 }
 
 export function updateArticleSeo(article: Article): void {
@@ -71,4 +109,48 @@ export function updateArticleSeo(article: Article): void {
   setMetaTag('meta[property="twitter:title"]', "content", title);
   setMetaTag('meta[property="twitter:description"]', "content", desc);
   setMetaTag('meta[property="twitter:image"]', "content", image);
+
+  // Article BlogPosting schema
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: article.title,
+    description: article.description,
+    image,
+    datePublished: article.date,
+    url,
+    inLanguage: "fa-IR",
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": url,
+    },
+  };
+  setStructuredData("blog-article-schema", articleSchema);
+
+  // Breadcrumbs schema
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "خانه",
+        item: "https://carbook.fardm.ir/",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "وبلاگ",
+        item: "https://carbook.fardm.ir/blog",
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: article.title,
+        item: url,
+      },
+    ],
+  };
+  setStructuredData("blog-breadcrumbs-schema", breadcrumbSchema);
 }

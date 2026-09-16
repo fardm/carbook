@@ -332,6 +332,10 @@ function renderArticlePage(container: HTMLElement, slug: string): void {
 
   updateArticleSeo(article);
 
+  const relatedArticles = getAllArticles()
+    .filter((a) => a.slug !== article.slug)
+    .slice(0, 2);
+
   const tocHtml =
     article.toc.length > 0
       ? `
@@ -418,6 +422,39 @@ function renderArticlePage(container: HTMLElement, slug: string): void {
           <div class="article-content">
             ${article.html}
           </div>
+
+          <!-- Related Articles (Internal Links) -->
+          ${
+            relatedArticles.length > 0
+              ? `
+            <section class="related-articles" aria-label="مقالات پیشنهادی">
+              <h3 class="related-articles__title">مقالات پیشنهادی دیگر</h3>
+              <div class="related-articles__grid">
+                ${relatedArticles
+                  .map(
+                    (rel) => `
+                  <article class="related-card">
+                    <a href="/blog/${encodeURIComponent(rel.slug)}" class="related-card__link" data-link>
+                      ${
+                        rel.cover
+                          ? `<img src="${escapeHtml(rel.cover)}" alt="${escapeHtml(rel.title)}" class="related-card__cover" loading="lazy" />`
+                          : ""
+                      }
+                      <div class="related-card__body">
+                        <span class="article-category-badge">${escapeHtml(rel.category)}</span>
+                        <h4 class="related-card__title">${escapeHtml(rel.title)}</h4>
+                        <span class="related-card__read">مطالعه مقاله ←</span>
+                      </div>
+                    </a>
+                  </article>
+                `
+                  )
+                  .join("")}
+              </div>
+            </section>
+          `
+              : ""
+          }
 
           <!-- Bottom Actions -->
           <div class="article-footer-nav">
