@@ -2,10 +2,11 @@
  * @vitest-environment jsdom
  */
 import { describe, expect, it, beforeEach } from "vitest";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { getAllArticles } from "../src/blog/articles";
 import { updateBlogIndexSeo, updateArticleSeo } from "../src/blog/seo";
+import { discoverBlogArticles, generateSitemapXml } from "../src/blog/sitemap";
 
 describe("robots.txt Audit", () => {
   const robotsPath = resolve(import.meta.dirname, "../public/robots.txt");
@@ -36,6 +37,9 @@ describe("sitemap.xml Audit", () => {
     // Required canonical URLs
     expect(content).toContain("<loc>https://carbook.fardm.ir/</loc>");
     expect(content).toContain("<loc>https://carbook.fardm.ir/blog</loc>");
+    expect(content).toContain("<loc>https://carbook.fardm.ir/support</loc>");
+    expect(content).toContain("<loc>https://carbook.fardm.ir/privacy</loc>");
+    expect(content).toContain("<loc>https://carbook.fardm.ir/terms</loc>");
 
     // Check that all published blog articles are present
     const articles = getAllArticles();
@@ -49,6 +53,79 @@ describe("sitemap.xml Audit", () => {
     // Ensure no localhost or staging URLs
     expect(content).not.toContain("localhost");
     expect(content).not.toContain("127.0.0.1");
+  });
+
+  it("sitemap has no duplicate URLs across all entries", () => {
+    const content = readFileSync(sitemapPath, "utf-8");
+    const locMatches = [...content.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+
+    const uniqueLocs = new Set(locMatches);
+    expect(locMatches.length).toBe(uniqueLocs.size);
+  });
+
+  it("every published article in content/blog is discovered with date and slug", () => {
+    const contentDir = resolve(import.meta.dirname, "../content/blog");
+    const discovered = discoverBlogArticles(contentDir);
+
+    expect(discovered.length).toBeGreaterThanOrEqual(2);
+    for (const a of discovered) {
+      expect(a.slug).toBeTruthy();
+      expect(a.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+  });
+
+  it("generateSitemapXml dynamically incorporates new Markdown articles without duplicate URLs", () => {
+    const xml = generateSitemapXml({
+      origin: "https://carbook.fardm.ir",
+      contentDir: resolve(import.meta.dirname, "../content/blog"),
+    });
+
+    expect(xml).toContain("https://carbook.fardm.ir/blog/when-to-change-engine-oil");
+    expect(xml).toContain("<lastmod>2026-03-10</lastmod>");
+    expect(xml).toContain("https://carbook.fardm.ir/blog/how-to-diagnose-consumable-parts");
+    expect(xml).toContain("<lastmod>2026-03-05</lastmod>");
+    expect(xml).not.toContain("/app");
+
+    // Verify uniqueness in generated output
+    const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+    expect(locs.length).toBe(new Set(locs).size);
+  });
+
+  it("automatically discovers and includes newly added Markdown articles in the sitemap without duplicate URLs", () => {
+    const tempDir = resolve(import.meta.dirname, "../scratch/test-content-blog-" + Date.now());
+    mkdirSync(tempDir, { recursive: true });
+
+    try {
+      // Write mock article 1
+      writeFileSync(
+        resolve(tempDir, "sample-one.md"),
+        `---\ntitle: "مقاله تستی اول"\ndate: "2026-04-01"\nslug: "sample-one"\n---\nمتن تست اول`,
+        "utf-8"
+      );
+
+      // Write mock article 2
+      writeFileSync(
+        resolve(tempDir, "sample-two.md"),
+        `---\ntitle: "مقاله تستی دوم"\ndate: "2026-04-05"\nslug: "sample-two"\n---\nمتن تست دوم`,
+        "utf-8"
+      );
+
+      const xml = generateSitemapXml({
+        origin: "https://carbook.fardm.ir",
+        contentDir: tempDir,
+      });
+
+      expect(xml).toContain("<loc>https://carbook.fardm.ir/blog/sample-one</loc>");
+      expect(xml).toContain("<lastmod>2026-04-01</lastmod>");
+      expect(xml).toContain("<loc>https://carbook.fardm.ir/blog/sample-two</loc>");
+      expect(xml).toContain("<lastmod>2026-04-05</lastmod>");
+
+      // Verify no duplicates
+      const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+      expect(locs.length).toBe(new Set(locs).size);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 });
 

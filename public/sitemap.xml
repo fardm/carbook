@@ -11,18 +11,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://carbook.fardm.ir/blog/when-to-change-engine-oil</loc>
-    <lastmod>2026-03-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://carbook.fardm.ir/blog/how-to-diagnose-consumable-parts</loc>
-    <lastmod>2026-03-10</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://carbook.fardm.ir/support</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
@@ -36,5 +24,17 @@
     <loc>https://carbook.fardm.ir/terms</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://carbook.fardm.ir/blog/when-to-change-engine-oil</loc>
+    <lastmod>2026-03-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://carbook.fardm.ir/blog/how-to-diagnose-consumable-parts</loc>
+    <lastmod>2026-03-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
 </urlset>

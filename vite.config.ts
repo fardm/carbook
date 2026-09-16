@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { defineConfig, type Plugin } from "vitest/config";
+import { writeSitemapFiles, generateSitemapXml } from "./src/blog/sitemap";
 
 /**
  * Dev & preview server plugin to support direct navigation/refresh for:
@@ -47,9 +48,34 @@ function multiPageFallbackPlugin(): Plugin {
   };
 }
 
+/**
+ * Automatically discovers blog Markdown articles and generates sitemap.xml on build and dev server start.
+ */
+function sitemapPlugin(): Plugin {
+  return {
+    name: "auto-sitemap-plugin",
+    buildStart() {
+      writeSitemapFiles({ rootDir: import.meta.dirname });
+    },
+    generateBundle() {
+      const xml = generateSitemapXml({
+        contentDir: resolve(import.meta.dirname, "content/blog"),
+      });
+      this.emitFile({
+        type: "asset",
+        fileName: "sitemap.xml",
+        source: xml,
+      });
+    },
+    configureServer() {
+      writeSitemapFiles({ rootDir: import.meta.dirname });
+    },
+  };
+}
+
 export default defineConfig({
   base: "/",
-  plugins: [multiPageFallbackPlugin()],
+  plugins: [multiPageFallbackPlugin(), sitemapPlugin()],
   build: {
     rollupOptions: {
       input: {
