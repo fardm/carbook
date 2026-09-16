@@ -114,7 +114,7 @@
       </a>
 
       <nav class="landing-nav" aria-label="ناوبری اصلی">
-        <a class="landing-nav__link" href="#features">امکانات</a>
+        <a class="landing-nav__link" href="/">صفحه اصلی</a>
         <a class="landing-nav__link" href="/blog">وبلاگ</a>
       </nav>
 
@@ -131,15 +131,42 @@
       </div>
     </div>
 
-    <!-- Mobile Navigation Drawer -->
-    <div class="mobile-drawer" id="mobile-drawer" aria-label="منوی موبایل">
-      <a class="mobile-drawer__link" href="#features">امکانات</a>
-      <a class="mobile-drawer__link" href="/blog">وبلاگ کاربوک</a>
-      <a class="mobile-drawer__link" href="/support">حمایت مالی</a>
-      <div style="margin-top: 12px;">
-        <a href="/app" class="btn btn--primary" style="width: 100%;">ورود به کاربوک</a>
+    <!-- Mobile Navigation Backdrop & Left Side Drawer -->
+    <div class="mobile-nav-backdrop" id="mobile-nav-backdrop" aria-hidden="true"></div>
+    <aside class="mobile-drawer" id="mobile-drawer" aria-label="منوی ناوبری موبایل" aria-hidden="true">
+      <div class="mobile-drawer__header">
+        <div class="mobile-drawer__brand">
+          <img class="landing-brand__icon" src="/favicon.svg" alt="" width="28" height="28" />
+          <span class="landing-brand__title">کاربوک</span>
+        </div>
+        <button type="button" class="icon-btn mobile-drawer__close" id="drawer-close" aria-label="بستن منو">
+          <span class="drawer-close-icon" aria-hidden="true">&times;</span>
+        </button>
       </div>
-    </div>
+
+      <nav class="mobile-drawer__nav" aria-label="منوی موبایل">
+        <a class="mobile-drawer__link" href="/">
+          <span>صفحه اصلی</span>
+        </a>
+        <a class="mobile-drawer__link mobile-drawer__link--primary" href="/app">
+          <span>ورود به کاربوک</span>
+        </a>
+        <a class="mobile-drawer__link" href="/blog">
+          <span>وبلاگ</span>
+        </a>
+
+        <div class="mobile-drawer__divider" role="separator"></div>
+
+        <a class="mobile-drawer__link mobile-drawer__link--support" href="/support">
+          <span data-icon="heart" aria-hidden="true"></span>
+          <span>حمایت مالی</span>
+        </a>
+        <a class="mobile-drawer__link" href="https://github.com/fardm/tamrinsaz-next" target="_blank" rel="noopener noreferrer">
+          <span data-icon="github" aria-hidden="true"></span>
+          <span>گیت هاب</span>
+        </a>
+      </nav>
+    </aside>
   </header>
 
   <main id="main-content">
@@ -809,7 +836,7 @@
         <div class="cta-box reveal-on-scroll">
           <h2 class="cta-box__title">از امروز، سابقه نگهداری خودروی خودت را مرتب نگه دار</h2>
           <p class="cta-box__desc">
-            ثبت اولین خودرو و اولین سرویس کمتر از یک دقیقه زمان می‌برد. بدون نیاز به نصب پیچیده یا ورود طولانی.
+            ثبت اولین خودرو و اولین سرویس کمتر از یک دقیقه زمان می‌برد.
           </p>
           <a href="/app" class="btn btn--primary btn--large">شروع استفاده از کاربوک</a>
         </div>

@@ -29,9 +29,10 @@ describe("Landing Page Refinements Specification", () => {
       expect(navText).not.toContain("یادآوری‌ها");
       expect(navText).not.toContain("ورود به حساب");
 
-      // Only minimal links remain
+      // Only minimal links remain: 'صفحه اصلی' and 'وبلاگ'
       const links = Array.from(desktopNav!.querySelectorAll("a")).map((a) => a.textContent?.trim());
-      expect(links).toEqual(["امکانات", "وبلاگ"]);
+      expect(links).toEqual(["صفحه اصلی", "وبلاگ"]);
+      expect(desktopNav!.querySelector('a[href="/"]')?.textContent?.trim()).toBe("صفحه اصلی");
     });
 
     it("desktop header actions do NOT contain 'ورود به حساب' text button", () => {
@@ -185,25 +186,49 @@ describe("Landing Page Refinements Specification", () => {
       expect(menuBtn.querySelector('[data-icon="more-horizontal"]')).toBeNull();
     });
 
-    it("mobile drawer contains only minimal remaining navigation", () => {
+    it("mobile drawer is a side drawer with exact required link order and backdrop", () => {
       const drawer = document.getElementById("mobile-drawer");
       expect(drawer).not.toBeNull();
-      const text = drawer!.textContent || "";
-      expect(text).toContain("امکانات");
-      expect(text).toContain("وبلاگ کاربوک");
-      expect(text).toContain("حمایت مالی");
-      expect(text).toContain("ورود به کاربوک");
+      const backdrop = document.getElementById("mobile-nav-backdrop");
+      expect(backdrop).not.toBeNull();
+      const closeBtn = document.getElementById("drawer-close");
+      expect(closeBtn).not.toBeNull();
+
+      const links = Array.from(drawer!.querySelectorAll(".mobile-drawer__link")).map((a) => a.textContent?.trim());
+      expect(links).toEqual([
+        "صفحه اصلی",
+        "ورود به کاربوک",
+        "وبلاگ",
+        "حمایت مالی",
+        "گیت هاب",
+      ]);
+
+      const navLinks = Array.from(drawer!.querySelectorAll<HTMLAnchorElement>(".mobile-drawer__link"));
+      expect(navLinks[0].getAttribute("href")).toBe("/");
+      expect(navLinks[1].getAttribute("href")).toBe("/app");
+      expect(navLinks[2].getAttribute("href")).toBe("/blog");
+      expect(navLinks[3].getAttribute("href")).toBe("/support");
+      expect(navLinks[4].getAttribute("href")).toBe("https://github.com/fardm/tamrinsaz-next");
+
+      const divider = drawer!.querySelector(".mobile-drawer__divider");
+      expect(divider).not.toBeNull();
 
       // Removed items must not be in mobile drawer
+      const text = drawer!.textContent || "";
       expect(text).not.toContain("سلامت قطعات");
       expect(text).not.toContain("سوابق سرویس");
       expect(text).not.toContain("یادآوری‌های موعد");
       expect(text).not.toContain("ورود به حساب کاربری");
     });
 
-    it("CSS ensures proper responsive layout and zero horizontal overflow", () => {
+    it("CSS ensures proper responsive layout, smooth left-side drawer animation, and zero horizontal overflow", () => {
       expect(landingCss).toMatch(/html\s*\{[^}]*overflow-x:\s*clip;/);
       expect(landingCss).toMatch(/body\.landing-page\s*\{[^}]*overflow-x:\s*clip;/);
+      expect(landingCss).toContain(".mobile-drawer {");
+      expect(landingCss).toContain("transform: translateX(-100%);");
+      expect(landingCss).toContain(".mobile-drawer.is-open {");
+      expect(landingCss).toContain("transform: translateX(0);");
+      expect(landingCss).toContain(".mobile-nav-backdrop");
       expect(landingCss).toContain("@media (max-width: 640px)");
       expect(landingCss).toContain("@media (max-width: 480px)");
       // Responsive padding

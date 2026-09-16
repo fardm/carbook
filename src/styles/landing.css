@@ -311,34 +311,159 @@ body.landing-page {
   transform: translateY(-6px) rotate(-45deg);
 }
 
-/* Mobile Drawer */
-.mobile-drawer {
-  display: none;
+/* Mobile Navigation Backdrop & Left Side Drawer */
+.mobile-nav-backdrop {
   position: fixed;
-  top: 72px;
-  right: 0;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background-color: rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 998;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--md-motion-duration-medium) ease, visibility var(--md-motion-duration-medium) ease;
+}
+
+.mobile-nav-backdrop.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.mobile-drawer {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
   left: 0;
   bottom: 0;
+  width: 280px;
+  max-width: 85vw;
+  height: 100vh;
+  height: 100dvh;
   background-color: var(--md-sys-color-surface);
-  padding: 24px;
-  flex-direction: column;
-  gap: 16px;
-  z-index: 99;
+  color: var(--md-sys-color-on-surface);
+  box-shadow: 4px 0 28px rgba(0, 0, 0, 0.18);
+  border-right: 1px solid var(--md-sys-color-surface-variant);
+  padding: 20px 18px;
+  z-index: 999;
   overflow-y: auto;
-  border-top: 1px solid var(--md-sys-color-surface-variant);
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.32s ease;
 }
 
 .mobile-drawer.is-open {
+  transform: translateX(0);
+  visibility: visible;
+}
+
+.mobile-drawer__header {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--md-sys-color-surface-variant);
+}
+
+.mobile-drawer__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mobile-drawer__brand .landing-brand__icon {
+  background-color: #ffffff;
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.mobile-drawer__brand .landing-brand__title {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--md-sys-color-on-surface);
+}
+
+.mobile-drawer__close {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--md-shape-full);
+  border: 1px solid var(--md-sys-color-surface-variant);
+  background: transparent;
+  color: var(--md-sys-color-on-surface);
+  cursor: pointer;
+  transition: all var(--md-motion-duration-short) ease;
+}
+
+.mobile-drawer__close:hover {
+  background-color: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-primary);
+}
+
+.drawer-close-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  font-weight: 400;
+}
+
+.mobile-drawer__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .mobile-drawer__link {
-  font-size: 1.125rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--md-sys-color-on-surface);
   text-decoration: none;
-  padding: 12px 8px;
-  border-bottom: 1px solid var(--md-sys-color-surface-variant);
+  padding: 12px 14px;
+  border-radius: var(--md-shape-medium);
+  transition: all var(--md-motion-duration-short) ease;
+}
+
+.mobile-drawer__link:hover {
+  background-color: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-primary);
+}
+
+.mobile-drawer__link--primary {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  font-weight: 700;
+}
+
+.mobile-drawer__link--primary:hover {
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
+
+.mobile-drawer__link--support {
+  color: var(--md-sys-color-primary);
+}
+
+.mobile-drawer__divider {
+  height: 1px;
+  background-color: var(--md-sys-color-surface-variant);
+  margin: 10px 0;
+}
+
+@media (min-width: 993px) {
+  .mobile-drawer,
+  .mobile-nav-backdrop {
+    display: none !important;
+  }
 }
 
 /* --- Hero Section --- */
@@ -1524,8 +1649,7 @@ body.landing-page {
     height: 64px;
   }
   .mobile-drawer {
-    top: 64px;
-    padding: 16px;
+    padding: 18px 14px;
   }
   .hero-section {
     padding: 48px 0 56px;

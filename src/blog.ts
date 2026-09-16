@@ -84,18 +84,31 @@ function initTheme(): void {
 function initMobileMenu(): void {
   const toggleBtn = document.getElementById("menu-toggle");
   const drawer = document.getElementById("mobile-drawer");
+  const backdrop = document.getElementById("mobile-nav-backdrop");
+  const closeBtn = document.getElementById("drawer-close");
   if (!toggleBtn || !drawer) return;
 
   const setOpen = (open: boolean) => {
     drawer.classList.toggle("is-open", open);
+    if (backdrop) backdrop.classList.toggle("is-open", open);
     toggleBtn.setAttribute("aria-expanded", String(open));
     toggleBtn.setAttribute("aria-label", open ? "بستن منو" : "باز کردن منو");
+    drawer.setAttribute("aria-hidden", String(!open));
+    document.body.classList.toggle("drawer-open", open);
   };
 
   toggleBtn.addEventListener("click", () => {
     const isOpen = drawer.classList.contains("is-open");
     setOpen(!isOpen);
   });
+
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => setOpen(false));
+  }
+
+  if (backdrop) {
+    backdrop.addEventListener("click", () => setOpen(false));
+  }
 
   drawer.querySelectorAll("a").forEach((link) => {
     link.addEventListener("click", () => setOpen(false));
@@ -104,7 +117,12 @@ function initMobileMenu(): void {
   document.addEventListener("click", (e) => {
     if (!drawer.classList.contains("is-open")) return;
     const target = e.target as Node | null;
-    if (target && !drawer.contains(target) && !toggleBtn.contains(target)) {
+    if (
+      target &&
+      !drawer.contains(target) &&
+      !toggleBtn.contains(target) &&
+      (!backdrop || !backdrop.contains(target))
+    ) {
       setOpen(false);
     }
   });
