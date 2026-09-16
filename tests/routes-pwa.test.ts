@@ -32,9 +32,10 @@ describe("Service Worker configuration", () => {
 });
 
 describe("HTML Entry Points", () => {
-  it("root index.html is the landing placeholder and contains OAuth forwarding", () => {
+  it("root index.html is the landing page and contains OAuth forwarding", () => {
     const landingHtml = readFileSync(resolve(import.meta.dirname, "../index.html"), "utf-8");
-    expect(landingHtml).toContain("CarBook — Landing Page");
+    expect(landingHtml).toContain("کاربوک");
+    expect(landingHtml).toContain("ورود به کاربوک");
     expect(landingHtml).toContain("/app");
     expect(landingHtml).toContain("/blog");
     expect(landingHtml).toContain("code=");
