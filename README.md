@@ -33,3 +33,11 @@ CarBook operates with two distinct storage modes:
 - **Authenticated Mode**: User data is stored online in Supabase PostgreSQL, scoped to the user ID and protected by Row Level Security (RLS).
 
 **Important Distinction**: There is no continuous two-way sync between IndexedDB and Supabase. Each mode maintains a single source of truth (IndexedDB for guests, Supabase for authenticated users), and switching modes swaps repositories atomically. When a guest with local records signs into an empty account, an optional one-time migration can transfer local data to the cloud while preserving the local copy.
+
+## License
+
+Copyright © 2026 Fard. All rights reserved.
+
+This project is proprietary. The source code is available for viewing and
+reference only. No permission is granted to use, copy, modify, distribute,
+or commercially exploit the code without prior written permission.
