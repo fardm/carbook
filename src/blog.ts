@@ -7,6 +7,7 @@
 import { ICON_ASSETS, applyIcons } from "./ui/icons";
 import { getAllArticles, getArticleBySlug, getCategories } from "./blog/articles";
 import { updateBlogIndexSeo, updateArticleSeo } from "./blog/seo";
+import { registerServiceWorker } from "./pwa";
 
 // State
 let currentCategory = "همه مقالات";
@@ -600,6 +601,7 @@ function bootBlog(): void {
   initTheme();
   initMobileMenu();
   renderBlog();
+  registerServiceWorker();
 }
 
 if (typeof window !== "undefined") {

@@ -6,14 +6,24 @@ import { parseBlogRoute } from "../src/blog";
 describe("PWA manifest configuration", () => {
   const manifestPath = resolve(import.meta.dirname, "../public/manifest.json");
 
-  it("manifest exists and has correct start_url, scope, and id for /app architecture", () => {
+  it("manifest exists and has correct start_url, scope, display, and icons for /app architecture", () => {
     expect(existsSync(manifestPath)).toBe(true);
     const content = JSON.parse(readFileSync(manifestPath, "utf-8"));
-    expect(content.start_url).toBe("/app/");
-    expect(content.scope).toBe("/app/");
-    expect(content.id).toBe("/");
+    expect(content.name).toBe("CarBook");
+    expect(content.short_name).toBe("CarBook");
+    expect(content.start_url).toBe("/app");
+    expect(content.scope).toBe("/");
     expect(content.display).toBe("standalone");
-    expect(content.icons.length).toBeGreaterThan(0);
+    expect(content.dir).toBe("rtl");
+    expect(content.icons.length).toBeGreaterThanOrEqual(3);
+
+    const iconSizes = content.icons.map((i: { sizes?: string }) => i.sizes);
+    expect(iconSizes).toContain("192x192");
+    expect(iconSizes).toContain("512x512");
+
+    const hasMaskable = content.icons.some((i: { purpose?: string }) => i.purpose === "maskable");
+    expect(hasMaskable).toBe(true);
+
     for (const icon of content.icons) {
       expect(icon.src.startsWith("/")).toBe(true);
     }
@@ -32,8 +42,13 @@ describe("Service Worker configuration", () => {
 });
 
 describe("HTML Entry Points", () => {
-  it("root index.html is the landing page and contains OAuth forwarding", () => {
+  it("root index.html contains PWA and iOS standalone metadata and manifest link", () => {
     const landingHtml = readFileSync(resolve(import.meta.dirname, "../index.html"), "utf-8");
+    expect(landingHtml).toContain('rel="manifest" href="/manifest.json"');
+    expect(landingHtml).toContain('name="apple-mobile-web-app-capable" content="yes"');
+    expect(landingHtml).toContain('name="apple-mobile-web-app-status-bar-style"');
+    expect(landingHtml).toContain('name="apple-mobile-web-app-title" content="CarBook"');
+    expect(landingHtml).toContain('rel="apple-touch-icon"');
     expect(landingHtml).toContain("کاربوک");
     expect(landingHtml).toContain("ورود به کاربوک");
     expect(landingHtml).toContain("/app");
@@ -42,8 +57,13 @@ describe("HTML Entry Points", () => {
     expect(landingHtml).toContain("access_token=");
   });
 
-  it("app/index.html contains the full CarBook application shell", () => {
+  it("app/index.html contains the full CarBook application shell and PWA metadata", () => {
     const appHtml = readFileSync(resolve(import.meta.dirname, "../app/index.html"), "utf-8");
+    expect(appHtml).toContain('rel="manifest" href="/manifest.json"');
+    expect(appHtml).toContain('name="apple-mobile-web-app-capable" content="yes"');
+    expect(appHtml).toContain('name="apple-mobile-web-app-status-bar-style" content="black-translucent"');
+    expect(appHtml).toContain('name="apple-mobile-web-app-title" content="CarBook"');
+    expect(appHtml).toContain('rel="apple-touch-icon"');
     expect(appHtml).toContain("app-bar");
     expect(appHtml).toContain("app-content");
     expect(appHtml).toContain("app-nav");

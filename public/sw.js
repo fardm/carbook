@@ -17,7 +17,7 @@
  * - The `CACHE` name is the release version: bump it when deploying new
  *   assets so old hashed files are evicted (see activate handler).
  */
-const CACHE = "car-maintenance-shell-v8";
+const CACHE = "car-maintenance-shell-v9";
 
 const SHELL_URLS = ["/app/index.html", "/index.html", "/blog/index.html"];
 
@@ -90,6 +90,10 @@ async function precache() {
       if (!htmlResponse.ok) continue;
       const html = await htmlResponse.clone().text();
       await cache.put(shell, htmlResponse);
+      if (shell === "/app/index.html") {
+        await cache.put("/app", htmlResponse.clone());
+        await cache.put("/app/", htmlResponse.clone());
+      }
       const assetUrls = [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
         .map((match) => match[1])
         .filter((ref) => ref && !ref.startsWith("#") && !ref.startsWith("data:") && !/^https?:/.test(ref))

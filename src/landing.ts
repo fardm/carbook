@@ -4,6 +4,7 @@
  */
 
 import { ICON_ASSETS, applyIcons } from "./ui/icons";
+import { registerServiceWorker } from "./pwa";
 
 function initTheme(): void {
   const themeToggle = document.getElementById("theme-toggle");
@@ -133,6 +134,7 @@ function bootLanding(): void {
   initMobileMenu();
   initScrollReveals();
   applyIcons();
+  registerServiceWorker();
 }
 
 if (document.readyState === "loading") {
