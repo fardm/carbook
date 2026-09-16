@@ -56,6 +56,36 @@ describe("HTML Entry Points", () => {
     expect(blogHtml).toContain("/src/blog.ts");
   });
 
+  it("support/index.html contains support info and exact CoffeeTe link", () => {
+    const supportHtml = readFileSync(resolve(import.meta.dirname, "../support/index.html"), "utf-8");
+    expect(supportHtml).toContain("حمایت از کاربوک");
+    expect(supportHtml).toContain("https://www.coffeete.ir/ifard");
+    expect(supportHtml).toContain("پرداخت با سایت کافیته");
+    expect(supportHtml).toContain("زرین پال");
+    expect(supportHtml).toContain("/src/landing.ts");
+  });
+
+  it("privacy/index.html and terms/index.html exist and use landing stylesheet and scripts", () => {
+    const privacyHtml = readFileSync(resolve(import.meta.dirname, "../privacy/index.html"), "utf-8");
+    expect(privacyHtml).toContain("سیاست حفظ حریم خصوصی");
+    expect(privacyHtml).toContain("/src/styles/landing.css");
+    expect(privacyHtml).toContain("/src/landing.ts");
+
+    const termsHtml = readFileSync(resolve(import.meta.dirname, "../terms/index.html"), "utf-8");
+    expect(termsHtml).toContain("شرایط استفاده از خدمات");
+    expect(termsHtml).toContain("/src/styles/landing.css");
+    expect(termsHtml).toContain("/src/landing.ts");
+  });
+
+  it("landing page index.html has unwanted items and button removed and includes support link", () => {
+    const landingHtml = readFileSync(resolve(import.meta.dirname, "../index.html"), "utf-8");
+    expect(landingHtml).not.toContain("مشاهده محیط ثبت سرویس");
+    expect(landingHtml).not.toContain("بخش‌های صفحه");
+    expect(landingHtml).toContain("حمایت مالی");
+    expect(landingHtml).toContain("/support");
+    expect(landingHtml).toContain("hamburger-line");
+  });
+
   it("public/404.html contains GitHub Pages SPA fallback logic for /app and /blog/:slug", () => {
     const notFoundHtml = readFileSync(resolve(import.meta.dirname, "../public/404.html"), "utf-8");
     expect(notFoundHtml).toContain("/app");

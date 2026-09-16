@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    
+    <!-- Primary Meta Tags -->
+    <title>حمایت از کاربوک — CarBook</title>
+    <meta name="title" content="حمایت از کاربوک — CarBook" />
+    <meta name="description" content="حمایت مالی از توسعه و نگهداری رایگان سامانه کاربوک." />
+    <link rel="canonical" href="https://carbook.fardm.ir/support" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://carbook.fardm.ir/support" />
+    <meta property="og:title" content="حمایت از کاربوک — CarBook" />
+    <meta property="og:description" content="حمایت مالی از توسعه و بهبود مستمر کاربوک." />
+    <meta property="og:image" content="/icons/icon-512.png" />
+
+    <!-- Favicon & PWA -->
+    <meta name="theme-color" content="#f2870d" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
+    <!-- Pre-paint Theme Script -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("carbook-landing-theme");
+          if (!saved) {
+            var stored = JSON.parse(localStorage.getItem("car-maintenance-tracker.dataset"));
+            saved = stored && stored.settings && stored.settings.theme;
+          }
+          var dark =
+            saved === "dark" ||
+            (saved !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.dataset.theme = "dark";
+        } catch (e) {}
+      })();
+    </script>
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="/src/styles/landing.css" />
+  </head>
+  <body class="landing-page">
+    <!-- Header -->
+    <header class="landing-header">
+      <div class="landing-container landing-header__inner">
+        <a href="/" class="landing-brand" aria-label="کاربوک — صفحه اصلی">
+          <img class="landing-brand__icon" src="/favicon.svg" alt="" width="32" height="32" />
+          <div class="landing-brand__titles">
+            <span class="landing-brand__title">کاربوک</span>
+            <span class="landing-brand__subtitle">دفترچه نگهداری خودرو</span>
+          </div>
+        </a>
+
+        <nav class="landing-nav" aria-label="ناوبری اصلی">
+          <a class="landing-nav__link" href="/#features">امکانات</a>
+          <a class="landing-nav__link" href="/blog">وبلاگ</a>
+        </nav>
+
+        <div class="landing-header__actions">
+          <button type="button" class="icon-btn" id="theme-toggle" aria-label="تغییر تم رنگی"></button>
+          <a href="/app" class="btn btn--primary">ورود به کاربوک</a>
+          <button type="button" class="menu-toggle-btn" id="menu-toggle" aria-label="باز کردن منو" aria-expanded="false">
+            <span class="hamburger-box" aria-hidden="true">
+              <span class="hamburger-line"></span>
+              <span class="hamburger-line"></span>
+              <span class="hamburger-line"></span>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Navigation Drawer -->
+      <div class="mobile-drawer" id="mobile-drawer" aria-label="منوی موبایل">
+        <a class="mobile-drawer__link" href="/#features">امکانات</a>
+        <a class="mobile-drawer__link" href="/blog">وبلاگ کاربوک</a>
+        <a class="mobile-drawer__link" href="/support">حمایت مالی</a>
+        <div style="margin-top: 12px;">
+          <a href="/app" class="btn btn--primary" style="width: 100%;">ورود به کاربوک</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content">
+      <section class="support-section">
+        <div class="landing-container">
+          <div class="support-card reveal-on-scroll">
+            <div class="support-badge">
+              <span data-icon="heart" aria-hidden="true"></span>
+            </div>
+
+            <h1 class="support-title">حمایت از کاربوک</h1>
+
+            <p class="support-text">
+              کاربوک به صورت رایگان عرضه شده تا همه بدون محدودیت از آن استفاده کنند. اگر این ابزار برای شما مفید بوده میتوانید با حمایت مالی به توسعه و بهبود مستمر این سایت کمک کنید.
+            </p>
+
+            <div class="support-cta-wrap">
+              <a
+                href="https://www.coffeete.ir/ifard"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="support-pay-btn"
+                id="coffeete-pay-btn"
+              >
+                <span data-icon="heart" aria-hidden="true"></span>
+                <span>پرداخت با سایت کافیته</span>
+              </a>
+              <p class="support-gateway-note">پرداخت ریالی با کارتهای بانکی از طریق درگاه زرین پال</p>
+            </div>
+
+            <a href="/" class="support-back-link">
+              <span data-icon="arrow-right" aria-hidden="true"></span>
+              <span>بازگشت به صفحه اصلی</span>
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="landing-footer">
+      <div class="landing-container">
+        <div class="footer-top">
+          <div class="footer-brand">
+            <a href="/" class="landing-brand">
+              <img class="landing-brand__icon" src="/favicon.svg" alt="" width="28" height="28" />
+              <div class="landing-brand__titles">
+                <span class="landing-brand__title">کاربوک</span>
+                <span class="landing-brand__subtitle">دفترچه نگهداری خودرو</span>
+              </div>
+            </a>
+            <p class="footer-desc">
+              سامانه دیجیتال ثبت، مدیریت و پیگیری سرویس‌ها و استهلاک قطعات مصرفی خودرو.
+            </p>
+          </div>
+
+          <div class="footer-col">
+            <h5 class="footer-col__title">دسترسی سریع</h5>
+            <a class="footer-col__link" href="/app">ورود به برنامه</a>
+            <a class="footer-col__link" href="/app/#/vehicle">گاراژ خودروها</a>
+            <a class="footer-col__link" href="/app/#/reminders">بخش یادآوری‌ها</a>
+            <a class="footer-col__link" href="/blog">وبلاگ کاربوک</a>
+          </div>
+
+          <div class="footer-col">
+            <h5 class="footer-col__title">اطلاعات و قوانین</h5>
+            <a class="footer-col__link" href="/privacy">حریم خصوصی</a>
+            <a class="footer-col__link" href="/terms">شرایط استفاده</a>
+          </div>
+
+          <div class="footer-col">
+            <h5 class="footer-col__title">حمایت مالی</h5>
+            <a class="footer-col__link footer-support-link" href="/support">
+              <span data-icon="heart" aria-hidden="true"></span>
+              <span>حمایت مالی</span>
+            </a>
+            <p class="footer-support-note">کمک به تداوم و توسعه رایگان کاربوک</p>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <span>© ۲۰۲۶ کاربوک (CarBook). تمامی حقوق محفوظ است.</span>
+          <span>ساخته‌شده با تمرکز بر سادگی، سرعت و احترام به حریم خصوصی.</span>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Interactive Logic -->
+    <script type="module" src="/src/landing.ts"></script>
+  </body>
+</html>

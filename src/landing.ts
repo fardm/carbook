@@ -3,25 +3,39 @@
  * Handles theme toggling, mobile drawer, scroll reveals, and icon rendering.
  */
 
-import { applyIcons } from "./ui/icons";
+import { ICON_ASSETS, applyIcons } from "./ui/icons";
 
 function initTheme(): void {
   const themeToggle = document.getElementById("theme-toggle");
-  const themeIcon = document.getElementById("theme-toggle-icon");
   if (!themeToggle) return;
 
   const getTheme = (): "dark" | "light" => {
     return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
   };
 
-  const updateIcon = (theme: "dark" | "light") => {
-    if (!themeIcon) return;
-    // Set sun or moon icon
-    themeIcon.setAttribute("data-icon", theme === "dark" ? "lightbulb" : "spark-plug");
-    applyIcons();
+  const updateThemeUI = (theme: "dark" | "light") => {
+    const iconName = theme === "dark" ? "moon" : "sun";
+    const label =
+      theme === "dark"
+        ? "حالت تیره (کلیک برای تغییر به حالت روشن)"
+        : "حالت روشن (کلیک برای تغییر به حالت تیره)";
+    themeToggle.setAttribute("aria-label", label);
+    themeToggle.setAttribute("title", label);
+
+    const svgMarkup = ICON_ASSETS[iconName];
+    if (svgMarkup) {
+      themeToggle.innerHTML = svgMarkup;
+      const svg = themeToggle.querySelector("svg");
+      if (svg) {
+        svg.setAttribute("class", "theme-toggle__svg");
+        svg.setAttribute("aria-hidden", "true");
+        svg.setAttribute("width", "20");
+        svg.setAttribute("height", "20");
+      }
+    }
   };
 
-  updateIcon(getTheme());
+  updateThemeUI(getTheme());
 
   themeToggle.addEventListener("click", () => {
     const current = getTheme();
@@ -36,7 +50,7 @@ function initTheme(): void {
     } catch {
       /* ignore */
     }
-    updateIcon(next);
+    updateThemeUI(next);
   });
 }
 
@@ -48,6 +62,7 @@ function initMobileMenu(): void {
   const setOpen = (open: boolean) => {
     drawer.classList.toggle("is-open", open);
     toggleBtn.setAttribute("aria-expanded", String(open));
+    toggleBtn.setAttribute("aria-label", open ? "بستن منو" : "باز کردن منو");
   };
 
   toggleBtn.addEventListener("click", () => {
@@ -57,6 +72,20 @@ function initMobileMenu(): void {
 
   drawer.querySelectorAll("a").forEach((link) => {
     link.addEventListener("click", () => setOpen(false));
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!drawer.classList.contains("is-open")) return;
+    const target = e.target as Node | null;
+    if (target && !drawer.contains(target) && !toggleBtn.contains(target)) {
+      setOpen(false);
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && drawer.classList.contains("is-open")) {
+      setOpen(false);
+    }
   });
 }
 

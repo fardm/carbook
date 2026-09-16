@@ -80,32 +80,27 @@
 
         <nav class="landing-nav" aria-label="ناوبری اصلی">
           <a class="landing-nav__link" href="#features">امکانات</a>
-          <a class="landing-nav__link" href="#health">سلامت قطعات</a>
-          <a class="landing-nav__link" href="#history">سوابق سرویس</a>
-          <a class="landing-nav__link" href="#reminders">یادآوری‌ها</a>
           <a class="landing-nav__link" href="/blog">وبلاگ</a>
         </nav>
 
         <div class="landing-header__actions">
-          <button type="button" class="icon-btn" id="theme-toggle" aria-label="تغییر تم رنگی">
-            <span id="theme-toggle-icon" data-icon="lightbulb"></span>
-          </button>
-          <a href="/app/#/account" class="btn btn--text">ورود به حساب</a>
+          <button type="button" class="icon-btn" id="theme-toggle" aria-label="تغییر تم رنگی"></button>
           <a href="/app" class="btn btn--primary">ورود به کاربوک</a>
-          <button type="button" class="icon-btn menu-toggle-btn" id="menu-toggle" aria-label="باز کردن منو" aria-expanded="false">
-            <span data-icon="more-vertical"></span>
+          <button type="button" class="menu-toggle-btn" id="menu-toggle" aria-label="باز کردن منو" aria-expanded="false">
+            <span class="hamburger-box" aria-hidden="true">
+              <span class="hamburger-line"></span>
+              <span class="hamburger-line"></span>
+              <span class="hamburger-line"></span>
+            </span>
           </button>
         </div>
       </div>
 
       <!-- Mobile Navigation Drawer -->
       <div class="mobile-drawer" id="mobile-drawer" aria-label="منوی موبایل">
-        <a class="mobile-drawer__link" href="#features">امکانات اصلی</a>
-        <a class="mobile-drawer__link" href="#health">پایش سلامت قطعات</a>
-        <a class="mobile-drawer__link" href="#history">تایم‌لاین سوابق</a>
-        <a class="mobile-drawer__link" href="#reminders">یادآوری‌های موعد</a>
+        <a class="mobile-drawer__link" href="#features">امکانات</a>
         <a class="mobile-drawer__link" href="/blog">وبلاگ کاربوک</a>
-        <a class="mobile-drawer__link" href="/app/#/account">ورود به حساب کاربری</a>
+        <a class="mobile-drawer__link" href="/support">حمایت مالی</a>
         <div style="margin-top: 12px;">
           <a href="/app" class="btn btn--primary" style="width: 100%;">ورود به کاربوک</a>
         </div>
@@ -144,7 +139,7 @@
                   <span class="mockup-dot mockup-dot--green"></span>
                 </div>
                 <div class="mockup-url-bar">carbook.fardm.ir/app</div>
-                <div style="width: 48px;"></div>
+                <div class="mockup-window__spacer" style="width: 48px;"></div>
               </div>
 
               <div class="mockup-content">
@@ -352,7 +347,7 @@
             <span class="section-tag">امکانات اصلی</span>
             <h2 class="section-title">طراحی‌شده برای مدیریت اصولی خودرو</h2>
             <p class="section-subtitle">
-              هر آنچه برای مدیریت منظم، نگهداری پیشگیرانه و پایش فنی خودرو نیاز دارید، با رابط کاربری روان و بهینه.
+              هر آنچه برای مدیریت منظم، نگهداری پیشگیرانه و پایش فنی خودرو نیاز دارید.
             </p>
           </div>
 
@@ -465,9 +460,6 @@
               <p class="section-subtitle">
                 هنگام تصمیم‌گیری برای سرویس‌های دوره‌ای یا هنگام فروش خودرو، یک کارنامه معتبر و منسجم از نگهداری فنی در دست دارید.
               </p>
-              <div style="margin-top: 8px;">
-                <a href="/app" class="btn btn--primary">مشاهده محیط ثبت سرویس</a>
-              </div>
             </div>
 
             <div class="history-timeline reveal-on-scroll">
@@ -788,14 +780,6 @@
           </div>
 
           <div class="footer-col">
-            <h5 class="footer-col__title">بخش‌های صفحه</h5>
-            <a class="footer-col__link" href="#features">امکانات اصلی</a>
-            <a class="footer-col__link" href="#health">پایش سلامت قطعات</a>
-            <a class="footer-col__link" href="#history">تایم‌لاین سوابق</a>
-            <a class="footer-col__link" href="#reminders">یادآوری‌های موعد</a>
-          </div>
-
-          <div class="footer-col">
             <h5 class="footer-col__title">دسترسی سریع</h5>
             <a class="footer-col__link" href="/app">ورود به برنامه</a>
             <a class="footer-col__link" href="/app/#/vehicle">گاراژ خودروها</a>
@@ -807,6 +791,15 @@
             <h5 class="footer-col__title">اطلاعات و قوانین</h5>
             <a class="footer-col__link" href="/privacy">حریم خصوصی</a>
             <a class="footer-col__link" href="/terms">شرایط استفاده</a>
+          </div>
+
+          <div class="footer-col">
+            <h5 class="footer-col__title">حمایت مالی</h5>
+            <a class="footer-col__link footer-support-link" href="/support">
+              <span data-icon="heart" aria-hidden="true"></span>
+              <span>حمایت مالی</span>
+            </a>
+            <p class="footer-support-note">کمک به تداوم و توسعه رایگان کاربوک</p>
           </div>
         </div>
 

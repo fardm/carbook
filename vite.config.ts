@@ -10,16 +10,28 @@ import { defineConfig, type Plugin } from "vitest/config";
 function multiPageFallbackPlugin(): Plugin {
   const handler = (req: { url?: string }, _res: unknown, next: () => void) => {
     if (!req.url) return next();
-    if (req.url === "/app") {
+    if (req.url === "/app" || req.url === "/app/") {
       req.url = "/app/index.html";
       return next();
     }
-    if (req.url === "/blog") {
+    if (req.url === "/blog" || req.url === "/blog/") {
       req.url = "/blog/index.html";
       return next();
     }
     if (req.url.startsWith("/blog/") && !req.url.includes(".")) {
       req.url = "/blog/index.html";
+      return next();
+    }
+    if (req.url === "/support" || req.url === "/support/") {
+      req.url = "/support/index.html";
+      return next();
+    }
+    if (req.url === "/privacy" || req.url === "/privacy/") {
+      req.url = "/privacy/index.html";
+      return next();
+    }
+    if (req.url === "/terms" || req.url === "/terms/") {
+      req.url = "/terms/index.html";
       return next();
     }
     next();
@@ -44,6 +56,9 @@ export default defineConfig({
         main: resolve(import.meta.dirname, "index.html"),
         app: resolve(import.meta.dirname, "app/index.html"),
         blog: resolve(import.meta.dirname, "blog/index.html"),
+        support: resolve(import.meta.dirname, "support/index.html"),
+        privacy: resolve(import.meta.dirname, "privacy/index.html"),
+        terms: resolve(import.meta.dirname, "terms/index.html"),
       },
     },
   },
