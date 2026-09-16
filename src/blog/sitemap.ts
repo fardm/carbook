@@ -6,7 +6,7 @@
 
 import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { parseFrontMatter } from "./markdown";
+import { parseFrontMatter } from "./markdown.ts";
 
 export interface SitemapEntry {
   loc: string;

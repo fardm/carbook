@@ -17,20 +17,24 @@ let tocObserver: IntersectionObserver | null = null;
 export function parseBlogRoute(
   pathname: string,
   search: string
-): { type: "index" | "post"; slug?: string } {
+): { type: "index" | "post" | "not_found"; slug?: string } {
   const params = new URLSearchParams(search);
   const querySlug = params.get("slug");
   if (querySlug) {
     return { type: "post", slug: decodeURIComponent(querySlug) };
   }
 
-  const cleaned = pathname.replace(/\/+$/, ""); // remove trailing slashes
-  const match = cleaned.match(/^\/blog\/(.+)$/);
+  const cleaned = pathname.replace(/\/+$/, "") || "/";
+  if (cleaned === "/blog") {
+    return { type: "index" };
+  }
+
+  const match = cleaned.match(/^\/blog\/([^/]+)$/);
   if (match && match[1]) {
     return { type: "post", slug: decodeURIComponent(match[1]) };
   }
 
-  return { type: "index" };
+  return { type: "not_found" };
 }
 
 function initTheme(): void {
@@ -328,22 +332,27 @@ function renderBlogIndex(container: HTMLElement): void {
   applyIcons();
 }
 
+function renderNotFoundPage(container: HTMLElement): void {
+  document.title = "صفحه پیدا نشد — CarBook";
+  container.innerHTML = `
+    <div class="landing-container" style="padding-top: 64px; padding-bottom: 80px;">
+      <div class="blog-empty-state" style="max-width: 480px; margin: 0 auto; text-align: center; background: var(--md-sys-color-surface-container, #ffffff); border: 1px solid var(--md-sys-color-outline-variant, rgba(0,0,0,0.08)); border-radius: 20px; padding: 48px 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+        <div style="display: inline-block; background: rgba(242, 135, 13, 0.12); color: #c46400; font-weight: 700; font-size: 1.125rem; padding: 6px 16px; border-radius: 9999px; margin-bottom: 16px;">خطای ۴۰۴</div>
+        <h1 style="font-size: 1.875rem; font-weight: 800; margin: 0 0 12px; color: var(--md-sys-color-on-surface, #1a1a1a);">صفحه پیدا نشد</h1>
+        <p style="color: var(--md-sys-color-on-surface-variant, #5c5b59); margin: 0 0 28px; line-height: 1.6;">متأسفانه صفحه‌ای که به دنبال آن بودید پیدا نشد یا آدرس آن تغییر کرده است.</p>
+        <a href="/" class="btn btn--primary" style="display: inline-flex; align-items: center; justify-content: center; padding: 12px 28px; border-radius: 12px; font-weight: 600;">بازگشت به صفحه اصلی</a>
+      </div>
+    </div>
+  `;
+  bindLinks(container);
+  applyIcons();
+}
+
 function renderArticlePage(container: HTMLElement, slug: string): void {
   const article = getArticleBySlug(slug);
 
   if (!article) {
-    document.title = "مقاله یافت نشد — وبلاگ کاربوک";
-    container.innerHTML = `
-      <div class="landing-container" style="padding-top: 64px; padding-bottom: 80px;">
-        <div class="blog-empty-state">
-          <h1 style="font-size: 1.75rem; margin-bottom: 12px;">مقاله مورد نظر یافت نشد</h1>
-          <p>ممکن است آدرس مقاله تغییر کرده یا حذف شده باشد.</p>
-          <a href="/blog" class="btn btn--primary" data-link>بازگشت به وبلاگ</a>
-        </div>
-      </div>
-    `;
-    bindLinks(container);
-    applyIcons();
+    renderNotFoundPage(container);
     return;
   }
 
@@ -568,7 +577,9 @@ export function renderBlog(): void {
     window.history.replaceState(null, "", `/blog/${encodeURIComponent(route.slug)}`);
   }
 
-  if (route.type === "post" && route.slug) {
+  if (route.type === "not_found") {
+    renderNotFoundPage(appEl);
+  } else if (route.type === "post" && route.slug) {
     renderArticlePage(appEl, route.slug);
   } else {
     renderBlogIndex(appEl);

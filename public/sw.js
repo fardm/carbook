@@ -17,9 +17,17 @@
  * - The `CACHE` name is the release version: bump it when deploying new
  *   assets so old hashed files are evicted (see activate handler).
  */
-const CACHE = "car-maintenance-shell-v9";
+const CACHE = "car-maintenance-shell-v10";
 
-const SHELL_URLS = ["/app/index.html", "/index.html", "/blog/index.html"];
+const SHELL_URLS = [
+  "/index.html",
+  "/app/index.html",
+  "/blog/index.html",
+  "/support/index.html",
+  "/privacy/index.html",
+  "/terms/index.html",
+  "/404.html",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(precache());
@@ -90,13 +98,38 @@ async function precache() {
       if (!htmlResponse.ok) continue;
       const html = await htmlResponse.clone().text();
       await cache.put(shell, htmlResponse);
-      if (shell === "/app/index.html") {
+
+      if (shell === "/index.html") {
+        await cache.put("/", htmlResponse.clone());
+      } else if (shell === "/app/index.html") {
         await cache.put("/app", htmlResponse.clone());
         await cache.put("/app/", htmlResponse.clone());
+      } else if (shell === "/blog/index.html") {
+        await cache.put("/blog", htmlResponse.clone());
+        await cache.put("/blog/", htmlResponse.clone());
+      } else if (shell === "/support/index.html") {
+        await cache.put("/support", htmlResponse.clone());
+        await cache.put("/support/", htmlResponse.clone());
+      } else if (shell === "/privacy/index.html") {
+        await cache.put("/privacy", htmlResponse.clone());
+        await cache.put("/privacy/", htmlResponse.clone());
+      } else if (shell === "/terms/index.html") {
+        await cache.put("/terms", htmlResponse.clone());
+        await cache.put("/terms/", htmlResponse.clone());
       }
+
+      // Only precache real static assets (CSS, JS, images, fonts, icons, JSON).
+      // Never treat HTML <a href="..."> routes as static assets.
       const assetUrls = [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
         .map((match) => match[1])
-        .filter((ref) => ref && !ref.startsWith("#") && !ref.startsWith("data:") && !/^https?:/.test(ref))
+        .filter(
+          (ref) =>
+            ref &&
+            !ref.startsWith("#") &&
+            !ref.startsWith("data:") &&
+            !/^https?:/.test(ref) &&
+            /\.(?:js|css|svg|png|jpg|jpeg|webp|ico|json|woff2|woff|ttf)(?:[?#]|$)/i.test(ref),
+        )
         .map((ref) => new URL(ref, self.location.origin).pathname);
 
       // Also cache the fonts the CSS references.
@@ -128,14 +161,27 @@ async function precache() {
 }
 
 /** Determines the matching cached shell for a URL pathname. */
-function matchingShellPath(pathname: string): string {
-  if (pathname === "/app" || pathname.startsWith("/app/")) {
+function matchingShellPath(pathname) {
+  const clean = pathname.replace(/\/+$/, "") || "/";
+  if (clean === "/" || clean === "/index.html") {
+    return "/index.html";
+  }
+  if (clean === "/app" || clean.startsWith("/app/")) {
     return "/app/index.html";
   }
-  if (pathname === "/blog" || pathname.startsWith("/blog/")) {
+  if (clean === "/blog" || clean.startsWith("/blog/")) {
     return "/blog/index.html";
   }
-  return "/index.html";
+  if (clean === "/support" || clean.startsWith("/support/")) {
+    return "/support/index.html";
+  }
+  if (clean === "/privacy" || clean.startsWith("/privacy/")) {
+    return "/privacy/index.html";
+  }
+  if (clean === "/terms" || clean.startsWith("/terms/")) {
+    return "/terms/index.html";
+  }
+  return "/404.html";
 }
 
 /** Network-first for navigations: fresh shell when online, cached shell
@@ -147,11 +193,17 @@ async function networkFirstNavigation(request) {
   const shellPath = matchingShellPath(url.pathname);
   try {
     const response = await fetch(request);
-    if (response.ok) cache.put(shellPath, response.clone());
+    if (response.ok && shellPath && shellPath !== "/404.html") {
+      cache.put(shellPath, response.clone());
+    }
     return response;
   } catch {
-    const cached = (await cache.match(request)) ?? (await cache.match(shellPath));
-    if (cached) return cached;
+    if (shellPath) {
+      const cached = (await cache.match(request)) ?? (await cache.match(shellPath));
+      if (cached) return cached;
+    }
+    const notFound = await cache.match("/404.html");
+    if (notFound) return notFound;
     return Response.error();
   }
 }
@@ -172,8 +224,11 @@ async function cacheFirst(request) {
     // fall back to the appropriate shell so the app still boots offline.
     if (request.mode === "navigate") {
       const url = new URL(request.url);
-      const shell = await cache.match(matchingShellPath(url.pathname));
+      const shellPath = matchingShellPath(url.pathname);
+      const shell = await cache.match(shellPath);
       if (shell) return shell;
+      const notFound = await cache.match("/404.html");
+      if (notFound) return notFound;
     }
     return Response.error();
   }

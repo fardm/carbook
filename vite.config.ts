@@ -1,42 +1,91 @@
 import { resolve } from "node:path";
+import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { defineConfig, type Plugin } from "vitest/config";
-import { writeSitemapFiles, generateSitemapXml } from "./src/blog/sitemap";
+import { writeSitemapFiles, generateSitemapXml, discoverBlogArticles } from "./src/blog/sitemap.ts";
 
 /**
- * Dev & preview server plugin to support direct navigation/refresh for:
- * - /app (rewrites to /app/index.html)
- * - /blog (rewrites to /blog/index.html)
- * - /blog/:slug (rewrites to /blog/index.html)
+ * Dev & preview server plugin to support deterministic routing for:
+ * - / (Landing page only)
+ * - /app (App workspace only)
+ * - /blog (Blog index only)
+ * - /blog/:slug (Blog article only for valid slugs, 404 for invalid slugs)
+ * - /support, /privacy, /terms (Informational MPA pages)
+ * - Any unknown route -> /404.html
  */
 function multiPageFallbackPlugin(): Plugin {
   const handler = (req: { url?: string }, _res: unknown, next: () => void) => {
     if (!req.url) return next();
-    if (req.url === "/app" || req.url === "/app/") {
-      req.url = "/app/index.html";
+    const parsedUrl = new URL(req.url, "http://localhost");
+    const pathname = parsedUrl.pathname.replace(/\/+$/, "") || "/";
+    const search = parsedUrl.search;
+
+    // 1. Static asset files, Vite internal modules, and vite HMR
+    if (
+      pathname.includes(".") ||
+      pathname.startsWith("/@") ||
+      pathname.startsWith("/node_modules/") ||
+      pathname.startsWith("/src/") ||
+      pathname.startsWith("/fonts/") ||
+      pathname.startsWith("/icons/") ||
+      pathname.startsWith("/images/")
+    ) {
       return next();
     }
-    if (req.url === "/blog" || req.url === "/blog/") {
-      req.url = "/blog/index.html";
+
+    // 2. Root landing page only
+    if (pathname === "/") {
+      req.url = "/index.html" + search;
       return next();
     }
-    if (req.url.startsWith("/blog/") && !req.url.includes(".")) {
-      req.url = "/blog/index.html";
+
+    // 3. /app workspace only
+    if (pathname === "/app") {
+      req.url = "/app/index.html" + search;
       return next();
     }
-    if (req.url === "/support" || req.url === "/support/") {
-      req.url = "/support/index.html";
+
+    // 4. /blog index only
+    if (pathname === "/blog") {
+      req.url = "/blog/index.html" + search;
       return next();
     }
-    if (req.url === "/privacy" || req.url === "/privacy/") {
-      req.url = "/privacy/index.html";
+
+    // 5. /blog/:slug (exact single segment)
+    if (pathname.startsWith("/blog/")) {
+      const slug = pathname.slice("/blog/".length);
+      // Ensure single segment slug (no additional slashes)
+      if (!slug.includes("/")) {
+        const articles = discoverBlogArticles(resolve(import.meta.dirname, "content/blog"));
+        const isValidSlug = articles.some((a) => a.slug === slug);
+        if (isValidSlug) {
+          req.url = "/blog/index.html" + search;
+          return next();
+        }
+      }
+      // Unknown slug or malformed path under /blog -> 404
+      req.url = "/404.html" + search;
       return next();
     }
-    if (req.url === "/terms" || req.url === "/terms/") {
-      req.url = "/terms/index.html";
+
+    // 6. Other MPA static pages
+    if (pathname === "/support") {
+      req.url = "/support/index.html" + search;
       return next();
     }
-    next();
+    if (pathname === "/privacy") {
+      req.url = "/privacy/index.html" + search;
+      return next();
+    }
+    if (pathname === "/terms") {
+      req.url = "/terms/index.html" + search;
+      return next();
+    }
+
+    // 7. Any unknown/invalid route -> 404 page
+    req.url = "/404.html" + search;
+    return next();
   };
+
   return {
     name: "multipage-fallback-plugin",
     configureServer(server) {
@@ -73,9 +122,46 @@ function sitemapPlugin(): Plugin {
   };
 }
 
+/**
+ * Emits clean HTML entry points and static directory routes for GitHub Pages deployment.
+ */
+function gitHubPagesStaticPlugin(): Plugin {
+  return {
+    name: "github-pages-static-plugin",
+    closeBundle() {
+      const distDir = resolve(import.meta.dirname, "dist");
+      if (!existsSync(distDir)) return;
+
+      const copyIfExist = (srcRel: string, destRel: string) => {
+        const src = resolve(distDir, srcRel);
+        const dest = resolve(distDir, destRel);
+        if (existsSync(src)) {
+          mkdirSync(resolve(dest, ".."), { recursive: true });
+          copyFileSync(src, dest);
+        }
+      };
+
+      // Clean extension-free MPA HTML files for GitHub Pages root hosting
+      copyIfExist("app/index.html", "app.html");
+      copyIfExist("blog/index.html", "blog.html");
+      copyIfExist("support/index.html", "support.html");
+      copyIfExist("privacy/index.html", "privacy.html");
+      copyIfExist("terms/index.html", "terms.html");
+
+      // Generate static HTML files for each blog article
+      const articles = discoverBlogArticles(resolve(import.meta.dirname, "content/blog"));
+      for (const article of articles) {
+        copyIfExist("blog/index.html", `blog/${article.slug}/index.html`);
+        copyIfExist("blog/index.html", `blog/${article.slug}.html`);
+      }
+    },
+  };
+}
+
 export default defineConfig({
   base: "/",
-  plugins: [multiPageFallbackPlugin(), sitemapPlugin()],
+  appType: "mpa",
+  plugins: [multiPageFallbackPlugin(), sitemapPlugin(), gitHubPagesStaticPlugin()],
   build: {
     rollupOptions: {
       input: {

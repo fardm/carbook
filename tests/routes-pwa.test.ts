@@ -33,11 +33,20 @@ describe("PWA manifest configuration", () => {
 describe("Service Worker configuration", () => {
   const swPath = resolve(import.meta.dirname, "../public/sw.js");
 
-  it("sw.js precaches /app/index.html and handles notification clicks to /app/#/reminders", () => {
+  it("sw.js exists, has valid syntax without TypeScript type annotations, and uses cache v10", () => {
     expect(existsSync(swPath)).toBe(true);
     const swContent = readFileSync(swPath, "utf-8");
+    expect(swContent).toContain('const CACHE = "car-maintenance-shell-v10";');
+    expect(swContent).not.toMatch(/function\s+\w+\([^)]*:\s*(?:string|boolean|number)/);
     expect(swContent).toContain("/app/index.html");
+    expect(swContent).toContain("/404.html");
     expect(swContent).toContain("/app/#/reminders");
+  });
+
+  it("sw.js matchingShellPath returns /404.html for unknown routes instead of /index.html", () => {
+    const swContent = readFileSync(swPath, "utf-8");
+    // Extract matchingShellPath function body
+    expect(swContent).toContain('return "/404.html";');
   });
 });
 
@@ -55,6 +64,24 @@ describe("HTML Entry Points", () => {
     expect(landingHtml).toContain("/blog");
     expect(landingHtml).toContain("code=");
     expect(landingHtml).toContain("access_token=");
+  });
+
+  it("verifies all landing page internal and external navigation links", () => {
+    const landingHtml = readFileSync(resolve(import.meta.dirname, "../index.html"), "utf-8");
+    // صفحه اصلی -> /
+    expect(landingHtml).toContain('href="/"');
+    expect(landingHtml).toMatch(/href="\/"[^>]*>صفحه اصلی/);
+    // ورود به کاربوک -> /app
+    expect(landingHtml).toContain('href="/app"');
+    expect(landingHtml).toMatch(/href="\/app"[^>]*>ورود به کاربوک/);
+    // وبلاگ -> /blog
+    expect(landingHtml).toContain('href="/blog"');
+    expect(landingHtml).toMatch(/href="\/blog"[^>]*>وبلاگ/);
+    // حمایت مالی -> /support
+    expect(landingHtml).toContain('href="/support"');
+    expect(landingHtml).toMatch(/href="\/support"[^>]*>[\s\S]*?حمایت مالی/);
+    // گیت هاب -> external repo
+    expect(landingHtml).toContain('href="https://github.com/fardm/carbook"');
   });
 
   it("app/index.html contains the full CarBook application shell and PWA metadata", () => {
@@ -109,11 +136,19 @@ describe("HTML Entry Points", () => {
     expect(landingHtml).toContain("hamburger-line");
   });
 
-  it("public/404.html contains GitHub Pages SPA fallback logic for /app and /blog/:slug", () => {
+  it("public/404.html contains 'صفحه پیدا نشد', link to home, and SPA fallback logic", () => {
     const notFoundHtml = readFileSync(resolve(import.meta.dirname, "../public/404.html"), "utf-8");
+    expect(notFoundHtml).toContain("صفحه پیدا نشد");
+    expect(notFoundHtml).toContain("بازگشت به صفحه اصلی");
+    expect(notFoundHtml).toContain('href="/"');
     expect(notFoundHtml).toContain("/app");
-    expect(notFoundHtml).toContain("/blog/");
+    expect(notFoundHtml).toContain("/blog");
     expect(notFoundHtml).toContain("slug");
+  });
+
+  it("public/.nojekyll exists for GitHub Pages direct static routing", () => {
+    const nojekyllPath = resolve(import.meta.dirname, "../public/.nojekyll");
+    expect(existsSync(nojekyllPath)).toBe(true);
   });
 });
 

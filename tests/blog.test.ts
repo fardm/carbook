@@ -293,4 +293,29 @@ describe("Sticky Table of Contents (TOC) Specifications", () => {
   });
 });
 
+describe("Blog 404 and Error Handling", () => {
+  beforeEach(() => {
+    window.scrollTo = () => {};
+    document.body.innerHTML = '<main id="blog-app" class="blog-main"></main>';
+  });
+
+  it("renders standard 404 error page for unknown blog slug", () => {
+    window.history.replaceState(null, "", "/blog/non-existent-slug-xyz");
+    renderBlog();
+
+    expect(document.title).toBe("صفحه پیدا نشد — CarBook");
+    const heading = document.querySelector("h1");
+    expect(heading).not.toBeNull();
+    expect(heading!.textContent).toBe("صفحه پیدا نشد");
+
+    const homeLink = document.querySelector('a[href="/"]');
+    expect(homeLink).not.toBeNull();
+    expect(homeLink!.textContent).toContain("بازگشت به صفحه اصلی");
+  });
+
+  it("parses invalid nested blog paths as not_found", () => {
+    expect(parseBlogRoute("/blog/sub/nested", "")).toEqual({ type: "not_found" });
+  });
+});
+
 
