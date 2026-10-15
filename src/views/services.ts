@@ -643,7 +643,6 @@ function serviceCardHtml(item: MaintenanceItem, dataset: ReturnType<typeof store
   const lines = itemMetricLines(item, dataset);
   const notRecorded = t("maintenance.detail.notRecorded");
 
-  // Recommended NEXT replacement (تعویض بعدی), not the last one: remaining
   // days until the estimated due date and remaining km until the due
   // odometer — the same numbers the detail page's status cards show.
   const recommendedDate = lines.calc.estimatedDueDate ?? lines.calc.nextDueDate;
