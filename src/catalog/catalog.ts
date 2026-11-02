@@ -175,6 +175,13 @@ export const CATALOG: readonly CatalogEntry[] = [
     icon: "wire",
     suggestedKm: 40000,
     kmRange: [30000, 60000],
+  },
+  {
+    id: "hydraulicBelt",
+    category: "other",
+    icon: "timing-belt",
+    suggestedKm: 80000,
+    kmRange: [30000, 60000],
   }
 ];
 

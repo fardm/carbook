@@ -51,7 +51,9 @@ export type CatalogServiceId =
   | "heater"
   | "clutchDisc"
   | "exhaust"
-  | "simClaj";
+  | "simClaj"
+  | "hydraulicBelt"
+  ;
 
 /** A predefined maintenance template (§13). */
 export interface CatalogEntry {

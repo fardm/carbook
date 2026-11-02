@@ -525,6 +525,7 @@ export const fa = {
     clutchDisc: "صفحه کلاج",
     exhaust: "اگزوز",
     simClaj: "سیم کلاج",
+    hydraulicBelt: "تسمه هیدرولیک",
   },
 } as const;
 

@@ -31,5 +31,6 @@ export const en = {
     clutchDisc: "Clutch Disc",
     exhaust: "Exhaust",
     simClaj: "Sim Claj",
+    hydraulicBelt: "Hydraulic Belt",
   },
 };
