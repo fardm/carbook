@@ -30,5 +30,6 @@ export const en = {
     heater: "Heater",
     clutchDisc: "Clutch Disc",
     exhaust: "Exhaust",
+    simClaj: "Sim Claj",
   },
 };

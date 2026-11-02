@@ -524,6 +524,7 @@ export const fa = {
     heater: "بخاری",
     clutchDisc: "صفحه کلاج",
     exhaust: "اگزوز",
+    simClaj: "سیم کلاج",
   },
 } as const;
 

@@ -168,6 +168,13 @@ export const CATALOG: readonly CatalogEntry[] = [
     icon: "exhaust",
     suggestedKm: 150000,
     kmRange: [120000, 180000],
+  },
+  {
+    id: "simClaj",
+    category: "other",
+    icon: "wire",
+    suggestedKm: 40000,
+    kmRange: [30000, 60000],
   }
 ];
 
